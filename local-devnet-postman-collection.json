@@ -1,0 +1,39 @@
+{
+  "info": {
+    "_postman_id": "43d967c1-81d6-4a48-b9cc-cc188322fc3c",
+    "name": "Aztec-local-devnet",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Post bride config localhost",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "server-auth-token",
+            "value": "!changeme#",
+            "type": "text"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"bridgeConfigs\": [\n        {\n            \"numTxs\": 40,\n            \"gas\": 500000,\n            \"bridgeAddressId\": 1,\n            \"permittedAssets\": [\n                1\n            ]\n        },\n        {\n            \"numTxs\": 50,\n            \"gas\": 250000,\n            \"bridgeAddressId\": 2,\n            \"permittedAssets\": [\n                0,\n                2\n            ]\n        },\n        {\n            \"numTxs\": 30,\n            \"gas\": 250000,\n            \"bridgeAddressId\": 3,\n            \"permittedAssets\": [\n                0,\n                4,\n                1,\n                3\n            ]\n        },\n        {\n            \"numTxs\": 20,\n            \"gas\": 500000,\n            \"bridgeAddressId\": 5,\n            \"permittedAssets\": [\n                1\n            ]\n        },\n        {\n            \"numTxs\": 30,\n            \"gas\": 800000,\n            \"bridgeAddressId\": 4,\n            \"permittedAssets\": [\n                3,\n                1,\n                4,\n                0\n            ]\n        },\n        {\n            \"numTxs\": 20,\n            \"gas\": 400000,\n            \"bridgeAddressId\": 7,\n            \"permittedAssets\": [\n                1,\n                0\n            ]\n        },\n        {\n            \"numTxs\": 30,\n            \"gas\": 300000,\n            \"bridgeAddressId\": 6,\n            \"permittedAssets\": [\n                0,\n                5,\n                2,\n                6,\n                1,\n                7\n            ]\n        },\n        {\n            \"numTxs\": 30,\n            \"gas\": 400000,\n            \"bridgeAddressId\": 9,\n            \"permittedAssets\": [\n                0,\n                9,\n                1,\n                8\n            ]\n        }\n    ],\n    \"feePayingAssetIds\": [0, 1]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "http://localhost:8081/runtime-config",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8081",
+          "path": ["runtime-config"]
+        }
+      },
+      "response": []
+    }
+  ]
+}
