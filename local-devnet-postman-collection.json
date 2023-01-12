@@ -26,9 +26,9 @@
           }
         },
         "url": {
-          "raw": "https://locahost:8081/runtime-config",
-          "protocol": "https",
-          "host": ["locahost"],
+          "raw": "http://localhost:8081/runtime-config",
+          "protocol": "http",
+          "host": ["localhost"],
           "port": "8081",
           "path": ["runtime-config"]
         }
