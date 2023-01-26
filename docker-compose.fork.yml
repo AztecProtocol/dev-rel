@@ -12,6 +12,7 @@ services:
     environment:
       ETHEREUM_HOST: http://fork:8545
       PORT: 8547
+      network: "DONT_CARE"
     command: ./scripts/start_e2e.sh
     depends_on:
       - fork
