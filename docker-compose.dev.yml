@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 services:
   contracts:
     platform: linux/amd64
@@ -8,7 +8,8 @@ services:
       PORT: 8547
     command: ./scripts/start_e2e.sh
     ports:
-      - '8545:8544'
+      - "8545:8544"
+      - "8547:8547"
 
   falafel:
     platform: linux/amd64
@@ -18,13 +19,13 @@ services:
       CONTRACTS_HOST: http://contracts:8547
       NUM_INNER_ROLLUP_TXS: ${NUM_INNER_ROLLUP_TXS:-3}
       NUM_OUTER_ROLLUP_PROOFS: ${NUM_OUTER_ROLLUP_PROOFS:-1}
-      PROVERLESS: 'true'
+      PROVERLESS: "true"
       MAX_CIRCUIT_SIZE: 8192
       PROOF_GENERATOR_MODE: local
-      NO_BUILD: 'true'
+      NO_BUILD: "true"
       PORT: 8081
     depends_on:
       - contracts
     command: start:e2e
     ports:
-      - '8081:8081'
+      - "8081:8081"
