@@ -14,6 +14,8 @@ services:
       PORT: 8547
       network: "DONT_CARE"
     command: ./scripts/start_e2e.sh
+    ports:
+      - "8547:8547"
     depends_on:
       - fork
 
