@@ -1,7 +1,8 @@
 on:
-  schedule: 
-    # runs once a week on sunday
-    - cron: "55 23 * * 0"
+  push
+#   schedule: 
+#     # runs once a week on sunday
+#     - cron: "55 23 * * 0"
   
     
 jobs:
@@ -29,4 +30,3 @@ jobs:
         author_name: Santiago Gonzalez
         message: "GitHub traffic"
         add: "./traffic/*"
-        ref: "traffic"  # commits to branch "traffic" 
