@@ -2,7 +2,7 @@
 
 Here you will find some use cases and ideas that we’d love to see people building on Aztec and Noir. The use cases are endless and not limited to this list! 
 
-If you are interested in building on Aztec in a hackathon, check out the [Hackathon success guide 💻](https://www.notion.so/Hackathon-success-guide-73c745f4c4af4054b51952603b8d69b0?pvs=21) at the bottom of this page so you can improve your chances of winning a prize.
+If you are interested in building on Aztec in a hackathon, check out the [Hackathon success guide 💻](#hackathon-success-guide-) at the bottom of this file so you can improve your chances of winning a prize.
 
 ## DeFi 💸
 

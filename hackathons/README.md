@@ -10,7 +10,7 @@ Learn more about our mission in our blog post [here](https://medium.com/aztec-pr
 In this hacker handbook, you’ll find 
 
 - [inspiration](INSPIRATION.md) of ZK project ideas for playing around with Aztec & Noir or entering hackathons
-- how to better your chances of winning an Aztec prize at a hackathon
+- how to [better your chances of winning](INSPIRATION.md#hackathon-success-guide-) an Aztec prize at a hackathon
 - a [list of projects and tooling](TOOLS.md) that you can utilize or build on top of
-- [resources for Noir](RESOURCES.md), the backend-agnostic programming language for zk circuits
 
+Also be sure to check out [this list of resources](../README.md)

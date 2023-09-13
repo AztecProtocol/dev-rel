@@ -3,13 +3,13 @@
 # Aztec DevRel Resources
 We keep all our external content and resources here, as well as tracking what we're working on. In this repo you will find:
 
-## [Workshops](workshops)
+## Workshops
 - [Learn Noir in an Afternoon @ DappCon Berlin 2023](workshops/dappcon-berlin-2023/)
 
-## [Tutorials](tutorials)
+## Tutorials
 - [Write and deploy a simple private token contract with Aztec.nr](tutorials/simple-private-token)
 
-## [Hackathon information](hackathons)
+## Hackathon information
 - [Project ideas](hackathons/INSPIRATION.md)
 - [Tools](hackathons/TOOLS.md)
 
