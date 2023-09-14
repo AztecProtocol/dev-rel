@@ -45,6 +45,8 @@ This command ensures that you are on the `aztec` version of noirup, which is wha
 
 While not strictly required, consider installing the [Noir Language Support VS Code extension](https://marketplace.visualstudio.com/items?itemName=noir-lang.vscode-noir) to get Noir contract syntax highlighting.
 
+Check the [Dev Tools section](https://github.com/noir-lang/awesome-noir#dev-tools) of the awesome-noir repo for language support for additional editors (Vim, emacs, tree-sitter, etc).
+
 #### Create a project
 
 Create a new directory called `aztec-private-token`
