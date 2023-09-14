@@ -92,9 +92,9 @@ authors = [""]
 compiler_version = "0.11.1"
 
 [dependencies]
-aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="master", directory="yarn-project/noir-libs/aztec-noir" }
-value_note = { git="https://github.com/AztecProtocol/aztec-packages/", tag="master", directory="yarn-project/noir-libs/value-note"}
-easy_private_state = { git="https://github.com/AztecProtocol/aztec-packages/", tag="master", directory="yarn-project/noir-libs/easy-private-state"}
+aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="master", directory="yarn-project/aztec-nr/aztec-noir" }
+value_note = { git="https://github.com/AztecProtocol/aztec-packages/", tag="master", directory="yarn-project/aztec-nr/value-note"}
+easy_private_state = { git="https://github.com/AztecProtocol/aztec-packages/", tag="master", directory="yarn-project/aztec-nr/easy-private-state"}
 ```
 
 This defines the type as `contract` and adds the dependencies we need to create a private token smart contract.
@@ -171,7 +171,7 @@ Map is a state variable that functions like a dictionary, relating Fields to oth
 
 `value_note::{VALUE_NOTE_LEN, ValueNote, ValueNoteMethods}`
 
-Notes are fundamental to how Aztec manages privacy. A note is a privacy-preserving representation of an amount of tokens associated with an address, while encrypting the amount and owner. In this contract, we are using the `value_note` [library](https://github.com/AztecProtocol/aztec-packages/tree/master/yarn-project/noir-libs/value-note).
+Notes are fundamental to how Aztec manages privacy. A note is a privacy-preserving representation of an amount of tokens associated with an address, while encrypting the amount and owner. In this contract, we are using the `value_note` [library](https://github.com/AztecProtocol/aztec-packages/tree/master/yarn-project/aztec-nr/value-note).
 
 From the `value_note` library we are using `ValueNote` which is a type of note interface for storing a single Field, eg a balance, `VALUE_NOTE_LEN` which is a global const of 3 acting as the length of a ValueNote, and `ValueNoteMethods` which is a collection of functions for operating on a ValueNote.
 
