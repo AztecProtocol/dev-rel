@@ -22,7 +22,7 @@ curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
 noirup -v aztec
 ```
 
-This command ensures that you are on the `aztec` version of noirup, which is what we need to compile and deploy aztec.nr smart contracts.
+This command ensures that you are on the latest `aztec` version of noirup, which is what we need to compile and deploy aztec.nr smart contracts. The `aztec` tag points to the latest build, so if you are running the Sandbox and `aztec-cli` as well, make sure you are using the latest versions of those as well--we will be regularly shipping breaking changes so mis-matched versions may not work.
 
 You should also install the [Noir Language Support extension](https://marketplace.visualstudio.com/items?itemName=noir-lang.vscode-noir) for VS Code.
 
