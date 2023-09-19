@@ -19,7 +19,7 @@ You will need to install nargo, the Noir build too. if you are familiar with Rus
 
 ```bash
 curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
-noirup -v aztec
+noirup -v 0.11.1-aztec.0
 ```
 
 This command ensures that you are on the latest `aztec` version of noirup, which is what we need to compile and deploy aztec.nr smart contracts. The `aztec` tag points to the latest build, so if you are running the Sandbox and `aztec-cli` as well, make sure you are using the latest versions of those as well--we will be regularly shipping breaking changes so mis-matched versions may not work.
