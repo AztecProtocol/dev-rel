@@ -18,6 +18,7 @@ contract PrivateToken {
         // maps an aztec address to its balance
         balances: Map<Set<ValueNote, VALUE_NOTE_LEN>>,
     }
+
     impl Storage {
         fn init(context: Context) -> pub Self {
             Storage {
@@ -31,7 +32,8 @@ contract PrivateToken {
             }
         }
     }
-   #[aztec(private)]
+   
+    #[aztec(private)]
     fn constructor(
         initial_supply: Field, 
         owner: Field
@@ -42,7 +44,8 @@ contract PrivateToken {
             increment(owner_balance, initial_supply, owner); // Increase owner's supply by specified amount
         }
     }
-#[aztec(private)]
+    
+    #[aztec(private)]
     fn mint(
         amount: Field, 
         owner: Field
@@ -52,7 +55,7 @@ contract PrivateToken {
         increment(owner_balance, amount, owner);
     }
 
-  #[aztec(private)]
+    #[aztec(private)]
     fn transfer(
         amount: Field, 
         recipient: Field,
@@ -68,14 +71,15 @@ contract PrivateToken {
         increment(recipient_balance, amount, recipient); // increment recipient balance by amount
     }
 
-unconstrained fn compute_note_hash_and_nullifier(contract_address: Field, nonce: Field, storage_slot: Field, preimage: [Field; VALUE_NOTE_LEN]) -> [Field; 4] {
-    let note_header = NoteHeader { contract_address, nonce, storage_slot };
-    note_utils::compute_note_hash_and_nullifier(ValueNoteMethods, note_header, preimage)
-}
-    unconstrained fn getBalance(owner: Field) -> Field {
-    let context = Context::none();
-    let storage = Storage::init(context);
-    let owner_notes = storage.balances.at(owner);
-    balance_utils::get_balance(owner_notes)
-}
+    unconstrained fn compute_note_hash_and_nullifier(contract_address: Field, nonce: Field, storage_slot: Field, preimage: [Field; VALUE_NOTE_LEN]) -> [Field; 4] {
+        let note_header = NoteHeader { contract_address, nonce, storage_slot };
+        note_utils::compute_note_hash_and_nullifier(ValueNoteMethods, note_header, preimage)
+    }
+
+    unconstrained fn get_balance(owner: Field) -> Field {
+        let context = Context::none();
+        let storage = Storage::init(context);
+        let owner_notes = storage.balances.at(owner);
+        balance_utils::get_balance(owner_notes)
+    }
 }
