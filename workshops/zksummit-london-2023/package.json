@@ -1,0 +1,19 @@
+{
+  "name": "aztec-counter",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "type": "module",
+"scripts": {
+    "build": "yarn clean && tsc -b",
+    "build:dev": "tsc -b --watch",
+    "clean": "rm -rf ./dest tsconfig.tsbuildinfo",
+    "start": "yarn build && export DEBUG='private-token' && node ./dest/src/index.js"
+  },
+  "devDependencies": {
+    "@aztec/aztec.js": "^0.7.10",
+    "@aztec/noir-contracts": "^0.7.10",
+    "@types/node": "^20.6.3",
+    "typescript": "^5.2.2"
+  }
+}
