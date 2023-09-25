@@ -30,9 +30,12 @@
 
 🧑‍💻 [noir-starter-nuxt](https://github.com/iam-robi/noir-starter-nuxt) - Template repository containing example minimal project using Noir, Nuxt and Hardhat
 
+🧰 Aztec boxes - Example full stack Aztec dapps out of the box. See the [private token example](https://github.com/AztecProtocol/aztec-packages/tree/master/yarn-project/boxes/private-token) for a functioning reference and the full list [here](https://github.com/AztecProtocol/aztec-packages/tree/master/yarn-project/boxes).
+
 ### Libraries
 
 - [Standard Library](https://github.com/noir-lang/noir/tree/master/noir_stdlib) - the Noir Standard Library
+- Aztec.nr ([docs](https://docs.aztec.network/dev_docs/contracts/main), [github](https://aztec.nr)) - a framework for writing Aztec smart contracts in Noir
 - [Ethereum Storage Proof Verification](https://github.com/aragonzkresearch/noir-trie-proofs) - a library that contains the primitives necessary for RLP decoding (in the form of look-up table construction) and Ethereum state and storage proof verification (or verification of any trie proof involving 32-byte long keys)
 - [BigInt](https://github.com/shuklaayush/noir-bigint) - a library that provides a custom BigUint56 data type, allowing for computations on large unsigned integers
 - [ECrecover](https://github.com/colinnielsen/ecrecover-noir/tree/main) - a library to verify an ECDSA signature and return the source Ethereum address
