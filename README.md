@@ -7,7 +7,7 @@ We keep all our external content and resources here, as well as tracking what we
 - [Learn Noir in an Afternoon @ DappCon Berlin 2023](workshops/dappcon-berlin-2023/)
 
 ## Tutorials
-- [Write and deploy a simple private token contract with Aztec.nr](tutorials/simple-private-token)
+- [See all of our latest tutorials in the docs](https://docs.aztec.network/dev_docs/tutorials/main)
 
 ## Hackathon information
 - [Project ideas](hackathons/INSPIRATION.md)
@@ -19,13 +19,13 @@ We keep all our external content and resources here, as well as tracking what we
 
 📃 [Aztec docs](https://docs.aztec.network/)
 
-⌛ Sandbox and Docs (still in alpha - contact team for access)
+⌛ [Sandbox Quickstart](https://docs.aztec.network/dev_docs/getting_started/quickstart)
+
+📑 Learn by doing with [Aztec Tutorials](https://docs.aztec.network/dev_docs/tutorials/main)
 
 🔷 [Aztec: The Hybrid Rollup](https://medium.com/aztec-protocol/aztec-the-hybrid-zkrollup-a90a197bf22e)
 
 🙈 [Privacy Abstraction with Aztec](https://medium.com/aztec-protocol/privacy-abstraction-with-aztec-def9da73eb5)
-
-📺 [Building on Aztec](https://www.youtube.com/watch?v=I5M8LhOECpM&t=2879s) (ETHGlobal YouTube)
 
 ## Noir
 
@@ -44,6 +44,8 @@ We keep all our external content and resources here, as well as tracking what we
 ## Support
 
 🔷 [Aztec Forum](https://discourse.aztec.network/)
+
+🔷 [Aztec Discord](https://discord.aztec.network)
 
 👾 [Noir Discord](https://discord.com/invite/JtqzkdeQ6G)
 
