@@ -22,10 +22,11 @@ The lack of privacy is consistently brought up as one of the main reasons we are
 Aztec and Noir are new protocols, so we’re always updating the developer tooling. There is a lot we can do here so don’t let these ideas limit you!
 
 - Ideas
-    - **IDE language support** - we have some support with VSCode but would love to expand this through IDE features like auto-complete, hover for documentation, etc. You can find our Language Server protocol [here](https://noir-lang.org/getting_started/language_server)
+    - **IDE language support** - we have some support with VSCode but would love to expand this through IDE features like auto-complete, hover for documentation, go-to function definition/references, etc. You can find our Language Server protocol [here](https://noir-lang.org/getting_started/language_server)
     - **Ethereum History API** - trustlessly and optionally privately prove any piece of information that exists on Ethereum (e.g. token ownership, historical prices, protocol interactions, etc.) using Ethereum Storage Proofs in Noir - find example [here](https://github.com/Maddiaa0/noir-storage-proofs-demo)
     - **Regex support in Noir** - more info [here](https://speakerdeck.com/sorasuegami/ethcon-korea-2023-zk-email-on-chain-verification-of-emails-using-zkp)
-    - **JSON parser in Noir**
+    - **Noir Foundry Integration Tests** - setting up integration tests in Foundry using [ffi](https://book.getfoundry.sh/cheatcodes/ffi) is tricky, but may be necessary because of the lack of ZK friendly cryptographic libraries in Solidity. Adding boilerplate code and a simple example of this to [`with-foundry`](https://github.com/noir-lang/noir-starter/tree/main/with-foundry) in the noir-starter repo would be useful.
+    - **Boilerplates for more frameworks** - there are [boilerplates](https://github.com/noir-lang/awesome-noir#boilerplates) for a number of popular frameworks already. Consider creating one for your favorite framework if there isn't one yet.
 
 ### Proving backends
 
