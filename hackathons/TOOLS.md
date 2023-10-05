@@ -6,7 +6,7 @@
 
 #### Syntax and plugins
 
-💻 [VSCode Extension](https://marketplace.visualstudio.com/items?itemName=noir-lang.noir-programming-language-syntax-highlighter) - Syntax highlight ([Source Code](https://github.com/noir-lang/vscode-noir))
+💻 [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=noir-lang.vscode-noir) - Syntax highlight, error highlight, codelens, etc. ([Source Code](https://github.com/noir-lang/vscode-noir))
 
 🖥️ [Vim Plugin](https://github.com/hhamud/tree-sitter-noir#neovim) - Syntax highlight
 
