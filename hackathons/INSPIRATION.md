@@ -19,6 +19,7 @@ These projects would be implemented as, or in conjunction with, Aztec contracts:
 - **ZKollateral** - privately prove assets for collateral or creditworthiness for a loan
 - **Proof of Liquidity** - privately prove solvency and/or compliance without exposing the underlying assets or trades
 - **Private DEX** - allow users to trade assets without revealing the accounts that the assets originate from.
+- **Oracles** - private and/or public price oracles will be critical infrastructure for building DeFi on Aztec.
 
 ## Tooling 🔧
 
