@@ -1,0 +1,3 @@
+[submodule "utils/l1-contracts-with-relative-paths"]
+	path = utils/l1-contracts-with-relative-paths
+	url = https://github.com/catmcgee/contracts
