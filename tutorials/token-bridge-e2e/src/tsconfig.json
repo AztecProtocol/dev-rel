@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "rootDir": "../",
+    "outDir": "./dest",
+    "target": "es2020",
+    "lib": ["dom", "esnext", "es2017.object"],
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "strict": true,
+    "declaration": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "downlevelIteration": true,
+    "inlineSourceMap": true,
+    "declarationMap": true,
+    "importHelpers": true,
+    "resolveJsonModule": true,
+    "composite": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "packages/src/**/*",
+    "contracts/**/*.json",
+    "packages/src/**/*",
+    "packages/aztec-contracts/token_bridge/target/*.json"
+  ],
+  "exclude": ["node_modules", "**/*.spec.ts", "contracts/**/*.ts"],
+  "references": []
+}
