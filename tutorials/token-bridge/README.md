@@ -1,5 +1,7 @@
 # Token Bridge Contract Tutorial
 
+It is recommended to follow this tutorial on the [Aztec docs](https://docs.aztec.network/dev_docs/tutorials/token_portal/main)
+
 In this tutorial we will go through writing an L2 token bridge contract
 for the Aztec Network, using the Aztec.nr contract libraries. It is recommended that you go through the [Token tutorial](../token-contract/README.md) before this tutorial to gain some helpful contract.
 
