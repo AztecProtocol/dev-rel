@@ -19,6 +19,7 @@ These projects would be implemented as, or in conjunction with, Aztec contracts:
 - **ZKollateral** - privately prove assets for collateral or creditworthiness for a loan
 - **Proof of Liquidity** - privately prove solvency and/or compliance without exposing the underlying assets or trades
 - **Private DEX** - allow users to trade assets without revealing the accounts that the assets originate from.
+- **Oracles** - private and/or public price oracles will be critical infrastructure for building DeFi on Aztec.
 
 ## Tooling 🔧
 
@@ -30,7 +31,7 @@ These projects would be implemented for Noir, but could be used for Aztec contra
 
 - **IDE language support** - we have some support with VSCode but would love to expand this through IDE features like auto-complete, hover for documentation, go-to function definition/references, etc. You can find our Language Server protocol [here](https://noir-lang.org/getting_started/language_server)
 - **Ethereum History API** - trustlessly and optionally privately prove any piece of information that exists on Ethereum (e.g. token ownership, historical prices, protocol interactions, etc.) using Ethereum Storage Proofs in Noir - find example [here](https://github.com/Maddiaa0/noir-storage-proofs-demo)
-- **Regex support in Noir** - more info [here](https://speakerdeck.com/sorasuegami/ethcon-korea-2023-zk-email-on-chain-verification-of-emails-using-zkp)
+- **Regex support in Noir** - regular expression (regex) in Noir that provides a mechanism to perform searches, manipulations, and evaluations using regex patterns within the language; more info [here](https://speakerdeck.com/sorasuegami/ethcon-korea-2023-zk-email-on-chain-verification-of-emails-using-zkp)
 
 These projects could be done for Noir or Aztec contracts:
 
