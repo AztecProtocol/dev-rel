@@ -1,0 +1,24 @@
+{
+  "name": "example-private-token",
+  "license": "MIT",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "repository": "https://github.com/catmcgee/aztecnr-private-token-example.git",
+  "author": "Cat McGee <helloworld@mcgee.cat>",
+  "type": "module",
+  "scripts": {
+    "build": "yarn clean && tsc -b",
+    "build:dev": "tsc -b --watch",
+    "clean": "rm -rf ./dest tsconfig.tsbuildinfo",
+    "start": "yarn build && export DEBUG='private-token' && node ./dest/src/index.js"
+  },
+  "devDependencies": {
+    "@aztec/aztec.js": "^0.6.7",
+    "typescript": "^5.2.2"
+  },
+  "dependencies": {
+    "@aztec/aztec-rpc": "^0.6.7",
+    "@aztec/foundation": "^0.6.7",
+    "@types/lodash": "^4.14.198"
+  }
+}
