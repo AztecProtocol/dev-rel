@@ -1,0 +1,11 @@
+[package]
+name = "uniswap"
+type = "contract"
+authors = [""]
+compiler_version = "0.16.0"
+
+[dependencies]
+aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.9.0", directory="yarn-project/aztec-nr/aztec" }
+value_note = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.9.0", directory="yarn-project/aztec-nr/value-note"}
+safe_math = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.9.0", directory="yarn-project/aztec-nr/safe-math"}
+authwit = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.9.0", directory="yarn-project/aztec-nr/authwit"}
