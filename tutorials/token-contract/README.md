@@ -19,7 +19,7 @@ You will need to install nargo, the Noir build too. if you are familiar with Rus
 
 ```bash
 curl -L https://raw.githubusercontent.com/noir-lang/noirup/main/install | bash
-noirup -v 0.11.1-aztec.0
+noirup -v 0.16.0
 ```
 
 This command ensures that you are on the latest `aztec` version of noirup, which is what we need to compile and deploy aztec.nr smart contracts. The `aztec` tag points to the latest build, so if you are running the Sandbox and `aztec-cli` as well, make sure you are using the latest versions of those as well--we will be regularly shipping breaking changes so mis-matched versions may not work.
@@ -67,9 +67,10 @@ compiler_version = "0.1"
 type = "contract"
 
 [dependencies]
-aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="master", directory="yarn-project/noir-libs/aztec-noir" }
-value_note = { git="https://github.com/AztecProtocol/aztec-packages/", tag="master", directory="yarn-project/noir-libs/value-note"}
-safe_math = { git="https://github.com/AztecProtocol/aztec-packages/", tag="master", directory="yarn-project/noir-libs/safe-math"}
+aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="master", directory="yarn-project/aztec-nr/aztec" }
+value_note = { git="https://github.com/AztecProtocol/aztec-packages/", tag="master", directory="yarn-project/aztec-nr/value-note" }
+safe_math = { git="https://github.com/AztecProtocol/aztec-packages/", tag="master", directory="yarn-project/aztec-nr/safe-math" }
+authwit = { git="https://github.com/AztecProtocol/aztec-packages/", tag="master", directory="yarn-project/aztec-nr/authwit" }
 ```
 
 ## Contract Interface
@@ -209,36 +210,43 @@ Just below the contract definition, add the following imports:
 
 ```rust
 mod types;
-mod util;
-
 contract Token {
+    // Libs
     use dep::std::option::Option;
 
     use dep::safe_math::SafeU120;
 
-    use dep::value_note::{
-        balance_utils,
-        utils::{increment, decrement},
-        value_note::{VALUE_NOTE_LEN, ValueNoteMethods, ValueNote},
-    };
-
     use dep::aztec::{
         note::{
+            note_getter_options::NoteGetterOptions,
             note_header::NoteHeader,
             utils as note_utils,
         },
         context::{PrivateContext, PublicContext, Context},
+        hash::{compute_secret_hash},
         state_vars::{map::Map, public_state::PublicState, set::Set},
-        types::type_serialisation::field_serialisation::{
-            FieldSerialisationMethods, FIELD_SERIALISED_LEN,
+        types::type_serialization::{
+            field_serialization::{FieldSerializationMethods, FIELD_SERIALIZED_LEN},
+            bool_serialization::{BoolSerializationMethods, BOOL_SERIALIZED_LEN},
+            aztec_address_serialization::{AztecAddressSerializationMethods, AZTEC_ADDRESS_SERIALIZED_LEN},
         },
-        oracle::compute_selector::compute_selector,
-        auth::{assert_valid_message_for, assert_valid_public_message_for}
+        types::address::{AztecAddress},
+        selector::compute_selector,
     };
 
-    use crate::types::{AztecAddress, TransparentNote, TransparentNoteMethods, TRANSPARENT_NOTE_LEN};
-    use crate::account_interface::AccountContract;
-    use crate::util::{compute_message_hash};
+    use dep::authwit::{
+        auth::{
+            assert_current_call_valid_authwit, 
+            assert_current_call_valid_authwit_public, 
+        },
+    };
+
+    use crate::types::{
+        transparent_note::{TransparentNote, TransparentNoteMethods, TRANSPARENT_NOTE_LEN},
+        token_note::{TokenNote, TokenNoteMethods, TOKEN_NOTE_LEN},
+        balances_map::{BalancesMap},
+        safe_u120_serialization::{SafeU120SerializationMethods, SAFE_U120_SERIALIZED_LEN}
+    };
 ```
 
 We are importing the Option type, items from the `value_note` library to help manage private value storage, note utilities, context (for managing private and public execution contexts), `state_vars` for helping manage state, `types` for data manipulation and `oracle` for help passing data from the private to public execution context. We also import the `auth` [library](https://github.com/AztecProtocol/aztec-packages/blob/master/yarn-project/aztec-nr/aztec/src/auth.nr) to handle token approvals from [Account Contracts](https://aztec-docs-dev.netlify.app/concepts/foundation/accounts/main).
@@ -278,12 +286,12 @@ Below the dependencies, paste the following Storage struct:
 
 ```rust
     struct Storage {
-        admin: PublicState<Field, FIELD_SERIALISED_LEN>,
-        minters: Map<PublicState<Field, FIELD_SERIALISED_LEN>>,
-        balances: Map<Set<ValueNote, VALUE_NOTE_LEN>>,
-        total_supply: PublicState<Field, FIELD_SERIALISED_LEN>,
+        admin: PublicState<AztecAddress, AZTEC_ADDRESS_SERIALIZED_LEN>,
+        minters: Map<PublicState<bool, BOOL_SERIALIZED_LEN>>,
+        balances: BalancesMap,
+        total_supply: PublicState<SafeU120, SAFE_U120_SERIALIZED_LEN>,
         pending_shields: Set<TransparentNote, TRANSPARENT_NOTE_LEN>,
-        public_balances: Map<PublicState<Field, FIELD_SERIALISED_LEN>>,
+        public_balances: Map<PublicState<SafeU120, SAFE_U120_SERIALIZED_LEN>>,
     }
 ```
 
@@ -310,13 +318,11 @@ Also, the public storage variables define the type that they store by passing th
     impl Storage {
         fn init(context: Context) -> pub Self {
             Storage {
-                // storage slot 1
                 admin: PublicState::new(
                     context,
                     1,
-                    FieldSerialisationMethods,
+                    AztecAddressSerializationMethods,
                 ),
-                // storage slot 2
                 minters: Map::new(
                     context,
                     2,
@@ -324,27 +330,19 @@ Also, the public storage variables define the type that they store by passing th
                         PublicState::new(
                             context,
                             slot,
-                            FieldSerialisationMethods,
+                            BoolSerializationMethods,
                         )
                     },
                 ),
-                // storage slot 3
-                balances: Map::new(
-                    context,
-                    3,
-                    |context, slot| {
-                        Set::new(context, slot, ValueNoteMethods)
-                    },
-                ),
-                // storage slot 4
+                balances: BalancesMap::new(context, 3),
                 total_supply: PublicState::new(
                     context,
                     4,
-                    FieldSerialisationMethods,
+                    SafeU120SerializationMethods,
                 ),
-                // storage slot 5
+                
                 pending_shields: Set::new(context, 5, TransparentNoteMethods),
-                // storage slot 6
+                
                 public_balances: Map::new(
                     context,
                     6,
@@ -352,7 +350,7 @@ Also, the public storage variables define the type that they store by passing th
                         PublicState::new(
                             context,
                             slot,
-                            FieldSerialisationMethods,
+                            SafeU120SerializationMethods,
                         )
                     },
                 ),
@@ -371,10 +369,9 @@ In the source code, the constructor logic is commented out. I uncommented it her
 
 ```rust
     #[aztec(private)]
-    fn constructor() {
-        // Currently not possible to execute public calls from constructor as code not yet available to sequencer.
+    fn constructor(admin: AztecAddress) {
         let selector = compute_selector("_initialize((Field))");
-        let _callStackItem = context.call_public_function(context.this_address(), selector, [context.msg_sender()]);
+        context.call_public_function(context.this_address(), selector, [admin.address]);
     }
 ```
 
@@ -409,9 +406,8 @@ After storage is initialized, the contract checks that the `msg_sender` is the `
     fn set_admin(
         new_admin: AztecAddress,
     ) {
-        let storage = Storage::init(Context::public(&mut context));
-        assert(storage.admin.read() == context.msg_sender(), "caller is not admin");
-        storage.admin.write(new_admin.address);
+        assert(storage.admin.read().eq(AztecAddress::new(context.msg_sender())), "caller is not admin");
+        storage.admin.write(new_admin);
     }
 ```
 
@@ -425,9 +421,8 @@ This function allows the `admin` to add or a remove a `minter` from the public `
         minter: AztecAddress,
         approve: bool,
     ) {
-        let storage = Storage::init(Context::public(&mut context));
-        assert(storage.admin.read() == context.msg_sender(), "caller is not admin");
-        storage.minters.at(minter.address).write(approve as Field);
+        assert(storage.admin.read().eq(AztecAddress::new(context.msg_sender())), "caller is not admin");
+        storage.minters.at(minter.address).write(approve); 
     }
 ```
 
@@ -445,14 +440,14 @@ The function returns 1 to indicate successful execution.
         to: AztecAddress,
         amount: Field,
     ) -> Field {
-        let storage = Storage::init(Context::public(&mut context));
-        assert(storage.minters.at(context.msg_sender()).read() == 1, "caller is not minter");
+        assert(storage.minters.at(context.msg_sender()).read(), "caller is not minter");
+        
         let amount = SafeU120::new(amount);
-        let new_balance = SafeU120::new(storage.public_balances.at(to.address).read()).add(amount);
-        let supply = SafeU120::new(storage.total_supply.read()).add(amount);
+        let new_balance = storage.public_balances.at(to.address).read().add(amount);
+        let supply = storage.total_supply.read().add(amount);
 
-        storage.public_balances.at(to.address).write(new_balance.value as Field);
-        storage.total_supply.write(supply.value as Field);
+        storage.public_balances.at(to.address).write(new_balance);
+        storage.total_supply.write(supply);
         1
     }
 ```
@@ -469,13 +464,12 @@ Following the logic, first, public storage is initialized. Then it checks that t
         amount: Field,
         secret_hash: Field,
     ) -> Field {
-        let storage = Storage::init(Context::public(&mut context));
-        assert(storage.minters.at(context.msg_sender()).read() == 1, "caller is not minter");
+        assert(storage.minters.at(context.msg_sender()).read(), "caller is not minter");
         let pending_shields = storage.pending_shields;
         let mut note = TransparentNote::new(amount, secret_hash);
-        let supply = SafeU120::new(storage.total_supply.read()).add(SafeU120::new(amount));
+        let supply = storage.total_supply.read().add(SafeU120::new(amount));
 
-        storage.total_supply.write(supply.value as Field);
+        storage.total_supply.write(supply);
         pending_shields.insert_from_public(&mut note);
         1
     }
@@ -503,24 +497,20 @@ It returns `1` to indicate successful execution.
         secret_hash: Field,
         nonce: Field,
     ) -> Field {
-        let storage = Storage::init(Context::public(&mut context));
-
         if (from.address != context.msg_sender()) {
             // The redeem is only spendable once, so we need to ensure that you cannot insert multiple shields from the same message.
-            let selector = compute_selector("shield((Field),Field,Field,Field)");
-            let message_field = compute_message_hash([context.msg_sender(), context.this_address(), selector, from.address, amount, secret_hash, nonce]);
-            assert_valid_public_message_for(&mut context, from.address, message_field);
+            assert_current_call_valid_authwit_public(&mut context, from);
         } else {
             assert(nonce == 0, "invalid nonce");
         }
 
         let amount = SafeU120::new(amount);
-        let from_balance = SafeU120::new(storage.public_balances.at(from.address).read()).sub(amount);
+        let from_balance = storage.public_balances.at(from.address).read().sub(amount);
 
         let pending_shields = storage.pending_shields;
         let mut note = TransparentNote::new(amount.value as Field, secret_hash);
 
-        storage.public_balances.at(from.address).write(from_balance.value as Field);
+        storage.public_balances.at(from.address).write(from_balance);
         pending_shields.insert_from_public(&mut note);
         1
     }
@@ -540,22 +530,18 @@ After storage is initialized, the [authorization flow specified above](#authoriz
         amount: Field,
         nonce: Field,
     ) -> Field {
-        let storage = Storage::init(Context::public(&mut context));
-
         if (from.address != context.msg_sender()) {
-            let selector = compute_selector("transfer_public((Field),(Field),Field,Field)");
-            let message_field = compute_message_hash([context.msg_sender(), context.this_address(), selector, from.address, to.address, amount, nonce]);
-            assert_valid_public_message_for(&mut context, from.address, message_field);
+            assert_current_call_valid_authwit_public(&mut context, from);
         } else {
             assert(nonce == 0, "invalid nonce");
         }
 
         let amount = SafeU120::new(amount);
-        let from_balance = SafeU120::new(storage.public_balances.at(from.address).read()).sub(amount);
-        storage.public_balances.at(from.address).write(from_balance.value as Field);
+        let from_balance = storage.public_balances.at(from.address).read().sub(amount);
+        storage.public_balances.at(from.address).write(from_balance);
 
-        let to_balance = SafeU120::new(storage.public_balances.at(to.address).read()).add(amount);
-        storage.public_balances.at(to.address).write(to_balance.value as Field);
+        let to_balance = storage.public_balances.at(to.address).read().add(amount);
+        storage.public_balances.at(to.address).write(to_balance);
 
         1
     }
@@ -574,22 +560,18 @@ After storage is initialized, the [authorization flow specified above](#authoriz
         amount: Field,
         nonce: Field,
     ) -> Field {
-        let storage = Storage::init(Context::public(&mut context));
-
         if (from.address != context.msg_sender()) {
-            let selector = compute_selector("burn_public((Field),Field,Field)");
-            let message_field = compute_message_hash([context.msg_sender(), context.this_address(), selector, from.address, amount, nonce]);
-            assert_valid_public_message_for(&mut context, from.address, message_field);
+            assert_current_call_valid_authwit_public(&mut context, from);
         } else {
             assert(nonce == 0, "invalid nonce");
         }
 
         let amount = SafeU120::new(amount);
-        let from_balance = SafeU120::new(storage.public_balances.at(from.address).read()).sub(amount);
-        storage.public_balances.at(from.address).write(from_balance.value as Field);
+        let from_balance = storage.public_balances.at(from.address).read().sub(amount);
+        storage.public_balances.at(from.address).write(from_balance);
 
-        let new_supply = SafeU120::new(storage.total_supply.read()).sub(amount);
-        storage.total_supply.write(new_supply.value as Field);
+        let new_supply = storage.total_supply.read().sub(amount);
+        storage.total_supply.write(new_supply);
 
         1
     }
@@ -606,14 +588,6 @@ Private functions are declared with the `#[aztec(private)]` macro above the func
 
 As described in the [execution contexts section above](#execution-contexts), private function logic and transaction information is hidden from the world and is executed on user devices. Private functions update private state, but can pass data to the public execution context (e.g. see the [`unshield`](#unshield) function).
 
-Every private function initializes storage using the private context like so:
-
-```rust
-let storage = Storage::init(Context::private(&mut context));
-```
-
-After this, storage is referenced as `storage.variable`. We won't go over this step in any of the following function descriptions.
-
 #### `redeem_shield`
 
 This private function enables an account to move tokens from a `TransparentNote` in the `pending_shields` mapping to any Aztec account as a `ValueNote` in private `balances`.
@@ -629,13 +603,18 @@ The function returns `1` to indicate successful execution.
         amount: Field,
         secret: Field,
     ) -> Field {
-        let storage = Storage::init(Context::private(&mut context));
         let pending_shields = storage.pending_shields;
-        let balance = storage.balances.at(to.address);
-        let mut public_note = TransparentNote::new_from_secret(amount, secret);
+        let secret_hash = compute_secret_hash(secret);
+        // Get 1 note (set_limit(1)) which has amount stored in field with index 0 (select(0, amount)) and secret_hash
+        // stored in field with index 1 (select(1, secret_hash)).
+        let options = NoteGetterOptions::new().select(0, amount).select(1, secret_hash).set_limit(1);
+        let notes = pending_shields.get_notes(options);
+        let note = notes[0].unwrap_unchecked();
+        // Remove the note from the pending shields set 
+        pending_shields.remove(note);
 
-        pending_shields.assert_contains_and_remove_publicly_created(&mut public_note);
-        increment(balance, amount, to.address);
+        // Add the token note to user's balances set
+        storage.balances.at(to).add(SafeU120::new(amount));
 
         1
     }
@@ -657,18 +636,13 @@ The function returns `1` to indicate successful execution.
         amount: Field,
         nonce: Field,
     ) -> Field {
-        let storage = Storage::init(Context::private(&mut context));
-
         if (from.address != context.msg_sender()) {
-            let selector = compute_selector("unshield((Field),(Field),Field,Field)");
-            let message_field = compute_message_hash([context.msg_sender(), context.this_address(), selector, from.address, to.address, amount, nonce]);
-            assert_valid_message_for(&mut context, from.address, message_field);
+            assert_current_call_valid_authwit(&mut context, from);
         } else {
             assert(nonce == 0, "invalid nonce");
         }
 
-        let from_balance = storage.balances.at(from.address);
-        decrement(from_balance, amount, from.address);
+        storage.balances.at(from).sub(SafeU120::new(amount));
 
         let selector = compute_selector("_increase_public_balance((Field),Field)");
         let _void = context.call_public_function(context.this_address(), selector, [to.address, amount]);
@@ -691,21 +665,15 @@ After initializing storage, the function checks that the `msg_sender` is authori
         amount: Field,
         nonce: Field,
     ) -> Field {
-        let storage = Storage::init(Context::private(&mut context));
-
         if (from.address != context.msg_sender()) {
-            let selector = compute_selector("transfer((Field),(Field),Field,Field)");
-            let message_field = compute_message_hash([context.msg_sender(), context.this_address(), selector, from.address, to.address, amount, nonce]);
-            assert_valid_message_for(&mut context, from.address, message_field);
+            assert_current_call_valid_authwit(&mut context, from);
         } else {
             assert(nonce == 0, "invalid nonce");
         }
 
-        let from_balance = storage.balances.at(from.address);
-        let to_balance = storage.balances.at(to.address);
-
-        decrement(from_balance, amount, from.address);
-        increment(to_balance, amount, to.address);
+        let amount = SafeU120::new(amount);
+        storage.balances.at(from).sub(amount);
+        storage.balances.at(to).add(amount);
 
         1
     }
@@ -724,19 +692,13 @@ After initializing storage, the function checks that the `msg_sender` is authori
         amount: Field,
         nonce: Field,
     ) -> Field {
-        let storage = Storage::init(Context::private(&mut context));
-
         if (from.address != context.msg_sender()) {
-            let selector = compute_selector("burn((Field),Field,Field)");
-            let message_field = compute_message_hash([context.msg_sender(), context.this_address(), selector, from.address, amount, nonce]);
-            assert_valid_message_for(&mut context, from.address, message_field);
+            assert_current_call_valid_authwit(&mut context, from);
         } else {
             assert(nonce == 0, "invalid nonce");
         }
 
-        let from_balance = storage.balances.at(from.address);
-
-        decrement(from_balance, amount, from.address);
+        storage.balances.at(from).sub(SafeU120::new(amount));
 
         let selector = compute_selector("_reduce_total_supply(Field)");
         let _void = context.call_public_function(context.this_address(), selector, [amount]);
@@ -756,16 +718,12 @@ This function is called via the [constructor](#constructor). Note that it is not
 This function sets the creator of the contract (passed as `msg_sender` from the constructor) as the admin and makes them a minter.
 
 ```rust
-    // We cannot do this from the constructor currently
-    // Since this should be internal, for now, we ignore the safety checks of it, as they are
-    // enforced by it being internal and only called from the constructor.
     #[aztec(public)]
-    fn _initialize(
+    internal fn _initialize(
         new_admin: AztecAddress,
     ) {
-        let storage = Storage::init(Context::public(&mut context));
-        storage.admin.write(new_admin.address);
-        storage.minters.at(new_admin.address).write(1);
+        storage.admin.write(new_admin);
+        storage.minters.at(new_admin.address).write(true);
     }
 ```
 
@@ -779,9 +737,8 @@ This function is called from [`unshield`](#unshield). The account's private bala
         to: AztecAddress,
         amount: Field,
     ) {
-        let storage = Storage::init(Context::public(&mut context));
-        let new_balance = SafeU120::new(storage.public_balances.at(to.address).read()).add(SafeU120::new(amount));
-        storage.public_balances.at(to.address).write(new_balance.value as Field);
+        let new_balance = storage.public_balances.at(to.address).read().add(SafeU120::new(amount));
+        storage.public_balances.at(to.address).write(new_balance);
     }
 ```
 
@@ -795,9 +752,8 @@ This function is called from [`burn`](#burn). The account's private balance is d
         amount: Field,
     ) {
         // Only to be called from burn.
-        let storage = Storage::init(Context::public(&mut context));
-        let new_supply = SafeU120::new(storage.total_supply.read()).sub(SafeU120::new(amount));
-        storage.total_supply.write(new_supply.value as Field);
+        let new_supply = storage.total_supply.read().sub(SafeU120::new(amount));
+        storage.total_supply.write(new_supply);
     }
 ```
 
@@ -811,8 +767,7 @@ A getter function for reading the public `admin` value.
 
 ```rust
     unconstrained fn admin() -> Field {
-        let storage = Storage::init(Context::none());
-        storage.admin.read()
+        storage.admin.read().address
     }
 ```
 
@@ -834,9 +789,10 @@ A getter function for checking the value of associated with a `minter` in the pu
 A getter function for checking the token `total_supply`.
 
 ```rust
-    unconstrained fn total_supply() -> Field {
-        let storage = Storage::init(Context::none());
-        storage.total_supply.read()
+    unconstrained fn is_minter(
+        minter: AztecAddress,
+    ) -> bool {
+        storage.minters.at(minter.address).read()
     }
 ```
 
@@ -847,11 +803,8 @@ A getter function for checking the private balance of the provided Aztec account
 ```rust
     unconstrained fn balance_of_private(
         owner: AztecAddress,
-    ) -> Field {
-        let storage = Storage::init(Context::none());
-        let owner_balance = storage.balances.at(owner.address);
-
-        balance_utils::get_balance(owner_balance)
+    ) -> u120 {
+        storage.balances.at(owner).balance_of().value
     }
 ```
 
@@ -862,9 +815,8 @@ A getter function for checking the public balance of the provided Aztec account.
 ```rust
     unconstrained fn balance_of_public(
         owner: AztecAddress,
-    ) -> Field {
-        let storage = Storage::init(Context::none());
-        storage.public_balances.at(owner.address).read()
+    ) -> u120 {
+        storage.public_balances.at(owner.address).read().value
     }
 ```
 
@@ -876,12 +828,12 @@ A getter function to compute the note hash and nullifier for notes in the contra
     // Computes note hash and nullifier.
     // Note 1: Needs to be defined by every contract producing logs.
     // Note 2: Having it in all the contracts gives us the ability to compute the note hash and nullifier differently for different kind of notes.
-    unconstrained fn compute_note_hash_and_nullifier(contract_address: Field, nonce: Field, storage_slot: Field, preimage: [Field; VALUE_NOTE_LEN]) -> [Field; 4] {
-        let note_header = NoteHeader { contract_address, nonce, storage_slot };
+    unconstrained fn compute_note_hash_and_nullifier(contract_address: Field, nonce: Field, storage_slot: Field, preimage: [Field; TOKEN_NOTE_LEN]) -> [Field; 4] {
+        let note_header = NoteHeader::new(contract_address, nonce, storage_slot);
         if (storage_slot == 5) {
             note_utils::compute_note_hash_and_nullifier(TransparentNoteMethods, note_header, preimage)
         } else {
-            note_utils::compute_note_hash_and_nullifier(ValueNoteMethods, note_header, preimage)
+            note_utils::compute_note_hash_and_nullifier(TokenNoteMethods, note_header, preimage)
         }
     }
 ```

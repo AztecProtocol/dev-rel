@@ -1,106 +1,82 @@
 import {
-    AztecRPC,
     Fr,
+    NotePreimage,
+    PXE,
     computeMessageSecretHash,
-    createAztecRpcClient,
     createDebugLogger,
+    createPXEClient,
+    getSandboxAccountsWallets,
     getSchnorrAccount,
     waitForSandbox,
 } from '@aztec/aztec.js';
 import { GrumpkinScalar } from '@aztec/circuits.js';
 import { TokenContract } from '@aztec/noir-contracts/types';
 
-const { SANDBOX_URL = 'http://localhost:8080' } = process.env;
+import { format } from 'util';
+
+const { PXE_URL = 'http://localhost:8080' } = process.env;
 
 async function main() {
-
     ////////////// CREATE THE CLIENT INTERFACE AND CONTACT THE SANDBOX //////////////
     const logger = createDebugLogger('token');
 
-    // We create AztecRPC client connected to the sandbox URL
-    const aztecRpc = createAztecRpcClient(SANDBOX_URL);
+    // We create PXE client connected to the sandbox URL
+    const pxe = createPXEClient(PXE_URL);
     // Wait for sandbox to be ready
-    await waitForSandbox(aztecRpc);
+    await waitForSandbox(pxe);
 
-    const nodeInfo = await aztecRpc.getNodeInfo();
+    const nodeInfo = await pxe.getNodeInfo();
 
-    logger('Aztec Sandbox Info ', nodeInfo);
+    logger(format('Aztec Sandbox Info ', nodeInfo));
 
-    ////////////// CREATE SOME ACCOUNTS WITH SCHNORR SIGNERS //////////////
-    // Creates new accounts using an account contract that verifies schnorr signatures
-    // Returns once the deployment transactions have settled
-    const createSchnorrAccounts = async (numAccounts: number, aztecRpc: AztecRPC) => {
-        const accountManagers = Array(numAccounts)
-            .fill(0)
-            .map(() =>
-                getSchnorrAccount(
-                    aztecRpc,
-                    GrumpkinScalar.random(), // encryption private key
-                    GrumpkinScalar.random(), // signing private key
-                ),
-            );
-        return await Promise.all(
-            accountManagers.map(async x => {
-                await x.waitDeploy({});
-                return x;
-            }),
-        );
-    };
-
-    // Create 2 accounts and wallets to go with each
-    logger(`Creating accounts using schnorr signers...`);
-    const accounts = await createSchnorrAccounts(2, aztecRpc);
-
-    ////////////// VERIFY THE ACCOUNTS WERE CREATED SUCCESSFULLY //////////////
-
-    const [alice, bob] = (await Promise.all(accounts.map(x => x.getCompleteAddress()))).map(x => x.address);
-
-    // Verify that the accounts were deployed
-    const registeredAccounts = (await aztecRpc.getRegisteredAccounts()).map(x => x.address);
-    for (const [account, name] of [
-        [alice, 'Alice'],
-        [bob, 'Bob'],
-    ] as const) {
-        if (registeredAccounts.find(acc => acc.equals(account))) {
-            logger(`Created ${name}'s account at ${account.toShortString()}`);
-            continue;
-        }
-        logger(`Failed to create account for ${name}!`);
-    }
+    ////////////// LOAD SOME ACCOUNTS FROM THE SANDBOX //////////////
+    // The sandbox comes with a set of created accounts. Load them
+    const accounts = await getSandboxAccountsWallets(pxe);
+    const alice = accounts[0].getAddress();
+    const bob = accounts[1].getAddress();
+    logger(`Loaded alice's account at ${alice.toShortString()}`);
+    logger(`Loaded bob's account at ${bob.toShortString()}`);
 
     ////////////// DEPLOY OUR TOKEN CONTRACT //////////////
 
-    // Deploy a token contract, create a contract abstraction object and link it to the owner's wallet
     const initialSupply = 1_000_000n;
+    logger(`Deploying token contract...`);
 
-    logger(`Deploying token contract minting an initial ${initialSupply} tokens to Alice...`);
-    const contract = await TokenContract.deploy(aztecRpc).send().deployed();
-
-    // Create the contract abstraction and link to Alice's wallet for future signing
-    const tokenContractAlice = await TokenContract.at(contract.address, await accounts[0].getWallet());
-
-    // Initialize the contract and add Bob as a minter
-    await tokenContractAlice.methods._initialize({ address: alice }).send().wait();
-    await tokenContractAlice.methods.set_minter({ address: bob }, true).send().wait();
-
+    // Deploy the contract and set Alice as the admin while doing so
+    const contract = await TokenContract.deploy(pxe, alice).send().deployed();
     logger(`Contract successfully deployed at address ${contract.address.toShortString()}`);
 
-    const secret = Fr.random();
-    const secretHash = await computeMessageSecretHash(secret);
+    // Create the contract abstraction and link it to Alice's wallet for future signing
+    const tokenContractAlice = await TokenContract.at(contract.address, accounts[0]);
 
-    await tokenContractAlice.methods.mint_private(initialSupply, secretHash).send().wait();
-    await tokenContractAlice.methods.redeem_shield({ address: alice }, initialSupply, secret).send().wait();
+    // Create a secret and a corresponding hash that will be used to mint funds privately
+    const aliceSecret = Fr.random();
+    const aliceSecretHash = await computeMessageSecretHash(aliceSecret);
+
+    logger(`Minting tokens to Alice...`);
+    // Mint the initial supply privately "to secret hash"
+    const receipt = await tokenContractAlice.methods.mint_private(initialSupply, aliceSecretHash).send().wait();
+
+    // Add the newly created "pending shield" note to PXE
+    const pendingShieldsStorageSlot = new Fr(5); // The storage slot of `pending_shields` is 5.
+    const preimage = new NotePreimage([new Fr(initialSupply), aliceSecretHash]);
+    await pxe.addNote(alice, contract.address, pendingShieldsStorageSlot, preimage, receipt.txHash);
+
+    // Make the tokens spendable by redeeming them using the secret (converts the "pending shield note" created above
+    // to a "token note")
+    await tokenContractAlice.methods.redeem_shield(alice, initialSupply, aliceSecret).send().wait();
+    logger(`${initialSupply} tokens were successfully minted and redeemed by Alice`);
 
     ////////////// QUERYING THE TOKEN BALANCE FOR EACH ACCOUNT //////////////
 
     // Bob wants to mint some funds, the contract is already deployed, create an abstraction and link it his wallet
     // Since we already have a token link, we can simply create a new instance of the contract linked to Bob's wallet
-    const tokenContractBob = tokenContractAlice.withWallet(await accounts[1].getWallet());
+    const tokenContractBob = tokenContractAlice.withWallet(accounts[1]);
 
-    let aliceBalance = await tokenContractAlice.methods.balance_of_private({ address: alice }).view();
+    let aliceBalance = await tokenContractAlice.methods.balance_of_private(alice).view();
     logger(`Alice's balance ${aliceBalance}`);
 
-    let bobBalance = await tokenContractBob.methods.balance_of_private({ address: bob }).view();
+    let bobBalance = await tokenContractBob.methods.balance_of_private(bob).view();
     logger(`Bob's balance ${bobBalance}`);
 
     ////////////// TRANSFER FUNDS FROM ALICE TO BOB //////////////
@@ -108,28 +84,40 @@ async function main() {
     // We will now transfer tokens from ALice to Bob
     const transferQuantity = 543n;
     logger(`Transferring ${transferQuantity} tokens from Alice to Bob...`);
-    await tokenContractAlice.methods.transfer({ address: alice }, { address: bob }, transferQuantity, 0).send().wait();
+    await tokenContractAlice.methods.transfer(alice, bob, transferQuantity, 0).send().wait();
 
     // Check the new balances
-    aliceBalance = await tokenContractAlice.methods.balance_of_private({ address: alice }).view();
+    aliceBalance = await tokenContractAlice.methods.balance_of_private(alice).view();
     logger(`Alice's balance ${aliceBalance}`);
 
-    bobBalance = await tokenContractBob.methods.balance_of_private({ address: bob }).view();
+    bobBalance = await tokenContractBob.methods.balance_of_private(bob).view();
     logger(`Bob's balance ${bobBalance}`);
 
     ////////////// MINT SOME MORE TOKENS TO BOB'S ACCOUNT //////////////
 
     // Now mint some further funds for Bob
+
+    // Alice is nice and she adds Bob as a minter
+    await tokenContractAlice.methods.set_minter(bob, true).send().wait();
+
+    const bobSecret = Fr.random();
+    const bobSecretHash = await computeMessageSecretHash(bobSecret);
+    // Bob now has a secret 🥷
+
     const mintQuantity = 10_000n;
     logger(`Minting ${mintQuantity} tokens to Bob...`);
-    await tokenContractBob.methods.mint_private(mintQuantity, secretHash).send().wait();
-    await tokenContractBob.methods.redeem_shield({ address: bob }, mintQuantity, secret).send().wait();
+    const mintPrivateReceipt = await tokenContractBob.methods.mint_private(mintQuantity, bobSecretHash).send().wait();
+
+    const bobPendingShield = new NotePreimage([new Fr(mintQuantity), bobSecretHash]);
+    await pxe.addNote(bob, contract.address, pendingShieldsStorageSlot, bobPendingShield, mintPrivateReceipt.txHash);
+
+    await tokenContractBob.methods.redeem_shield(bob, mintQuantity, bobSecret).send().wait();
 
     // Check the new balances
-    aliceBalance = await tokenContractAlice.methods.balance_of_private({ address: alice }).view();
+    aliceBalance = await tokenContractAlice.methods.balance_of_private(alice).view();
     logger(`Alice's balance ${aliceBalance}`);
 
-    bobBalance = await tokenContractBob.methods.balance_of_private({ address: bob }).view();
+    bobBalance = await tokenContractBob.methods.balance_of_private(bob).view();
     logger(`Bob's balance ${bobBalance}`);
 }
 
