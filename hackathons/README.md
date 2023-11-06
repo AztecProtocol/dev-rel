@@ -49,9 +49,12 @@ When you are ready to submit your project, please provide:
 
 ## Previous winners
 
-| Name           | Website | Description                                                                                                                                         | Hackathon |
-| -------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
-| Fruity Friends |         | Match two people who share common interests, such as fruits they like, without revealing any of them unless it matches the other person's interests | ZKHack    |
-| zk-zk-zkEVM    |         | Implementation of Aztec Connect on Scroll                                                                                                           | ZKHack    |
-| CryptoHub      |         | Private NFT trading                                                                                                                                 | ETHBerlin |
-| ZK Microphone  |         | Privately prove edited audio came from a real, physical microphone                                                                                  | ETHParis  |
+| Name                 | Website                                                              | Description                                                                                                                                         | Hackathon |
+| -------------------- | -------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | --------- |
+| Fruity Friends       |                                                                      | Match two people who share common interests, such as fruits they like, without revealing any of them unless it matches the other person's interests | ZKHack    |
+| zk-zk-zkEVM          |                                                                      | Implementation of Aztec Connect on Scroll                                                                                                           | ZKHack    |
+| CryptoHub            |                                                                      | Private NFT trading                                                                                                                                 | ETHBerlin |
+| ZK Microphone        |                                                                      | Privately prove edited audio came from a real, physical microphone                                                                                  | ETHParis  |
+| BillionZKVoters      | [project](https://ethglobal.com/showcase/billionzkvoters-hw1br)      | Massive scale secret voting with on-chain results using Zero Knowledge technology                                                                   | ETHOnline |
+| AztecGravix          | [project](https://ethglobal.com/showcase/aztecgravix-fag8m)          | Decentralized perpetual exchange built on ZK-contracts empowering full user privacy                                                                 | ETHOnline |
+| Noir LSP Doc Symbols | [project](https://ethglobal.com/showcase/noir-lsp-doc-symbols-mvkyo) | Implemented textDocument/documentSymbol for nargo/noir LSP in the main noir repo's LSP crate                                                        | ETHOnline |
