@@ -1,0 +1,23 @@
+{
+  "name": "acct-abst-wrkshp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "build": "yarn clean && tsc -b",
+    "compile": "aztec-cli compile contracts/counter --outdir ../artifacts --typescript ../artifacts",
+    "clean": "rm -rf ./dest tsconfig.tsbuildinfo",
+    "start": "yarn build && node ./dest/ts/index.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@aztec/aztec.js": "0.14.2",
+    "@aztec/circuits.js": "0.14.2",
+    "@aztec/cli": "0.14.2",
+    "@aztec/types": "0.14.2",
+    "@types/node": "^20.8.10",
+    "typescript": "^5.2.2"
+  }
+}
