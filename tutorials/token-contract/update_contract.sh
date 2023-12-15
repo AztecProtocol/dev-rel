@@ -1,9 +1,9 @@
 #!/bin/bash
 
-copy_to_file_path="."
+copy_to_file_path="./contracts/"
 # change this with new releases
 version="aztec-packages-v0.16.9"
-nargo_file_path="$copy_location/Nargo.toml"
+nargo_file_path="$copy_to_file_path/Nargo.toml"
 
 repo_url="https://github.com/AztecProtocol/aztec-packages.git"
 contracts_path="yarn-project/noir-contracts/src/contracts"
