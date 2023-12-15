@@ -34,13 +34,13 @@ if [ $? -eq 0 ]; then
     # Check if the directory exists
     if [ -d "tmp/$contracts_path/$name_value" ]; then
         echo "Directory found: $name_value"
-        cp -r tmp/$contracts_path/$name_value/src/ $copy_location/
+        cp -r tmp/$contracts_path/$name_value/src/ $copy_to_file_path/
         rm -rf tmp
-        echo "Copied the contracts to $copy_location"
+        echo "Copied the contracts to $copy_to_file_path"
         # You can add additional commands here to handle the directory
 
         # Remove docs comments from the files
-        find "$copy_location/src" -type f -name "*.nr" | while read file; do
+        find "$copy_to_file_path/src" -type f -name "*.nr" | while read file; do
             # Remove lines starting with '// docs:'
             sed -i '/[ \t]*\/\/ docs:.*/d' "$file"
 
