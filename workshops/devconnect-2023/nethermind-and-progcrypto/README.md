@@ -33,7 +33,7 @@ npm install -g @aztec/cli
 # Nargo.toml
 ```
 [package]
-name = "voting"
+name = "easy_private_voting"
 type = "contract"
 authors = [""]
 compiler_version = ">=0.18.0"
