@@ -29,7 +29,7 @@ Aztec and Noir are new protocols, so we’re always updating the developer tooli
 
 These projects would be implemented for Noir, but could be used for Aztec contracts as well:
 
-- **IDE language support** - we have some support with VSCode but would love to expand this through IDE features like auto-complete, hover for documentation, go-to function definition/references, etc. You can find our Language Server protocol [here](https://noir-lang.org/getting_started/language_server)
+- **IDE language support** - we have some support with VSCode but would love to expand this through IDE features like auto-complete, hover for documentation, go-to function definition/references, etc. You can find our Language Server protocol [here](https://noir-lang.org/docs/nargo/language_server/)
 - **Ethereum History API** - trustlessly and optionally privately prove any piece of information that exists on Ethereum (e.g. token ownership, historical prices, protocol interactions, etc.) using Ethereum Storage Proofs in Noir - find example [here](https://github.com/Maddiaa0/noir-storage-proofs-demo)
 - **Regex support in Noir** - regular expression (regex) in Noir that provides a mechanism to perform searches, manipulations, and evaluations using regex patterns within the language; more info [here](https://speakerdeck.com/sorasuegami/ethcon-korea-2023-zk-email-on-chain-verification-of-emails-using-zkp)
 
