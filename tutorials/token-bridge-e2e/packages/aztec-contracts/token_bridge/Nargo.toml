@@ -1,4 +1,3 @@
-
 [package]
 name = 'token_bridge_contract'
 type = 'contract'

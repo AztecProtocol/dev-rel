@@ -1,5 +1,5 @@
 [package]
-name = "private_token"
+name = "easy_private_token_contract"
 type = "contract"
 authors = [""]
 compiler_version = "0.11.1"
