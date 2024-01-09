@@ -22,7 +22,7 @@ jobs:
       - name: Get version
         id: versions_step
         run: |
-          version_tag=$(node ./.github/scripts/get_release.js)
+          version_tag=$(node ./.github/scripts/get_release.sh)
           echo "::set-output name=version_tag::$version_tag"
           echo "Output from get_release script: $version_tag"
 
