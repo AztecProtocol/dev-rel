@@ -11,8 +11,8 @@ base_dirs=("../tutorials" "../workshops")
 
 # Repository details
 repo_url="https://github.com/AztecProtocol/aztec-packages.git"
-version="aztec-packages-v0.16.9"
-contracts_path="yarn-project/noir-contracts/src/contracts"
+version="aztec-packages-v0.17.0"
+contracts_path="yarn-project/noir-contracts/contracts"
 
 # Clone the repository into a tmp folder once at the beginning
 if ! git clone "$repo_url" tmp; then

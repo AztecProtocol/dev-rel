@@ -1,10 +1,12 @@
 use dep::std::option::Option;
 use dep::safe_math::SafeU120;
-use dep::protocol_types::constants::MAX_READ_REQUESTS_PER_CALL;
+use dep::protocol_types::{
+    constants::MAX_READ_REQUESTS_PER_CALL,
+    address::AztecAddress,
+};
 use dep::aztec::{
   context::Context,
   state_vars::set::Set,
-  types::address::AztecAddress,
 };
 use dep::aztec::note::{
     note_getter::view_notes,
@@ -104,7 +106,10 @@ impl BalanceSet {
     }
 }
 
-pub fn filter_notes_min_sum(notes: [Option<TokenNote>; MAX_READ_REQUESTS_PER_CALL], min_sum: SafeU120) -> [Option<TokenNote>; MAX_READ_REQUESTS_PER_CALL] {
+pub fn filter_notes_min_sum(
+    notes: [Option<TokenNote>; MAX_READ_REQUESTS_PER_CALL],
+    min_sum: SafeU120
+) -> [Option<TokenNote>; MAX_READ_REQUESTS_PER_CALL] {
     let mut selected = [Option::none(); MAX_READ_REQUESTS_PER_CALL];
     let mut sum = SafeU120::min();
     for i in 0..notes.len() {
