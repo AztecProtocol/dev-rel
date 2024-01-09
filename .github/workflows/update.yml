@@ -1,4 +1,4 @@
-name: Update Contract
+name: Update Contracts
 
 on:
   schedule:
