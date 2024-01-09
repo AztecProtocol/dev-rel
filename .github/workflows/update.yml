@@ -22,9 +22,9 @@ jobs:
       - name: Get version
         id: versions_step
         run: |
-          version_tag=$(node ./.github/scripts/fetchRelease.js)
+          version_tag=$(node ./.github/scripts/get_release.js)
           echo "::set-output name=version_tag::$version_tag"
-          echo "Output from Node.js script: $version_tag"
+          echo "Output from get_release script: $version_tag"
 
       - name: Check and update tutorials
         run: sudo chown $USER ./src && bash ./.github/scripts/update_contract.sh ${{ steps.versions_step.outputs.version_tag }}
