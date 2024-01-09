@@ -26,8 +26,8 @@ jobs:
           echo "::set-output name=version_tag::$version_tag"
           echo "Output from get_release script: $version_tag"
 
-      - name: Check and update tutorials
-        run: sudo chown $USER ./src && bash ./.github/scripts/update_contract.sh ${{ steps.versions_step.outputs.version_tag }}
+      - name: Check and update tutorials and workshops
+        run: sudo chown $USER ./tutorials ./workshops && bash ./.github/scripts/update_contract.sh ${{ steps.versions_step.outputs.version_tag }}
 
       - name: Commit and push changes
         run: |
