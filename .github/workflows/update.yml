@@ -32,6 +32,9 @@ jobs:
       - name: Update L1 contracts
         run: bash ./.github/scripts/update_l1_contracts.sh
 
+      - name: Remove tmp directory
+        run: rm -rf tmp
+
       - name: Commit and push changes
         run: |
           git config --global user.email "helloworld@mcgee.cat"
@@ -42,5 +45,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Clean up
-        run: rm -rf tmp
+    
