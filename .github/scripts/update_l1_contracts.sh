@@ -39,9 +39,9 @@ for target_dir in "${target_dirs[@]}"; do
         echo "Found source file: $source_file"
 
         # Replace import statements starting with ../../ with @aztec/l1-contracts/
-        sed -i 's|import "\(.*\)\.\./\.\./|import "@aztec/l1-contracts/|' "$target_file"
+        sed -i 's|import "\(.*\)../../|import "\1@aztec/l1-contracts/|' "$target_file"
 
-        # Replace the content of the target file with the content from the source file
+        # Copy the content from the source file to the target file
         cp "$source_file" "$target_file"
         echo "Updated $target_file"
 
