@@ -21,28 +21,32 @@ target_dirs=("./tutorials" "./workshops")
 for target_dir in "${target_dirs[@]}"; do
     echo "Processing directory: $target_dir"
 
-    # Loop through each .sol file found in the aztec-packages directory
-    find "$source_contracts_dir" -name "*.sol" | while read -r source_file; do
-        echo "Processing $source_file..."
+    # Loop through each .sol file found in the target directory
+    find "$target_dir" -name "*.sol" | while read -r target_file; do
+        echo "Processing $target_file..."
 
         # Extract the filename
-        filename=$(basename "$source_file")
+        filename=$(basename "$target_file")
 
-        # Find the equivalent .sol file in the dev-rel dir
-        target_file=$(find "$target_dir" -name "$filename")
+        # Find the equivalent .sol file in the aztec-packages directory
+        source_file=$(find "$source_contracts_dir" -name "$filename")
 
-        if [ -z "$target_file" ]; then
-            echo "No equivalent file found for $filename in $target_dir directory."
+        if [ -z "$source_file" ]; then
+            echo "No equivalent file found for $filename in aztec-packages directory."
             continue
         fi
 
-        echo "Found target file: $target_file"
+        echo "Found source file: $source_file"
 
-        # Replace the code in dev-rel repo with the code from the aztec-packages .sol file
-        cp "$source_file" "$target_file"
-        echo "Updated $target_file"
+        # Copy the content from the source file excluding import statements
+        awk '!/import /' "$source_file" > temp_file
+        # Append the content of the target file from the first import statement
+        awk '/import /{p=1}p' "$target_file" >> temp_file
+        # Move the temp_file content to the target file
+        mv temp_file "$target_file"
+        echo "Updated $target_file, excluding import statements"
 
-       # Remove 'docs' comments
+        # Remove docs comments
         sed -i '/[ \t]*\/\/ docs:.*/d' "$target_file"
         echo "Docs comments removed from $target_file"
     done
