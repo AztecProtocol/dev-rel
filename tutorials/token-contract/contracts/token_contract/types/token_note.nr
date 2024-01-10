@@ -71,6 +71,7 @@ impl TokenNote {
         ],0)
     }
 
+    // docs:start:nullifier
     pub fn compute_nullifier(self) -> Field {
         let note_hash_for_nullify = compute_note_hash_for_read_or_nullify(TokenNoteMethods, self);
         let secret = get_secret_key(self.owner);
@@ -81,6 +82,7 @@ impl TokenNote {
             secret.high,
         ],0)
     }
+    // docs:end:nullifier
 
     pub fn set_header(&mut self, header: NoteHeader) {
         self.header = header;

@@ -57,8 +57,10 @@ impl BalanceSet {
   unconstrained pub fn balance_of_with_offset(self: Self, offset: u32) -> SafeU120 {
       // Same as SafeU120::new(0), but fewer constraints because no check. 
       let mut balance = SafeU120::min();
+      // docs:start:view_notes
       let options = NoteViewerOptions::new().set_offset(offset);
       let opt_notes = self.set.view_notes(options);
+      // docs:end:view_notes
       let len = opt_notes.len();
       for i in 0..len {
           if opt_notes[i].is_some() {
@@ -75,12 +77,16 @@ impl BalanceSet {
     pub fn add(self: Self, addend: SafeU120) {
         let mut addend_note = TokenNote::new(addend, self.owner);
 
+        // docs:start:insert
         self.set.insert(&mut addend_note, true);
+        // docs:end:insert
     }
 
     pub fn sub(self: Self, subtrahend: SafeU120) {
+        // docs:start:get_notes
         let options = NoteGetterOptions::with_filter(filter_notes_min_sum, subtrahend);
         let maybe_notes = self.set.get_notes(options);
+        // docs:end:get_notes
 
         let mut minuend: SafeU120 = SafeU120::min();
         for i in 0..maybe_notes.len() {
@@ -91,7 +97,9 @@ impl BalanceSet {
                 // This will call the the `compute_nullifer` function of the `token_note`
                 // which require knowledge of the secret key (currently the users encryption key).
                 // The contract logic must ensure that the spending key is used as well.
+                // docs:start:remove
                 self.set.remove(note);
+                // docs:end:remove
 
                 minuend = minuend.add(note.amount);
             }

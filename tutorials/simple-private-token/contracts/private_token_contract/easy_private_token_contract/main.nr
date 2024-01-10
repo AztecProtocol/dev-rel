@@ -1,3 +1,4 @@
+// docs:start:easy_private_token_contract
 contract EasyPrivateToken {
     use dep::protocol_types::address::AztecAddress;
     use dep::std::option::Option;
@@ -84,3 +85,4 @@ contract EasyPrivateToken {
         note_utils::compute_note_hash_and_nullifier(ValueNoteMethods, note_header, serialized_note)
     }
 }
+// docs:end:easy_private_token_contract
