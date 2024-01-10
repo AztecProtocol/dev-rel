@@ -1,4 +1,3 @@
-// docs:start:token_types_all
 use dep::aztec::{
     note::{
         note_header::NoteHeader,
@@ -127,4 +126,3 @@ global TransparentNoteMethods = NoteInterface {
     set_header,
     broadcast,
 };
-// docs:end:token_types_all
