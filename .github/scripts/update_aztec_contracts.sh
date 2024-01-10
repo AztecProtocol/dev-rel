@@ -105,5 +105,4 @@ for base_dir in "${base_dirs[@]}"; do
     done < <(find "$base_dir" -name "Nargo.toml")
 done
 
-# Remove temporary files after processing is complete
-rm -rf "$tmp_dir"
+
