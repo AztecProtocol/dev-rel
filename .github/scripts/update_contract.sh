@@ -13,7 +13,7 @@ if [ -z "$version_tag" ]; then
 fi
 
 # Base directories to search through
-base_dirs=("../tutorials" "../workshops")
+base_dirs=("../../tutorials" "../../workshops")
 
 # Repository details
 repo_url="https://github.com/AztecProtocol/aztec-packages.git"
@@ -65,7 +65,7 @@ for base_dir in "${base_dirs[@]}"; do
         echo "Found project: $project_dir"
 
         # Extract the value of the 'name' field
-        name_value=$(grep "^name\s*=" "$nargo_file_path" | cut -d '"' -f 2)
+        name_value=$(grep "^name\s*=" "$nargo_file_path" | cut -d '"' -f 2 | tr -d ' ')
 
         # Check if name_value is not empty
         if [ -z "$name_value" ]; then
