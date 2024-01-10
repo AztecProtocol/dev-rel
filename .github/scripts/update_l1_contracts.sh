@@ -38,16 +38,13 @@ for target_dir in "${target_dirs[@]}"; do
 
         echo "Found source file: $source_file"
 
-        # Replace import statements starting with ../../ with @aztec/l1-contracts/
-        sed -i 's|import "\(.*\)../../|import "\1@aztec/l1-contracts/|' "$target_file"
-
         # Copy the content from the source file to the target file
         cp "$source_file" "$target_file"
         echo "Updated $target_file"
 
-        # Remove 'docs' comments
-        sed -i '/[ \t]*\/\/ docs:.*/d' "$target_file"
-        echo "Docs comments removed from $target_file"
+        # Replace ../../ with @aztec/l1-contracts/ and remove 'docs' comments
+        sed -i -e 's|\.\./\.\./|@aztec/l1-contracts/|g' -e '/[ \t]*\/\/ docs:.*/d' "$target_file"
+        echo "Updated import paths and removed docs comments from $target_file"
     done
 done
 
