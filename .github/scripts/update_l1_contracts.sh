@@ -41,10 +41,12 @@ for base_dir in "${base_dirs[@]}"; do
 
         # Replace the code in the L1 equivalent with the code from the found .sol file
         cp "$sol_file" "$l1_equivalent"
+        echo "Replaced $sol_file"
 
         # Remove comments from the L1 contract file
         sed -i '/^[ \t]*\/\//d' "$l1_equivalent"  # Removes single-line comments
         sed -i '/\/\*/,/\*\//d' "$l1_equivalent" # Removes block comments
+        echo "Removed comments from $sol_file"
     done
 done
 
