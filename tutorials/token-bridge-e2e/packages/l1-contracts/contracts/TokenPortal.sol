@@ -4,10 +4,10 @@ import {IERC20} from "@oz/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@oz/token/ERC20/utils/SafeERC20.sol";
 
 // Messaging
-import {IRegistry} from "../../src/core/interfaces/messagebridge/IRegistry.sol";
-import {IInbox} from "../../src/core/interfaces/messagebridge/IInbox.sol";
-import {DataStructures} from "../../src/core/libraries/DataStructures.sol";
-import {Hash} from "../../src/core/libraries/Hash.sol";
+import {IRegistry} from "@aztec/l1-contracts/src/core/interfaces/messagebridge/IRegistry.sol";
+import {IInbox} from "@aztec/l1-contracts/src/core/interfaces/messagebridge/IInbox.sol";
+import {DataStructures} from "@aztec/l1-contracts/src/core/libraries/DataStructures.sol";
+import {Hash} from "@aztec/l1-contracts/src/core/libraries/Hash.sol";
 
 contract TokenPortal {
   using SafeERC20 for IERC20;
