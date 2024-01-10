@@ -1,10 +1,10 @@
-pragma solidity ^0.8.20;
+pragma solidity >=0.8.18;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20} from "@oz/token/ERC20/IERC20.sol";
 
-import {IRegistry} from "@aztec/l1-contracts/src/core/interfaces/messagebridge/IRegistry.sol";
-import {DataStructures} from "@aztec/l1-contracts/src/core/libraries/DataStructures.sol";
-import {Hash} from "@aztec/l1-contracts/src/core/libraries/Hash.sol";
+import {IRegistry} from "../../src/core/interfaces/messagebridge/IRegistry.sol";
+import {DataStructures} from "../../src/core/libraries/DataStructures.sol";
+import {Hash} from "../../src/core/libraries/Hash.sol";
 
 import {TokenPortal} from "./TokenPortal.sol";
 import {ISwapRouter} from "../external/ISwapRouter.sol";
@@ -34,6 +34,7 @@ contract UniswapPortal {
     IERC20 outputAsset;
     bytes32 contentHash;
   }
+
   /**
    * @notice Exit with funds from L2, perform swap on L1 and deposit output asset to L2 again publicly
    * @dev `msg.value` indicates fee to submit message to inbox. Currently, anyone can call this method on your behalf.
@@ -46,7 +47,7 @@ contract UniswapPortal {
    * @param _amountOutMinimum - The minimum amount of output assets to receive from the swap (slippage protection)
    * @param _aztecRecipient - The aztec address to receive the output assets
    * @param _secretHashForL1ToL2Message - The hash of the secret consumable message. The hash should be 254 bits (so it can fit in a Field element)
-   * @param _deadlineForL1ToL2Message - deadline for when the L1 to L2 message (to mint outpiut assets in L2) must be consumed by
+   * @param _deadlineForL1ToL2Message - deadline for when the L1 to L2 message (to mint output assets in L2) must be consumed by
    * @param _canceller - The ethereum address that can cancel the deposit
    * @param _withCaller - When true, using `msg.sender` as the caller, otherwise address(0)
    * @return The entryKey of the deposit transaction in the Inbox
@@ -125,6 +126,7 @@ contract UniswapPortal {
       _aztecRecipient, amountOut, _canceller, _deadlineForL1ToL2Message, _secretHashForL1ToL2Message
     );
   }
+
   /**
    * @notice Exit with funds from L2, perform swap on L1 and deposit output asset to L2 again privately
    * @dev `msg.value` indicates fee to submit message to inbox. Currently, anyone can call this method on your behalf.
@@ -137,7 +139,7 @@ contract UniswapPortal {
    * @param _amountOutMinimum - The minimum amount of output assets to receive from the swap (slippage protection)
    * @param _secretHashForRedeemingMintedNotes - The hash of the secret to redeem minted notes privately on Aztec. The hash should be 254 bits (so it can fit in a Field element)
    * @param _secretHashForL1ToL2Message - The hash of the secret consumable message. The hash should be 254 bits (so it can fit in a Field element)
-   * @param _deadlineForL1ToL2Message - deadline for when the L1 to L2 message (to mint outpiut assets in L2) must be consumed by
+   * @param _deadlineForL1ToL2Message - deadline for when the L1 to L2 message (to mint output assets in L2) must be consumed by
    * @param _canceller - The ethereum address that can cancel the deposit
    * @param _withCaller - When true, using `msg.sender` as the caller, otherwise address(0)
    * @return The entryKey of the deposit transaction in the Inbox
