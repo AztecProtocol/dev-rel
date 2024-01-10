@@ -1,4 +1,3 @@
-// docs:start:token_bridge_token_interface
 use dep::protocol_types::{
     abis::function_selector::FunctionSelector,
     address::{
@@ -27,7 +26,6 @@ impl Token {
     );
   }
 
-  // docs:start:public_burn_interface
   pub fn burn_public(self: Self, context: PublicContext, from: AztecAddress, amount: Field, nonce: Field) {
     let _return_values = context.call_public_function(
       self.address,
@@ -35,7 +33,6 @@ impl Token {
       [from.to_field(), amount, nonce]
     );
   }
-  // docs:end:public_burn_interface
 
   pub fn mint_private(self: Self, context: PublicContext, amount: Field, secret_hash: Field) {
     let _return_values = context.call_public_function(
@@ -46,7 +43,6 @@ impl Token {
   }
 
 
-  // docs:start:private_burn_interface
   pub fn burn(self: Self, context: &mut PrivateContext, from: AztecAddress, amount: Field, nonce: Field) {
     let _return_values = context.call_private_function(
       self.address,
@@ -54,6 +50,4 @@ impl Token {
       [from.to_field(), amount, nonce]
     );
   }
-  // docs:end:private_burn_interface
 }
-// docs:end:token_bridge_token_interface
