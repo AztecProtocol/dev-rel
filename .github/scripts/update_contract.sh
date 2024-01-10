@@ -93,7 +93,7 @@ for base_dir in "${base_dirs[@]}"; do
 
             # Remove docs comments from the files
             find "$copy_location" -type f -name "*.nr" | while read file; do
-                if ! sed -i '' '/[ \t]*\/\/ docs:.*/d' "$file"; then
+                if ! sed -i '/[ \t]*\/\/ docs:.*/d' "$file"; then
                     echo "Warning: Failed to remove comments from $file"
                 else
                     echo "Comments removed from $file"
