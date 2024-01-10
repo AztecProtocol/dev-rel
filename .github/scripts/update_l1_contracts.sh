@@ -12,7 +12,7 @@ if [ ! -d "tmp" ]; then
 fi
 
 # Directory containing the aztec-packages L1 contracts
-source_contracts_dir="tmp/l1-contracts/test" 
+source_contracts_dir="tmp/l1-contracts/test"
 
 # Base directories
 target_dirs=("./tutorials" "./workshops")
@@ -38,15 +38,14 @@ for target_dir in "${target_dirs[@]}"; do
 
         echo "Found source file: $source_file"
 
-        # Copy the content from the source file excluding import statements
-        awk '!/import /' "$source_file" > temp_file
-        # Append the content of the target file from the first import statement
-        awk '/import /{p=1}p' "$target_file" >> temp_file
-        # Move the temp_file content to the target file
-        mv temp_file "$target_file"
-        echo "Updated $target_file, excluding import statements"
+        # Replace import statements starting with ../../ with @aztec/l1-contracts/
+        sed -i 's|import "\(.*\)\.\./\.\./|import "@aztec/l1-contracts/|' "$target_file"
 
-        # Remove docs comments
+        # Replace the content of the target file with the content from the source file
+        cp "$source_file" "$target_file"
+        echo "Updated $target_file"
+
+        # Remove 'docs' comments
         sed -i '/[ \t]*\/\/ docs:.*/d' "$target_file"
         echo "Docs comments removed from $target_file"
     done
