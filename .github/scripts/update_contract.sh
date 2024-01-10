@@ -13,7 +13,7 @@ if [ -z "$version_tag" ]; then
 fi
 
 # Base directories to search through
-base_dirs=("../../tutorials" "../../workshops")
+base_dirs=("./tutorials" "./workshops")
 
 # Repository details
 repo_url="https://github.com/AztecProtocol/aztec-packages.git"
