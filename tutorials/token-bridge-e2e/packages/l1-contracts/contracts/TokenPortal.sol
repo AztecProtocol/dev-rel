@@ -1,7 +1,7 @@
 pragma solidity >=0.8.18;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@oz/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@oz/token/ERC20/utils/SafeERC20.sol";
 
 // Messaging
 import {IRegistry} from "@aztec/l1-contracts/src/core/interfaces/messagebridge/IRegistry.sol";
@@ -20,8 +20,7 @@ contract TokenPortal {
     registry = IRegistry(_registry);
     underlying = IERC20(_underlying);
     l2TokenAddress = _l2TokenAddress;
-  
-}
+  }
 
   /**
    * @notice Deposit funds into the portal and adds an L2 message which can only be consumed publicly on Aztec
@@ -54,6 +53,7 @@ contract TokenPortal {
     // Send message to rollup
     return inbox.sendL2Message{value: msg.value}(actor, _deadline, contentHash, _secretHash);
   }
+
   /**
    * @notice Deposit funds into the portal and adds an L2 message which can only be consumed privately on Aztec
    * @param _secretHashForRedeemingMintedNotes - The hash of the secret to redeem minted notes privately on Aztec. The hash should be 254 bits (so it can fit in a Field element)
@@ -92,6 +92,7 @@ contract TokenPortal {
       actor, _deadline, contentHash, _secretHashForL2MessageConsumption
     );
   }
+
   /**
    * @notice Cancel a public depositToAztec L1 to L2 message
    * @dev only callable by the `canceller` of the message
@@ -170,6 +171,8 @@ contract TokenPortal {
     underlying.transfer(msg.sender, _amount);
     return entryKey;
   }
+
+
   /**
    * @notice Withdraw funds from the portal
    * @dev Second part of withdraw, must be initiated from L2 first as it will consume a message from outbox
@@ -203,4 +206,3 @@ contract TokenPortal {
     return entryKey;
   }
 }
-  
