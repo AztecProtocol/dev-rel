@@ -31,22 +31,19 @@ echo "Step 1: Attempting to update e2e_sandbox_example.test.ts"
 source_e2e_file=$(find "$source_ts_dir" -name "e2e_sandbox_example.test.ts")
 target_e2e_file="./tutorials/sandbox-tutorial/src/e2e_sandbox_example.test.ts"
 
-sed -n '/it(.*/,/});/p' "$source_messaging_test_file" > temp_test_cases.txt
-if ! sed -i "/afterAll(.*/r temp_test_cases.txt" "$target_messaging_test_file"; then
-    echo "Error updating test cases in $target_messaging_test_file"
+if [ -f "$source_e2e_file" ]; then
+    echo "Updating $target_e2e_file..."
+    cp "$source_e2e_file" "$target_e2e_file"
+    echo "Updated $target_e2e_file"
 else
-    echo "Updated test cases in $target_messaging_test_file"
+    echo "Source file $source_e2e_file not found."
 fi
-
-rm -f temp_test_cases.txt
-
 
 echo "----------"
 echo "Step 2: Attempting to update all @aztec packages in all package.jsons"
 # Update all @aztec packages in package.json files in the project
 find . -name "package.json" | while read -r package_file; do
-    # Update the package.json file silently, only print errors if they occur
-    if ! sed -i "s/\(@aztec\/[a-zA-Z0-9_-]*\": \"\)[^\"]*/\1^$aztec_version/g" "$package_file" 2>/dev/null; then
+    if ! sed -i "s/\(@aztec\/[a-zA-Z0-9_-]*\": \"\)[^\"]*/\1^$aztec_version/g" "$package_file" > /dev/null 2>&1; then
         echo "Error updating $package_file"
     fi
 done
@@ -60,7 +57,7 @@ target_delay_function_file="./tutorials/token-bridge-e2e/packages/src/test/fixtu
 
 # Copying delay function
 echo "Copying delay function from $source_delay_function_file to $target_delay_function_file..."
-grep -Pzo "(?s)export function delay\(.*?\}\n" "$source_delay_function_file" > "$target_delay_function_file"
+cp "$source_delay_function_file" "$target_delay_function_file"
 
 # Copy cross_chain_test_harness.ts
 source_cross_chain_file="$source_ts_dir/shared/cross_chain_test_harness.ts"
@@ -75,17 +72,21 @@ target_messaging_test_file="./tutorials/token-bridge-e2e/packages/src/test/e2e_c
 
 if [ -f "$source_messaging_test_file" ]; then
     echo "Updating test cases in $target_messaging_test_file..."
+    # Write test cases to a temporary file
+    sed -n '/it(.*/,/});/p' "$source_messaging_test_file" > temp_test_cases.txt
 
-    # Extracting test cases from the source file
-    test_cases=$(sed -n '/it(.*/,/});/p' "$source_messaging_test_file")
+    # Use 'r' command in sed to read from a file and append after the line containing "afterAll("
+    if ! sed -i "/afterAll(.*/r temp_test_cases.txt" "$target_messaging_test_file"; then
+        echo "Error updating test cases in $target_messaging_test_file"
+    else
+        echo "Updated test cases in $target_messaging_test_file"
+    fi
 
-    # Appending test cases to the target file after beforeAll() and afterAll() functions
-    sed -i "/afterEach(.*/a $test_cases" "$target_messaging_test_file"
-    echo "Updated test cases in $target_messaging_test_file"
+    # Cleanup temporary file
+    rm -f temp_test_cases.txt
 else
     echo "Source file $source_messaging_test_file not found."
 fi
 
 echo "----------"
 echo "Complete"
-
