@@ -31,13 +31,15 @@ echo "Step 1: Attempting to update e2e_sandbox_example.test.ts"
 source_e2e_file=$(find "$source_ts_dir" -name "e2e_sandbox_example.test.ts")
 target_e2e_file="./tutorials/sandbox-tutorial/src/e2e_sandbox_example.test.ts"
 
-if [ -f "$source_e2e_file" ]; then
-    echo "Updating $target_e2e_file..."
-    cp "$source_e2e_file" "$target_e2e_file"
-    echo "Updated $target_e2e_file"
+sed -n '/it(.*/,/});/p' "$source_messaging_test_file" > temp_test_cases.txt
+if ! sed -i "/afterAll(.*/r temp_test_cases.txt" "$target_messaging_test_file"; then
+    echo "Error updating test cases in $target_messaging_test_file"
 else
-    echo "Source file $source_e2e_file not found."
+    echo "Updated test cases in $target_messaging_test_file"
 fi
+
+rm -f temp_test_cases.txt
+
 
 echo "----------"
 echo "Step 2: Attempting to update all @aztec packages in all package.jsons"
