@@ -44,11 +44,10 @@ echo "Step 2: Attempting to update all @aztec packages in all package.jsons"
 # Update all @aztec packages in package.json files in the project
 find . -name "package.json" | while read -r package_file; do
     # Update the package.json file silently, only print errors if they occur
-    if ! sed -i "s/@aztec\/[a-zA-Z0-9_-]*\": \"^[0-9.]*\"/@aztec\/\1\": \"^$aztec_version\"/g" "$package_file" 2>/dev/null; then
+    if ! sed -i "s/\(@aztec\/[a-zA-Z0-9_-]*\": \"\)[^\"]*/\1^$aztec_version/g" "$package_file" 2>/dev/null; then
         echo "Error updating $package_file"
     fi
 done
-
 
 echo "----------"
 echo "Step 3: Attempting to update token bridge e2e"
@@ -79,7 +78,7 @@ if [ -f "$source_messaging_test_file" ]; then
     test_cases=$(sed -n '/it(.*/,/});/p' "$source_messaging_test_file")
 
     # Appending test cases to the target file after beforeAll() and afterAll() functions
-    sed -i "/afterAll(.*/a $test_cases" "$target_messaging_test_file"
+    sed -i "/afterEach(.*/a $test_cases" "$target_messaging_test_file"
     echo "Updated test cases in $target_messaging_test_file"
 else
     echo "Source file $source_messaging_test_file not found."
