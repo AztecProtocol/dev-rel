@@ -15,8 +15,8 @@
   "dependencies": {
     "@aztec/aztec.js": "0.14.2",
     "@aztec/circuits.js": "0.14.2",
-    "@aztec/cli": "0.14.2",
-    "@aztec/types": "0.14.2",
+    "@aztec/cli": "^0.17.0",
+    "@aztec/types": "^0.17.0",
     "@types/node": "^20.8.10",
     "typescript": "^5.2.2"
   }

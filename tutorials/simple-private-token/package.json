@@ -17,8 +17,8 @@
     "typescript": "^5.2.2"
   },
   "dependencies": {
-    "@aztec/aztec-rpc": "^0.6.7",
-    "@aztec/foundation": "^0.6.7",
+    "@aztec/aztec-rpc": "^0.17.0",
+    "@aztec/foundation": "^0.17.0",
     "@types/lodash": "^4.14.198"
   }
 }

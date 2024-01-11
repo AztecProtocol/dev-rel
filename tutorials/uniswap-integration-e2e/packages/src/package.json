@@ -10,10 +10,10 @@
   },
   "dependencies": {
     "@aztec/aztec.js": "^0.8.14",
-    "@aztec/foundation": "^0.8.14",
-    "@aztec/l1-artifacts": "^0.8.14",
-    "@aztec/noir-contracts": "^0.8.14",
-    "@aztec/types": "^0.8.14",
+    "@aztec/foundation": "^0.17.0",
+    "@aztec/l1-artifacts": "^0.17.0",
+    "@aztec/noir-contracts": "^0.17.0",
+    "@aztec/types": "^0.17.0",
     "@types/node": "^20.8.2",
     "viem": "^1.16.5"
   },
