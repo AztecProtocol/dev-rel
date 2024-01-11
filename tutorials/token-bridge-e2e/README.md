@@ -46,4 +46,3 @@ With your sandbox running, in the `src` dir run
 ```bash
 DEBUG='aztec:e2e_uniswap' yarn test
 ```
-
