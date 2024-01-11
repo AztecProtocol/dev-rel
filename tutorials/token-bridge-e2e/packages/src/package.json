@@ -5,23 +5,28 @@
   "license": "MIT",
   "private": true,
   "type": "module",
-  "scripts": {
-    "test": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest)"
-  },
   "dependencies": {
-    "@aztec/aztec.js": "^0.8.14",
-    "@aztec/foundation": "^0.8.14",
-    "@aztec/l1-artifacts": "^0.8.14",
-    "@aztec/noir-contracts": "^0.8.14",
-    "@aztec/types": "^0.8.14",
+    "@aztec/accounts": "^0.17.0",
+    "@aztec/aztec.js": "^0.17.0",
+    "@aztec/foundation": "^0.17.0",
+    "@aztec/l1-artifacts": "^0.17.0",
+    "@aztec/noir-contracts": "^0.17.0",
+    "@aztec/types": "^0.17.0",
     "@types/node": "^20.8.2",
-    "viem": "^1.16.5"
+    "i": "^0.3.7",
+    "sleep": "^6.3.0",
+    "viem": "1.21.4"
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
-    "@types/jest": "^29.5.5",
+    "@types/chai": "^4.3.11",
+    "@types/jest": "^29.5.11",
+    "@types/mocha": "^10.0.6",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.1",
-    "typescript": "^5.2.2"
+    "typescript": "^5.3.3"
+  },
+  "scripts": {
+    "test": "NODE_NO_WARNINGS=1 node --experimental-vm-modules $(yarn bin jest)"
   }
 }

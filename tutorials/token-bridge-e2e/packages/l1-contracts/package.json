@@ -1,26 +1,31 @@
 {
-  "name": "l2-sc",
+  "name": "l1-contracts",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
   "private": true,
   "devDependencies": {
-    "@nomicfoundation/hardhat-chai-matchers": "^2.0.2",
-    "@nomicfoundation/hardhat-ethers": "^3.0.4",
-    "@nomicfoundation/hardhat-network-helpers": "^1.0.9",
-    "@nomicfoundation/hardhat-toolbox": "^3.0.0",
-    "@nomicfoundation/hardhat-verify": "^1.1.1",
-    "@typechain/ethers-v6": "^0.5.1",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.0.3",
+    "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
+    "@nomicfoundation/hardhat-toolbox": "^2.0.2",
+    "@nomiclabs/hardhat-ethers": "^2.2.3",
+    "@nomiclabs/hardhat-etherscan": "^3.1.8",
+    "@typechain/ethers-v5": "^11.1.2",
     "@typechain/hardhat": "^9.1.0",
-    "chai": "^4.3.10",
-    "ethers": "^6.8.0",
-    "hardhat": "^2.18.1",
+    "@types/chai": "^4.3.11",
+    "@types/mocha": "^10.0.6",
+    "chai": "^4.0.0",
+    "hardhat": "^2.10.2",
     "hardhat-gas-reporter": "^1.0.9",
     "solidity-coverage": "^0.8.5",
-    "typechain": "^8.3.2"
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
+    "typescript": "^5.3.3"
   },
   "dependencies": {
-    "@aztec/l1-contracts": "^0.8.14",
-    "@openzeppelin/contracts": "^5.0.0"
+    "@aztec/foundation": "^0.17.0",
+    "@aztec/l1-contracts": "^0.17.0",
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
+    "@openzeppelin/contracts": "^5.0.1"
   }
 }
