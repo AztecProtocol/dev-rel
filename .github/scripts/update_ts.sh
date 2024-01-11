@@ -25,42 +25,35 @@ source_ts_dir="tmp/yarn-project/end-to-end/src"
 # Base directories
 target_dirs=("../../tutorials" "../../workshops")
 
-# Process each base directory
-for target_dir in "${target_dirs[@]}"; do
-    echo "Updating all  e2e_*.ts files in dir: $target_dir"
+echo "----------"
+echo "Step 1: Attempting to update e2e_sandbox_example.test.ts"
+# Update e2e_sandbox_example.test.ts file
+source_e2e_file=$(find "$source_ts_dir" -name "e2e_sandbox_example.test.ts")
+target_e2e_file="../../tutorials/sandbox-tutorial/src/e2e_sandbox_example.test.ts"
 
-    # Loop through each e2e_*.ts file found in the target directory
-    find "$target_dir" -name "e2e_*.ts" | while read -r e2e_file; do
-        echo "Processing $e2e_file..."
+if [ -f "$source_e2e_file" ]; then
+    echo "Updating $target_e2e_file..."
+    cp "$source_e2e_file" "$target_e2e_file"
+    echo "Updated $target_e2e_file"
+else
+    echo "Source file $source_e2e_file not found."
+fi
 
-        # Extract the filename
-        filename=$(basename "$e2e_file")
-
-        # Find the equivalent .ts file in the aztec-packages directory
-        source_file=$(find "$source_ts_dir" -name "$filename")
-
-        if [ -z "$source_file" ]; then
-            echo "No equivalent file found for $filename in aztec-packages directory."
-            continue
-        fi
-
-        echo "Found source file: $source_file"
-
-        # Copy the content from the source file to the target file
-        cp "$source_file" "$e2e_file"
-        echo "Updated $e2e_file"
-
-    done
-done
-
+echo "----------"
+echo "Step 2: Attempting to update all @aztec packages in all package.jsons"
 # Update all @aztec packages in package.json files in the project
 find . -name "package.json" | while read -r package_file; do
-    echo "Updating $package_file with Aztec version $aztec_version..."
-    sed -i "s/@aztec\/[a-zA-Z0-9_-]*\": \"^[0-9.]*\"/@aztec\/\1\": \"^$aztec_version\"/g" "$package_file"
+    # Update the package.json file silently, only print errors if they occur
+    if ! sed -i "s/@aztec\/[a-zA-Z0-9_-]*\": \"^[0-9.]*\"/@aztec\/\1\": \"^$aztec_version\"/g" "$package_file" 2>/dev/null; then
+        echo "Error updating $package_file"
+    fi
 done
 
+
+echo "----------"
+echo "Step 3: Attempting to update token bridge e2e"
 # Token Bridge e2e
-# Grab delay function from aztec-packages and replace
+# Grab delay function from aztec-packages
 source_delay_function_file="$source_ts_dir/fixtures/utils.ts"
 target_delay_function_file="../../tutorials/token-bridge-e2e/packages/src/test/fixtures/utils.ts"
 
@@ -75,3 +68,23 @@ target_cross_chain_file="../../tutorials/token-bridge-e2e/packages/src/test/shar
 echo "Copying cross_chain_test_harness from $source_cross_chain_file to $target_cross_chain_file..."
 cp "$source_cross_chain_file" "$target_cross_chain_file"
 echo "Token bridge e2e processed."
+
+source_messaging_test_file="$source_ts_dir/e2e_cross_chain_messaging.test.ts"
+target_messaging_test_file="../../tutorials/token-bridge-e2e/packages/src/test/e2e_cross_chain_messaging.test.ts"
+
+if [ -f "$source_messaging_test_file" ]; then
+    echo "Updating test cases in $target_messaging_test_file..."
+
+    # Extracting test cases from the source file
+    test_cases=$(sed -n '/it(.*/,/});/p' "$source_messaging_test_file")
+
+    # Appending test cases to the target file after beforeAll() and afterAll() functions
+    sed -i "/afterAll(.*/a $test_cases" "$target_messaging_test_file"
+    echo "Updated test cases in $target_messaging_test_file"
+else
+    echo "Source file $source_messaging_test_file not found."
+fi
+
+echo "----------"
+echo "Complete"
+
