@@ -28,7 +28,7 @@ target_dirs=("./tutorials" "./workshops")
 echo "----------"
 echo "Step 1: Attempting to update e2e_sandbox_example.test.ts"
 # Update e2e_sandbox_example.test.ts file
-source_e2e_file=$(find "$source_ts_dir" -name "e2e_sandbox_example.test.ts")
+source_e2e_file="$source_ts_dir"/e2e_sandbox_example.test.ts")
 target_e2e_file="./tutorials/sandbox-tutorial/src/e2e_sandbox_example.test.ts"
 
 if [ -f "$source_e2e_file" ]; then
