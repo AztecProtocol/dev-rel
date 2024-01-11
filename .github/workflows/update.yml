@@ -33,7 +33,7 @@ jobs:
         run: bash ./.github/scripts/update_l1_contracts.sh
 
       - name: Update Typescript
-        run: bash ./.github/scripts/update_ts.sh
+        run: bash ./.github/scripts/update_ts.sh ${{ steps.versions_step.outputs.version_tag }}
 
       - name: Remove tmp directory
         run: rm -rf tmp

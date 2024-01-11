@@ -23,13 +23,13 @@ fi
 source_ts_dir="tmp/yarn-project/end-to-end/src"
 
 # Base directories
-target_dirs=("../../tutorials" "../../workshops")
+target_dirs=("./tutorials" "./workshops")
 
 echo "----------"
 echo "Step 1: Attempting to update e2e_sandbox_example.test.ts"
 # Update e2e_sandbox_example.test.ts file
 source_e2e_file=$(find "$source_ts_dir" -name "e2e_sandbox_example.test.ts")
-target_e2e_file="../../tutorials/sandbox-tutorial/src/e2e_sandbox_example.test.ts"
+target_e2e_file="./tutorials/sandbox-tutorial/src/e2e_sandbox_example.test.ts"
 
 if [ -f "$source_e2e_file" ]; then
     echo "Updating $target_e2e_file..."
@@ -55,7 +55,7 @@ echo "Step 3: Attempting to update token bridge e2e"
 # Token Bridge e2e
 # Grab delay function from aztec-packages
 source_delay_function_file="$source_ts_dir/fixtures/utils.ts"
-target_delay_function_file="../../tutorials/token-bridge-e2e/packages/src/test/fixtures/utils.ts"
+target_delay_function_file="./tutorials/token-bridge-e2e/packages/src/test/fixtures/utils.ts"
 
 # Copying delay function
 echo "Copying delay function from $source_delay_function_file to $target_delay_function_file..."
@@ -63,14 +63,14 @@ grep -Pzo "(?s)export function delay\(.*?\}\n" "$source_delay_function_file" > "
 
 # Copy cross_chain_test_harness.ts
 source_cross_chain_file="$source_ts_dir/shared/cross_chain_test_harness.ts"
-target_cross_chain_file="../../tutorials/token-bridge-e2e/packages/src/test/shared/cross_chain_test_harness.ts"
+target_cross_chain_file="./tutorials/token-bridge-e2e/packages/src/test/shared/cross_chain_test_harness.ts"
 
 echo "Copying cross_chain_test_harness from $source_cross_chain_file to $target_cross_chain_file..."
 cp "$source_cross_chain_file" "$target_cross_chain_file"
 echo "Token bridge e2e processed."
 
 source_messaging_test_file="$source_ts_dir/e2e_cross_chain_messaging.test.ts"
-target_messaging_test_file="../../tutorials/token-bridge-e2e/packages/src/test/e2e_cross_chain_messaging.test.ts"
+target_messaging_test_file="./tutorials/token-bridge-e2e/packages/src/test/e2e_cross_chain_messaging.test.ts"
 
 if [ -f "$source_messaging_test_file" ]; then
     echo "Updating test cases in $target_messaging_test_file..."
