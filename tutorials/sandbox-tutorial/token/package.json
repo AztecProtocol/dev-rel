@@ -18,6 +18,6 @@
   },
   "dependencies": {
     "@aztec/aztec.js": "^0.8.14",
-    "@aztec/noir-contracts": "^0.8.14"
+    "@aztec/noir-contracts": "^0.17.0"
   }
 }
