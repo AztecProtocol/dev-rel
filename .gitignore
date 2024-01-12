@@ -2,3 +2,4 @@ node_modules
 proofs
 debug_*.json
 crs
+yarn-error.log
