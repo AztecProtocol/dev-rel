@@ -1,25 +1,25 @@
-#[oracle(getSquared)]
-unconstrained fn squared(input: [Field; 2]) -> [Field; 2] { }
 
-unconstrained fn get_squared(input: [Field; 2]) -> [Field; 2] {
-    squared(input)
+#[oracle(getSqrt)]
+unconstrained fn sqrt(input: [Field; 2]) -> [Field; 2] { }
+
+unconstrained fn get_sqrt(input: [Field; 2]) -> [Field; 2] {
+    sqrt(input)
 }
 
-fn main(input: [Field; 2], target: [Field; 2]) {
-    let squared = get_squared(input);
-    assert(squared == target);
+fn main(input: [Field; 2]) {
+    let sqrt = get_sqrt(input);
+    assert(sqrt[0].pow_32(2) as u64 == input[0] as u64);
+    assert(sqrt[1].pow_32(2) as u64 == input[1] as u64);
 }
 
 #[test]
 fn test_main() {
-    let input = [1, 2];
-    let target = [1, 4];
-    main(input, target)
+    let input = [4, 16];
+    main(input)
 }
 
 #[test(should_fail)]
 fn test_fail() {
-    let input = [1, 3];
-    let target = [1, 4];
-    main(input, target)
+    let input = [4, 15];
+    main(input)
 }

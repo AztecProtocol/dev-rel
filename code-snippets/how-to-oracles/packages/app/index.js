@@ -23,7 +23,7 @@ const client = new JSONRPCClient((jsonRPCRequest) => {
 
 const oracleResolver = async (name, input) => {
 	const oracleReturn = await client.request(name, [
-		{ Array: input[0].map((i) => ({ inner: i })) },
+		{ Array: input[0].map((i) => ({ inner: i.toString("hex") })) },
 	]);
 	return [oracleReturn.values[0].Array.map((x) => x.inner)];
 };
@@ -32,7 +32,7 @@ async function main() {
 	const backend = new BarretenbergBackend(project);
 	const noir = new Noir(project, backend);
 
-	const input = { input: [1, 2], target: [1, 4] };
+	const input = { input: [4, 16] };
 	const proof = await noir.generateFinalProof(input, oracleResolver);
 	console.log(proof);
 }
