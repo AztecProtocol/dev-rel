@@ -1,5 +1,5 @@
 contract Counter {
-    use dep::protocol_types::address::AztecAddress;
+    use dep::aztec::protocol_types::address::AztecAddress;
     use dep::aztec::{
         context::{PrivateContext, Context},
         note::{
@@ -19,7 +19,7 @@ contract Counter {
 
 
     struct Storage {
-        counters: Map<EasyPrivateUint>,
+        counters: Map<AztecAddress, EasyPrivateUint>,
     }
 
 
@@ -40,18 +40,18 @@ contract Counter {
     #[aztec(private)]
     fn constructor(headstart: u120, owner: AztecAddress) {
         let counters = storage.counters;
-        counters.at(owner.to_field()).add(headstart, owner);
+        counters.at(owner).add(headstart, owner);
     }
 
     #[aztec(private)]
       fn increment(owner: AztecAddress) {
         let counters = storage.counters;
-        counters.at(owner.to_field()).add(1, owner);
+        counters.at(owner).add(1, owner);
     }
 
     unconstrained fn get_counter(owner: AztecAddress) -> pub Field {
         let counters = storage.counters;
-        balance_utils::get_balance(counters.at(owner.to_field()).set)
+        balance_utils::get_balance(counters.at(owner).set)
     }
 
     unconstrained fn compute_note_hash_and_nullifier(
