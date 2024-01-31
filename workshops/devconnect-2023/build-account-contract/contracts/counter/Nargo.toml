@@ -9,4 +9,4 @@ type = "contract"
 aztec = { git = 'https://github.com/AztecProtocol/aztec-packages/', tag = 'aztec-packages-v0.14.2', directory = 'yarn-project/aztec-nr/aztec' }
 value_note = { git = 'https://github.com/AztecProtocol/aztec-packages/', tag = 'aztec-packages-v0.14.2', directory = 'yarn-project/aztec-nr/value-note' }
 easy_private_state = { git = 'https://github.com/AztecProtocol/aztec-packages/', tag = 'aztec-packages-v0.14.2', directory = 'yarn-project/aztec-nr/easy-private-state' }
-field_note = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.20.0", directory="yarn-project/aztec-nr/field-note"}
+field_note = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.21.0", directory="yarn-project/aztec-nr/field-note"}
