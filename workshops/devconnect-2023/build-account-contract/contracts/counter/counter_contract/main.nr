@@ -11,7 +11,7 @@ contract Counter {
     use dep::value_note::{
             balance_utils,
             value_note::{
-                ValueNoteMethods,
+                ValueNote,
                 VALUE_NOTE_LEN,
             },
     };
@@ -22,20 +22,6 @@ contract Counter {
         counters: Map<AztecAddress, EasyPrivateUint>,
     }
 
-
-    impl Storage {
-        fn init(context: Context) -> Self {
-            Storage {
-                counters: Map::new(
-                    context,
-                    1,
-                    |context, slot| {
-                        EasyPrivateUint::new(context, slot)
-                    },
-                ),
-            }
-        }
-    }
 
     #[aztec(private)]
     fn constructor(headstart: u120, owner: AztecAddress) {
@@ -61,6 +47,6 @@ contract Counter {
         serialized_note: [Field; VALUE_NOTE_LEN]
     ) -> pub [Field; 4] {
         let note_header = NoteHeader::new(contract_address, nonce, storage_slot);
-        note_utils::compute_note_hash_and_nullifier(ValueNoteMethods, note_header, serialized_note)
+        note_utils::compute_note_hash_and_nullifier(ValueNote::deserialize_content, note_header, serialized_note)
     }
 }
