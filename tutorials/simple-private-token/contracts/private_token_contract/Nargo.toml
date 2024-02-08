@@ -5,6 +5,6 @@ authors = [""]
 compiler_version = "0.11.1"
 
 [dependencies] 
-aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.22.0", directory="yarn-project/aztec-nr/aztec-noir" }
-value_note = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.22.0", directory="yarn-project/aztec-nr/value-note"}
-easy_private_state = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.22.0", directory="yarn-project/aztec-nr/easy-private-state"}
+aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.23.0", directory="yarn-project/aztec-nr/aztec-noir" }
+value_note = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.23.0", directory="yarn-project/aztec-nr/value-note"}
+easy_private_state = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.23.0", directory="yarn-project/aztec-nr/easy-private-state"}
