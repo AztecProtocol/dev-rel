@@ -1,8 +1,8 @@
 [package]
-name = "uniswap"
+name = "uniswap_contract"
 type = "contract"
 authors = [""]
-compiler_version = "0.16.0"
+compiler_version = ">=0.23.0"
 
 [dependencies]
 aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.23.0", directory="yarn-project/aztec-nr/aztec" }
