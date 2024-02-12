@@ -2,11 +2,11 @@
 
 copy_to_file_path="./contracts/"
 # change this with new releases
-version="aztec-packages-v0.16.9"
+version="aztec-packages-v0.20.0"
 nargo_file_path="$copy_to_file_path/Nargo.toml"
 
 repo_url="https://github.com/AztecProtocol/aztec-packages.git"
-contracts_path="yarn-project/noir-contracts/src/contracts"
+contracts_path="noir-projects/noir-contracts/src/contracts"
 
 # Check if the file exists
 if [ ! -f "$nargo_file_path" ]; then
