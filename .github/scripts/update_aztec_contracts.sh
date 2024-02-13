@@ -17,7 +17,7 @@ base_dirs=("./tutorials" "./workshops")
 
 # Repository details
 repo_url="https://github.com/AztecProtocol/aztec-packages.git"
-contracts_path="noir-projects/noir-contracts/contracts"
+contracts_path="yarn-project/noir-contracts/contracts"
 
 # Dynamic Temporary Directory Based on Environment
 if [ "$GITHUB_ACTIONS" == "true" ]; then
@@ -74,6 +74,8 @@ for base_dir in "${base_dirs[@]}"; do
         else
             echo "The value of the 'name' field is: $name_value"
         fi
+
+        echo "Looking for directory: $tmp_dir/$contracts_path/$name_value"
 
         # Check if the directory exists in the cloned repo
         if [ -d "$tmp_dir/$contracts_path/$name_value" ]; then
