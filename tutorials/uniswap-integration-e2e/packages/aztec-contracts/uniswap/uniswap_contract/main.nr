@@ -1,4 +1,3 @@
-// docs:start:uniswap_setup
 mod interfaces;
 mod util;
 
@@ -34,9 +33,7 @@ contract Uniswap {
 
     #[aztec(private)]
     fn constructor() {}
-    // docs:end:uniswap_setup
 
-    // docs:start:swap_public
     #[aztec(public)]
     fn swap_public(
         sender: AztecAddress,
@@ -105,9 +102,7 @@ contract Uniswap {
         );
         context.message_portal(content_hash);
     }
-    // docs:end:swap_public
 
-    // docs:start:swap_private
     #[aztec(private)]
     fn swap_private(
         input_asset: AztecAddress, // since private, we pass here and later assert that this is as expected by input_bridge
@@ -176,9 +171,7 @@ contract Uniswap {
         );
         context.message_portal(content_hash);
     }
-    // docs:end:swap_private
 
-    // docs:start:authwit_uniswap_get
     // Since the token bridge burns funds on behalf of this contract, this contract has to tell the token contract if the signature is valid
     // implementation is similar to how account contracts validate public approvals.
     // if valid, it returns the IS_VALID selector which is expected by token contract
@@ -187,9 +180,7 @@ contract Uniswap {
         let value = storage.approved_action.at(message_hash).read();
         if (value) { IS_VALID_SELECTOR } else { 0 }
     }
-    // docs:end:authwit_uniswap_get
 
-    // docs:start:authwit_uniswap_set
     // This helper method approves the bridge to burn this contract's funds and exits the input asset to L1
     // Assumes contract already has funds. 
     // Assume `token` relates to `token_bridge` (ie token_bridge.token == token)
@@ -220,16 +211,13 @@ contract Uniswap {
             nonce_for_burn_approval
         );
     }
-    // docs:end:authwit_uniswap_set
 
-    // docs:start:assert_token_is_same
     #[aztec(public)]
     internal fn _assert_token_is_same(token: AztecAddress, token_bridge: AztecAddress) {
         assert(
             token.eq(TokenBridge::at(token_bridge).token(context)), "input_asset address is not the same as seen in the bridge contract"
         );
     }
-    // docs:end:assert_token_is_same
 
     // /// Unconstrained /// 
 

@@ -1,4 +1,3 @@
-// docs:start:token_types_all
 use dep::aztec::{
     note::{
         note_header::NoteHeader,
@@ -95,4 +94,3 @@ impl TransparentNote {
         assert(self.secret_hash == hash);
     }
 }
-// docs:end:token_types_all

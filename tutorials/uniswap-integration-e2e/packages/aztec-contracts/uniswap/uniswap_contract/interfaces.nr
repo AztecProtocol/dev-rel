@@ -1,4 +1,3 @@
-// docs:start:interfaces
 use dep::aztec::protocol_types::{
         abis::function_selector::FunctionSelector,
         address::{
@@ -58,4 +57,3 @@ impl TokenBridge {
     );
   }
 }
-// docs:end:interfaces
