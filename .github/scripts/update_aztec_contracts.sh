@@ -81,17 +81,21 @@ for base_dir in "${base_dirs[@]}"; do
         if [ -d "$tmp_dir/$contracts_path/$name_value" ]; then
             echo "Directory found: $name_value"
 
-            # Define copy location
-            copy_location="$project_dir/$name_value"
-            mkdir -p "$copy_location"
+            copy_location="$project_dir/src"
+            
+            # Check src dir exists
+            if [ ! -d "$copy_location" ]; then
+                echo "Warning: 'src' directory does not exist in $project_dir, creating it now."
+                mkdir -p "$copy_location"
+            fi
 
-            # Copy the contracts
+            # Copy the contracts to the 'src' directory
             if ! cp -r "$tmp_dir/$contracts_path/$name_value/src/"* "$copy_location/"; then
                 echo "Warning: Failed to copy files to $copy_location"
                 continue
-            fi
-
-            echo "Copied the contracts to $copy_location"
+            else
+                echo "Copied the contracts to $copy_location"
+        fi
 
             # Remove docs comments from the files
             find "$copy_location" -type f -name "*.nr" | while read file; do
