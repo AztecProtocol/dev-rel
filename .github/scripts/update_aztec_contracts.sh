@@ -78,15 +78,17 @@ for base_dir in "${base_dirs[@]}"; do
                         # Extract relative path
                         relative_path=$(echo $line | grep -oP '(?<=path = ").+?(?=")')
                         
+        
                         if [[ $relative_path == ../../../aztec-nr/* ]]; then
-                            new_path="{ git=\"https://github.com/AztecProtocol/aztec-packages/\", tag=\"$version_tag\", directory=\"yarn-project/aztec-nr/aztec\" }"
+                            new_path="git=\"https://github.com/AztecProtocol/aztec-packages/\", tag=\"$version_tag\", directory=\"yarn-project/aztec-nr/aztec\""
                         elif [[ $relative_path == ../* ]]; then
                             dir_name=$(basename "$relative_path")
-                            new_path="{ git=\"https://github.com/AztecProtocol/aztec-packages/\", tag=\"$version_tag\", directory=\"noir-projects/noir-contracts/contracts/$dir_name\" }"
+                            new_path="git=\"https://github.com/AztecProtocol/aztec-packages/\", tag=\"$version_tag\", directory=\"noir-projects/noir-contracts/contracts/$dir_name\""
                         fi
 
                         # Replace path with new path
-                        sed -i "s|path = \".*\"|$new_path|" "$nargo_file_path"
+                        sed -i "s|path = \".*\"|aztec = { $new_path }|" "$nargo_file_path"
+
                         echo "Updated path for Nargo.toml dependency"
                     fi
                 done < "$nargo_file_path"
