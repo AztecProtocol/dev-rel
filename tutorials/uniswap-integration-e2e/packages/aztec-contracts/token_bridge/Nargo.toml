@@ -1,9 +1,9 @@
 [package]
 name = "token_bridge_contract"
-type = "contract"
 authors = [""]
-compiler_version = ">=0.23.0"
+compiler_version = ">=0.18.0"
+type = "contract"
 
 [dependencies]
-aztec = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.23.0", directory="yarn-project/aztec-nr/aztec" }
-value_note = { git="https://github.com/AztecProtocol/aztec-packages/", tag="aztec-packages-v0.23.0", directory="yarn-project/aztec-nr/token_portal_content_hash_lib"}
+aztec = { path = "../../../aztec-nr/aztec" }
+token_portal_content_hash_lib = { path = "../token_portal_content_hash_lib" }
