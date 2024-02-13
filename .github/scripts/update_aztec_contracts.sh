@@ -70,13 +70,30 @@ for base_dir in "${base_dirs[@]}"; do
         if [ -d "$tmp_dir/$contracts_path/$name_value" ]; then
             echo "Directory found: $name_value"
 
-            # Update Nargo.toml
-            if [ -f "$tmp_dir/$contracts_path/$name_value/Nargo.toml" ]; then
-                cp "$tmp_dir/$contracts_path/$name_value/Nargo.toml" "$project_dir/Nargo.toml"
-                echo "Nargo.toml updated from the repository."
+           # Update the path in Nargo.toml 
+            nargo_file_path="$project_dir/Nargo.toml"
+            if [ -f "$nargo_file_path" ]; then
+                while IFS= read -r line; do
+                    if [[ $line == *path* ]]; then
+                        # Extract relative path
+                        relative_path=$(echo $line | grep -oP '(?<=path = ").+?(?=")')
+                        
+                        if [[ $relative_path == ../../../aztec-nr/* ]]; then
+                            new_path="{ git=\"https://github.com/AztecProtocol/aztec-packages/\", tag=\"$version_tag\", directory=\"yarn-project/aztec-nr/aztec\" }"
+                        elif [[ $relative_path == ../* ]]; then
+                            dir_name=$(basename "$relative_path")
+                            new_path="{ git=\"https://github.com/AztecProtocol/aztec-packages/\", tag=\"$version_tag\", directory=\"noir-projects/noir-contracts/contracts/$dir_name\" }"
+                        fi
+
+                        # Replace path with new path
+                        sed -i "s|path = \".*\"|$new_path|" "$nargo_file_path"
+                        echo "Updated path for dependency to use git, tag, and directory."
+                    fi
+                done < "$nargo_file_path"
             else
-                echo "Nargo.toml does not exist in $tmp_dir/$contracts_path/$name_value"
+                echo "Warning: Nargo.toml not found in $project_dir."
             fi
+
 
             copy_location="$project_dir/src"
             
@@ -91,20 +108,6 @@ for base_dir in "${base_dirs[@]}"; do
                 echo "Warning: Failed to copy files to $copy_location"
             else
                 echo "Copied the contracts to $copy_location"
-            fi
-
-            # Update the tag in Nargo.toml
-            nargo_file_path="$project_dir/Nargo.toml"
-            if [ -f "$nargo_file_path" ]; then
-                while IFS= read -r line; do
-                    if [[ $line == *tag=* ]]; then
-                        dependency_name=$(echo $line | grep -oP '(?<=\").+?(?=\")' | head -1)
-                        sed -i "s|\($dependency_name.*tag=\"\)[^\"]*|\1$version_tag|" "$nargo_file_path"
-                        echo "Updated tag for $dependency_name in Nargo.toml to $version_tag"
-                    fi
-                done < <(sed -n '/^\[dependencies\]/,/^$/p' "$nargo_file_path" | grep -v '^\[dependencies\]' | awk NF)
-            else
-                echo "Warning: Nargo.toml not found in $project_dir after update attempt."
             fi
 
             # Remove docs comments from the files
