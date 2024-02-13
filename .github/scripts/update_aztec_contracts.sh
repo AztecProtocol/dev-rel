@@ -17,7 +17,7 @@ base_dirs=("./tutorials" "./workshops")
 
 # Repository details
 repo_url="https://github.com/AztecProtocol/aztec-packages.git"
-contracts_path="yarn-project/noir-contracts/contracts"
+contracts_path="noir-projects/noir-contracts/contracts"
 
 # Dynamic Temporary Directory Based on Environment
 if [ "$GITHUB_ACTIONS" == "true" ]; then
@@ -104,5 +104,3 @@ for base_dir in "${base_dirs[@]}"; do
         fi
     done < <(find "$base_dir" -name "Nargo.toml")
 done
-
-

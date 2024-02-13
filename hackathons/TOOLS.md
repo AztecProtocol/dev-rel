@@ -95,7 +95,7 @@ Many of the plugins and libraries listed above are also useful for writing Aztec
 
 #### Aztec Boilerplate
 
-🧰 Aztec boxes - Example full stack Aztec dapps out of the box. See the [private token example](https://github.com/AztecProtocol/aztec-packages/tree/master/yarn-project/boxes/private-token) for a functioning reference and the full list [here](https://github.com/AztecProtocol/aztec-packages/tree/master/yarn-project/boxes).
+🧰 Aztec boxes - Example full stack Aztec dapps out of the box. See the full list [here](https://github.com/AztecProtocol/aztec-packages/tree/master/boxes).
 
 #### Support
 

@@ -12,10 +12,10 @@ The lack of privacy is consistently brought up as one of the main reasons we are
 
 These projects would be implemented as, or in conjunction with, Aztec contracts:
 
-- **ZK UniSwap frontend -** develop a frontend for our uniswap smart contract found [here](https://github.com/AztecProtocol/aztec-packages/tree/master/yarn-project/noir-contracts/contracts/uniswap_contract)
+- **ZK UniSwap frontend -** develop a frontend for our uniswap smart contract found [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/uniswap_contract)
 - **Shielding** - an app that allows users to convert public tokens into a private form, perform an action, and then unshield back into original token. This could build on the existing token contract implementation, see the [tutorial here](https://docs.aztec.network/dev_docs/tutorials/writing_token_contract).
-- **ZK stablecoin** - build a stablecoin that allows you to wrap a stablecoin so it can be privately transferred 
-- **Private lending front end** - you can see an example [here](https://github.com/AztecProtocol/aztec-packages/tree/master/yarn-project/noir-contracts/contracts/lending_contract)
+- **ZK stablecoin** - build a stablecoin that allows you to wrap a stablecoin so it can be privately transferred
+- **Private lending front end** - you can see an example [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/lending_contract)
 - **ZKollateral** - privately prove assets for collateral or creditworthiness for a loan
 - **Proof of Liquidity** - privately prove solvency and/or compliance without exposing the underlying assets or trades
 - **Private DEX** - allow users to trade assets without revealing the accounts that the assets originate from.
@@ -36,7 +36,7 @@ These projects would be implemented for Noir, but could be used for Aztec contra
 
 These projects could be done for Noir or Aztec contracts:
 
-- **Boilerplates for more frameworks** - there are [Noir boilerplates](https://github.com/noir-lang/awesome-noir#boilerplates) and [Aztec boilerplates](https://github.com/AztecProtocol/aztec-packages/tree/master/yarn-project/boxes) for a number of popular frameworks already. Consider creating one for your favorite framework if there isn't one yet.
+- **Boilerplates for more frameworks** - there are [Noir boilerplates](https://github.com/noir-lang/awesome-noir#boilerplates) and [Aztec boilerplates](https://github.com/AztecProtocol/aztec-packages/tree/master/boxes) for a number of popular frameworks already. Consider creating one for your favorite framework if there isn't one yet.
 
 These projects would be specific to Noir:
 
