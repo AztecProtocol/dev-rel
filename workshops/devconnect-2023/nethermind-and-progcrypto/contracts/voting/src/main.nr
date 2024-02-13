@@ -1,129 +1,65 @@
-mod types; 
-contract Voting {
+contract EasyPrivateVoting {
     use dep::aztec::{
-	context::{PrivateContext, Context}, note::{
-	    note_header::NoteHeader, utils as note_utils,
-	}, selector::compute_selector,
-	 state_vars::{
-	    map::Map, public_state::PublicState, singleton::Singleton,
-	}, types::type_serialization::{
-	    bool_serialization::{BoolSerializationMethods,
-	    BOOL_SERIALIZED_LEN},
-	    aztec_address_serialization::{AztecAddressSerializationMethods,
-	    AZTEC_ADDRESS_SERIALIZED_LEN},
-	}, types::address::{AztecAddress}, hash::pedersen_hash,
-
-    }; 
-    use dep::value_note::{
-	    balance_utils, value_note::{
-		ValueNote, ValueNoteMethods, VALUE_NOTE_LEN,
-	    },
-    }; 
-    use dep::safe_math::SafeU120; 
-
-    use crate::types::{SafeU120SerializationMethods, SAFE_U120_SERIALIZED_LEN};
-
-struct Storage {
-    admin: PublicState<AztecAddress, AZTEC_ADDRESS_SERIALIZED_LEN>,
-    tally: Map<PublicState<SafeU120, SAFE_U120_SERIALIZED_LEN>>,
-    voteEnded: PublicState<bool, BOOL_SERIALIZED_LEN>, }
-
-    impl Storage {
-	fn init(context: Context) -> Self {
-	    Storage {
-		 admin: PublicState::new(
-		    context, 
-            1, 
-            AztecAddressSerializationMethods,
-		), 
-        tally: Map::new(
-		    context, 
-            2, 
-            |context, slot| {
-			PublicState::new(
-			    context,
-                slot, 
-                SafeU120SerializationMethods,
-			)
-		    },
-		 ),
-		  voteEnded: PublicState::new(
-		    context, 
-            3, 
-            BoolSerializationMethods,
-		)
-	    } }
-	}
-
-    #[aztec(private)] 
-    fn constructor(admin: AztecAddress) {
-        context.call_public_function(
-            context.this_address(),
-            compute_selector("set_admin((Field))"), 
-            [admin.address]);
+        protocol_types::{
+            abis::function_selector::FunctionSelector,
+            address::AztecAddress
+        },
+        context::{PrivateContext, Context},
+        state_vars::{ map::Map, public_state::PublicState}, 
+    };
+    struct Storage {
+        admin: PublicState<AztecAddress>, // admin can end vote
+        tally: Map<Field, PublicState<Field>>, // we will store candidate as key and number of votes as value
+        voteEnded: PublicState<bool>, // voteEnded is boolean
     }
 
-    #[aztec(public)] 
-    fn set_admin(admin: AztecAddress) {
-	    storage.admin.write(admin); 
+    #[aztec(private)] // annotation to mark function as private and expose private context
+    fn constructor(admin: AztecAddress) { // called when contract is deployed
+        context.call_public_function(
+            // we cannot update public state directly from private function but we can call public function (which queues it)
+            context.this_address(),// contract address whose method we want to call
+            FunctionSelector::from_signature("_initialize((Field))"), // function selector
+            [admin.to_field()] // parameters
+        );
+    }
+    #[aztec(public)] // annotation to mark function as public and expose public context
+    internal fn _initialize(admin: AztecAddress) { // internal - can only be called by contract
+        storage.admin.write(admin);
         storage.voteEnded.write(false);
     }
-
-    struct OneUseOnly {
-	    user: AztecAddress
-    }
-
-    impl OneUseOnly {
-	    pub fn new(user: AztecAddress) -> Self {
-	        Self { user }
-	}
-
-	fn spend_private(self, context: &mut PrivateContext) {
-	    let user = self.user.address; 
-        let slot = 69; 
-        let nullifier = dep::std::hash::pedersen_hash([user, slot]);
-	    context.push_new_nullifier(nullifier, 0);
-	    }
-    }
-
-    #[aztec(private)]
-    fn cast_vote(owner: Field, vote: Field)  {
+    #[aztec(private)] // annotation to mark function as private and expose private context
+    fn cast_vote(candidate: Field) {
+        let secret = context.request_nullifier_secret_key(context.msg_sender()); // get secret key of caller of function
+        let nullifier = dep::std::hash::pedersen_hash([context.msg_sender().to_field(), secret.low, secret.high]); // compute nullifier with this secret key so others can't descrypt it
+        context.push_new_nullifier(nullifier, 0); // push nullifier
         context.call_public_function(
-	        context.this_address(),
-	        compute_selector("add_to_tally_public(Field)"), 
-            [vote],
-	   );
-
-
-	let user_nullifier = OneUseOnly::new(AztecAddress::new(context.msg_sender()));
-	user_nullifier.spend_private(&mut context);
+            context.this_address(),
+            FunctionSelector::from_signature("add_to_tally_public(Field)"),
+            [candidate]
+        );
     }
 
-    #[aztec(public)] 
-    fn add_to_tally_public(vote: Field) {
-        assert(storage.voteEnded.read()==false, "Vote has ended");
-        let amount = SafeU120::new(1); let new_tally =
-        storage.tally.at(vote).read().add(amount);
-        storage.tally.at(vote).write(new_tally);
-     }
+    #[aztec(public)]
+    internal fn add_to_tally_public(candidate: Field) {
+        assert(storage.voteEnded.read() == false, "Vote has ended"); // assert that vote has not ended
+        let new_tally = storage.tally.at(candidate).read() + 1;
+        storage.tally.at(candidate).write(new_tally);
+    }
 
     #[aztec(public)] 
     fn end_vote() {
-        assert(storage.admin.read().eq(AztecAddress::new(context.msg_sender())),
-            "Only admin can end votes");
+        assert(storage.admin.read().eq(context.msg_sender()), "Only admin can end votes"); // assert that caller is admin
         storage.voteEnded.write(true);
     }
-
-    unconstrained fn get_vote(vote: Field) -> u120 {
-	    storage.tally.at(vote).read().value
+    unconstrained fn get_vote(candidate: Field) -> pub Field {
+        storage.tally.at(candidate).read()
     }
-
-    unconstrained fn compute_note_hash_and_nullifier( contract_address:
-        Field, nonce: Field, storage_slot: Field, preimage: [Field;
-        VALUE_NOTE_LEN], ) -> [Field; 4] { let note_header =
-        NoteHeader::new(contract_address, nonce, storage_slot);
-        note_utils::compute_note_hash_and_nullifier(ValueNoteMethods,
-        note_header, preimage)
+    unconstrained fn compute_note_hash_and_nullifier(
+        contract_address: AztecAddress,
+        nonce: Field,
+        storage_slot: Field,
+        serialized_note: [Field; 0]
+    ) -> pub [Field; 4] {
+        [0, 0, 0, 0]
     }
-
 }

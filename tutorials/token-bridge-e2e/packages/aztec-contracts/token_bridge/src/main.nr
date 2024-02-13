@@ -6,7 +6,7 @@ mod token_interface;
 // Bridge has to be set as a minter on the token before it can be used
 
 contract TokenBridge {
-    use dep::protocol_types::{
+    use dep::aztec::protocol_types::{
         abis::function_selector::FunctionSelector,
         address::{
             AztecAddress,
@@ -18,27 +18,15 @@ contract TokenBridge {
         context::{Context},
         hash::{compute_secret_hash},
         state_vars::{public_state::PublicState},
-        types::type_serialization::address_serialization::AddressSerializationMethods,
     };
 
     use dep::token_portal_content_hash_lib::{get_mint_public_content_hash, get_mint_private_content_hash, get_withdraw_content_hash};
 
     use crate::token_interface::Token;
+
     // Storage structure, containing all storage, and specifying what slots they use.
     struct Storage {
-        token: PublicState<AztecAddress, 1>,
-    }
-
-    impl Storage {
-        fn init(context: Context) -> pub Self {
-            Storage {
-                token: PublicState::new(
-                    context,
-                    1,
-                    AddressSerializationMethods,
-                ),
-            }
-        }
+        token: PublicState<AztecAddress>,
     }
 
     // Constructs the contract.
@@ -47,6 +35,7 @@ contract TokenBridge {
         let selector = FunctionSelector::from_signature("_initialize((Field))");
         context.call_public_function(context.this_address(), selector, [token.to_field()]);
     }
+
     // Consumes a L1->L2 message and calls the token contract to mint the appropriate amount publicly
     #[aztec(public)]
     fn claim_public(to: AztecAddress, amount: Field, canceller: EthAddress, msg_key: Field, secret: Field) {
@@ -57,6 +46,23 @@ contract TokenBridge {
 
         // Mint tokens
         Token::at(storage.token.read()).mint_public(context, to, amount);
+    }
+
+    // Burns the appropriate amount of tokens and creates a L2 to L1 withdraw message publicly
+    // Requires `msg.sender` to give approval to the bridge to burn tokens on their behalf using witness signatures
+    #[aztec(public)]
+    fn exit_to_l1_public(
+        recipient: EthAddress, // ethereum address to withdraw to
+        amount: Field,
+        callerOnL1: EthAddress, // ethereum address that can call this function on the L1 portal (0x0 if anyone can call)
+        nonce: Field // nonce used in the approval message by `msg.sender` to let bridge burn their tokens on L2
+    ) {
+        // Send an L2 to L1 message
+        let content = get_withdraw_content_hash(recipient, amount, callerOnL1);
+        context.message_portal(content);
+
+        // Burn tokens
+        Token::at(storage.token.read()).burn_public(context, context.msg_sender(), amount, nonce);
     }
     // Consumes a L1->L2 message and calls the token contract to mint the appropriate amount in private assets
     // User needs to call token.redeem_shield() to get the private assets
@@ -82,29 +88,7 @@ contract TokenBridge {
             [amount, secret_hash_for_redeeming_minted_notes]
         );
     }
-    // This is a public call as we need to read from public storage.
-    // Also, note that user hashes their secret in private and only sends the hash in public
-    // meaning only user can `redeem_shield` at a later time with their secret.
-    #[aztec(public)]
-    internal fn _call_mint_on_token(amount: Field, secret_hash: Field) {
-        Token::at(storage.token.read()).mint_private(context, amount, secret_hash);
-    }
-    // Burns the appropriate amount of tokens and creates a L2 to L1 withdraw message publicly
-    // Requires `msg.sender` to give approval to the bridge to burn tokens on their behalf using witness signatures
-    #[aztec(public)]
-    fn exit_to_l1_public(
-        recipient: EthAddress, // ethereum address to withdraw to
-        amount: Field,
-        callerOnL1: EthAddress, // ethereum address that can call this function on the L1 portal (0x0 if anyone can call)
-        nonce: Field // nonce used in the approval message by `msg.sender` to let bridge burn their tokens on L2
-    ) {
-        // Send an L2 to L1 message
-        let content = get_withdraw_content_hash(recipient, amount, callerOnL1);
-        context.message_portal(content);
 
-        // Burn tokens
-        Token::at(storage.token.read()).burn_public(context, context.msg_sender(), amount, nonce);
-    }
     // Burns the appropriate amount of tokens and creates a L2 to L1 withdraw message privately
     // Requires `msg.sender` (caller of the method) to give approval to the bridge to burn tokens on their behalf using witness signatures
     #[aztec(private)]
@@ -129,13 +113,39 @@ contract TokenBridge {
         // Burn tokens
         Token::at(token).burn(&mut context, context.msg_sender(), amount, nonce);
     }
+
+    // View function that is callable by other contracts.
+    // Unconstrained can't be called by others since it isn't safe.
+    #[aztec(public)]
+    fn get_token() -> AztecAddress {
+        storage.token.read()
+    }
+
+    // /// Unconstrained ///
+
+    unconstrained fn token() -> pub AztecAddress {
+        storage.token.read()
+    }
+
+    #[aztec(public)]
+    internal fn _initialize(token: AztecAddress) {
+        storage.token.write(token);
+    }
+
+    // This is a public call as we need to read from public storage.
+    // Also, note that user hashes their secret in private and only sends the hash in public
+    // meaning only user can `redeem_shield` at a later time with their secret.
+    #[aztec(public)]
+    internal fn _call_mint_on_token(amount: Field, secret_hash: Field) {
+        Token::at(storage.token.read()).mint_private(context, amount, secret_hash);
+    }
+
     #[aztec(public)]
     internal fn _assert_token_is_same(token: AztecAddress) {
         assert(storage.token.read().eq(token), "Token address is not the same as seen in storage");
     }
-    unconstrained fn token() -> pub AztecAddress {
-        storage.token.read()
-    }
+
+    // TODO: remove this placeholder once https://github.com/AztecProtocol/aztec-packages/issues/2918 is implemented
     unconstrained fn compute_note_hash_and_nullifier(
         contract_address: AztecAddress,
         nonce: Field,
