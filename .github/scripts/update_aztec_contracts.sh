@@ -87,7 +87,7 @@ for base_dir in "${base_dirs[@]}"; do
 
                         # Replace path with new path
                         sed -i "s|path = \".*\"|$new_path|" "$nargo_file_path"
-                        echo "Updated path for dependency to use git, tag, and directory."
+                        echo "Updated path for Nargo.toml dependency"
                     fi
                 done < "$nargo_file_path"
             else
@@ -99,7 +99,7 @@ for base_dir in "${base_dirs[@]}"; do
             
             # Check src dir exists
             if [ ! -d "$copy_location" ]; then
-                echo "Warning: 'src' directory does not exist in $project_dir, creating it now."
+                echo "Warning: 'src' directory does not exist in $project_dir, creating it now"
                 mkdir -p "$copy_location"
             fi
 
