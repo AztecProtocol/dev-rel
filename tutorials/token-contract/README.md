@@ -744,7 +744,7 @@ This function is called from [`unshield`](#unshield). The account's private bala
 
 #### `_reduce_total_supply`
 
-This function is called from [`burn`](#burn). The account's private balance is decremened in `burn` and the public `total_supply` is reduced in this function.
+This function is called from [`burn`](#burn). The account's private balance is decremented in `burn` and the public `total_supply` is reduced in this function.
 
 ```rust
     #[aztec(public)]

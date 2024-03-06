@@ -101,7 +101,7 @@ This defines the type as `contract` and adds the dependencies we need to create 
 
 ## Writing a smart contract
 
-In this section, we will learn how to write a private transferrable token smart contract.
+In this section, we will learn how to write a private transferable token smart contract.
 
 In this contract, the identity of the sender and recipient, the amount being transferred, and the initial supply of tokens are kept private and only disclosed to the parties involved.
 
