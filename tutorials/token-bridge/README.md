@@ -9,7 +9,7 @@ In Aztec, every contract on L2 can have a "portal" attached to it on L1 to help 
 This has several advantages including
 
 1. Separation of concerns - Token contract can stay minimal while this contract handles cross-chain messaging
-2. Any 3P bridge aggregators like Hop can use these cannonical token bridges. This way, it doesn't matter what bridge users use on Aztec. It solves the basic problem of bridging where hop-DAI is fundamentally different from Dai bridged from another bridge.
+2. Any 3P bridge aggregators like Hop can use these canonical token bridges. This way, it doesn't matter what bridge users use on Aztec. It solves the basic problem of bridging where hop-DAI is fundamentally different from Dai bridged from another bridge.
 3. Any L2 native token can always be withdrawn to L1 instead of being limited to the L2.
 
 In this tutorial you will learn how to:
