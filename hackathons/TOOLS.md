@@ -86,7 +86,7 @@ Many of the plugins and libraries listed above are also useful for writing Aztec
 
 #### Aztec Libraries
 
-[Aztec.nr](https://aztec.nr) - a framework for writing Aztec smart contracts in Noir. You can review more detail about the structure and process around writing contracts in the [Aztec.nr docs pages](https://docs.aztec.network/dev_docs/contracts/main). The framework includes 4 libaries:
+[Aztec.nr](https://aztec.nr) - a framework for writing Aztec smart contracts in Noir. You can review more detail about the structure and process around writing contracts in the [Aztec.nr docs pages](https://docs.aztec.network/dev_docs/contracts/main). The framework includes 4 libraries:
 
 - `aztec` includes core functionality
 - `easy-private-state` for creating and managing private state
