@@ -1,0 +1,8 @@
+[package]
+name = "recurse"
+type = "lib"
+authors = [""]
+compiler_version = ">=0.26.0"
+
+[dependencies]
+simple = { path = "../simple" }
