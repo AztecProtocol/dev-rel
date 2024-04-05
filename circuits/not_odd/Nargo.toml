@@ -1,6 +1,6 @@
 [package]
 name = "simple"
-type = "lib"
+type = "bin"
 authors = [""]
 compiler_version = ">=0.26.0"
 

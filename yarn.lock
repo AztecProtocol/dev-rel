@@ -56,6 +56,14 @@
     "@noir-lang/noirc_abi" "0.26.0"
     "@noir-lang/types" "0.26.0"
 
+"@noir-lang/noir_wasm@^0.26.0":
+  version "0.26.0"
+  resolved "https://registry.yarnpkg.com/@noir-lang/noir_wasm/-/noir_wasm-0.26.0.tgz#1c634932f53580022998e6811fee6077c47501d1"
+  integrity sha512-PmVyd/HE0fSxL6UU3XzCwpf9JyoR2Ql6V8odq3LFndosx5/FDWZtpxe1o7aNLdjebK2l4KmGJPN3eMh9JaiRoQ==
+  dependencies:
+    "@noir-lang/types" "0.26.0"
+    pako "^2.1.0"
+
 "@noir-lang/noirc_abi@0.26.0":
   version "0.26.0"
   resolved "https://registry.yarnpkg.com/@noir-lang/noirc_abi/-/noirc_abi-0.26.0.tgz#5052ab7a55228cc04d77cebf8753ea42636963ff"
@@ -329,6 +337,11 @@ ms@2.1.2:
   version "2.1.2"
   resolved "https://registry.yarnpkg.com/ms/-/ms-2.1.2.tgz#d09d1f357b443f493382a8eb3ccd183872ae6009"
   integrity sha512-sGkPx+VjMtmA6MX27oA4FBFELFCZZ4S4XqeGOXCv68tT+jb3vk/RyaKWP0PTKyWtmLSM0b+adUTEvbs1PEaH2w==
+
+pako@^2.1.0:
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/pako/-/pako-2.1.0.tgz#266cc37f98c7d883545d11335c00fbd4062c9a86"
+  integrity sha512-w+eufiZ1WuJYgPXbV/PO3NCMEc3xqylkKHzp8bxp1uW4qaSNQUkwmLLEc3kKsfz8lpV1F8Ht3U1Cm+9Srog2ug==
 
 path-key@^3.1.0:
   version "3.1.1"

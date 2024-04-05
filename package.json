@@ -5,7 +5,7 @@
     "compile": "yarn clean && tsc",
     "start": "node build/main.js",
     "clean:codegen": "rm -rf codegen",
-    "export:simple": "nargo export --program-dir=./circuits/simple",
+    "export:simple": "nargo export --program-dir=./circuits/not_odd",
     "export:recurse": "nargo export --program-dir=./circuits/recurse",
     "export:all": "yarn clean:codegen && yarn export:simple && yarn export:recurse",
     "codegen": "yarn noir-codegen ./circuits/**/export/*.json",
@@ -15,6 +15,7 @@
     "@noir-lang/backend_barretenberg": "^0.26.0",
     "@noir-lang/noir_codegen": "^0.26.0",
     "@noir-lang/noir_js": "^0.26.0",
+    "@noir-lang/noir_wasm": "^0.26.0",
     "@types/node": "^20.12.2",
     "typescript": "^5.4.3"
   }
