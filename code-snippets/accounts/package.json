@@ -1,0 +1,36 @@
+{
+  "name": "accounts",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dest/src/index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "compile:contracts": "cd contracts/account && aztec-nargo compile",
+    "compile:ts": "tsc -p tsconfig.json -w",
+    "compile": "pnpm compile:contracts && pnpm compile:ts",
+    "l1l2": "aztec-sandbox",
+    "run:sandbox": "aztec-sandbox",
+    "run:node": "cd ~/.aztec && docker compose up",
+    "run:pxe": "aztec start --pxe nodeUrl=http://localhost:8080/",
+    "main": "node --trace-warnings ./dest/src/index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@aztec/accounts": "0.42.0",
+    "@aztec/aztec.js": "0.42.0",
+    "@aztec/circuit-types": "^0.42.0",
+    "@aztec/circuits.js": "^0.42.0",
+    "@aztec/noir-contracts.js": "0.42.0",
+    "@types/node": "^20.14.2",
+    "@typescript-eslint/eslint-plugin": "^7.12.0",
+    "@typescript-eslint/parser": "^7.12.0",
+    "eslint": "^9.4.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-prettier": "^5.1.3",
+    "prettier": "^3.3.1",
+    "typescript": "^5.4.5"
+  }
+}
