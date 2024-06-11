@@ -19,6 +19,7 @@
     "skipLibCheck": true,
     "noImplicitOverride": true
   },
+  "include": ["src", "src/**/*.json"],
   "exclude": [
     "dest"
   ]
