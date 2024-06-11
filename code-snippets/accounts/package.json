@@ -6,9 +6,11 @@
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "compile:contracts": "cd contracts/account && aztec-nargo compile",
-    "compile:ts": "tsc -p tsconfig.json -w",
     "compile": "pnpm compile:contracts && pnpm compile:ts",
+    "compile:contracts": "cd contracts/account && aztec-nargo compile && pnpm copy:artifacts",
+    "copy:artifacts": "./scripts/copy-contracts.sh",
+    "compile:ts": "tsc -p tsconfig.json -w",
+    "clean": "rm -rf ./dest ./contracts/account/target ./src/artifacts",
     "l1l2": "aztec-sandbox",
     "run:sandbox": "aztec-sandbox",
     "run:node": "cd ~/.aztec && docker compose up",

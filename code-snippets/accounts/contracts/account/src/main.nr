@@ -1,8 +1,8 @@
 mod ecdsa_public_key_note;
 
-// Account contract that uses ECDSA signatures for authentication on the same curve as Ethereum.
+// Account contract that uses ECDSA signatures for authentication on the same curve as WebAuthn passkeys (secp256r1).
 // The signing key is stored in an immutable private note and should be different from the signing key.
-contract EcdsaAccount {
+contract EcdsaP256Account {
     use dep::aztec::prelude::{AztecAddress, FunctionSelector, NoteHeader, NoteGetterOptions, PrivateContext, PrivateImmutable};
 
     use dep::aztec::protocol_types::abis::call_context::CallContext;
@@ -89,7 +89,7 @@ contract EcdsaAccount {
         // Note that noir expects the hash of the message/challenge as input to the ECDSA verification.
         let outer_hash_bytes: [u8; 32] = outer_hash.to_be_bytes(32).as_array();
         let hashed_message: [u8; 32] = std::hash::sha256(outer_hash_bytes);
-        let verification = std::ecdsa_secp256k1::verify_signature(public_key.x, public_key.y, signature, hashed_message);
+        let verification = std::ecdsa_secp256r1::verify_signature(public_key.x, public_key.y, signature, hashed_message);
         assert(verification == true);
 
         true
