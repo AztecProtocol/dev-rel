@@ -51,7 +51,7 @@ Locally run an Aztec Client and an Ethereum Client that it rolls up to.
 # Glossary and Nomenclature - Note specific terms
 
 ## "Preimage" (Note Hash context)
-Note contents and additional data that is has been hashed into a Note Hash
+Note contents and additional data that have been hashed into a Note Hash
 
 ## "Consume" (Note read)
 Nullifying a note after reading it in a transaction.
