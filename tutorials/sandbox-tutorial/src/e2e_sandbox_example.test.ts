@@ -40,7 +40,7 @@ describe('e2e_sandbox_example', () => {
     expect(typeof nodeInfo.l1ContractAddresses.rollupAddress).toBe('object');
 
     // For the sandbox quickstart we just want to show them preloaded accounts (since it is a quickstart)
-    // We show creation of accounts in a later test
+    // We show the creation of accounts in a later test
 
     // docs:start:load_accounts
     ////////////// LOAD SOME ACCOUNTS FROM THE SANDBOX //////////////
