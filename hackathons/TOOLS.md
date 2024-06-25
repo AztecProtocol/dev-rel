@@ -61,7 +61,7 @@
 - [SKProof](https://github.com/0x3327/skproof) - a Scikit-learn compatible Python library for generating ZK proofs of execution
 - [ML](https://github.com/metavind/noir-ml) - a library for implementing neural networks in Noir
 - [zkML-Noir](https://github.com/storswiftlabs/zkml-noir) - a library for Python ML model transcoding Noir, including various algorithms such as Decision tree, K-Means, XGBoost, FNN, CNN
-- [Matrix Operations](https://github.com/storswiftlabs/matrix_operations) - a library for matrix operations provides functionality for performing various matrix operations
+- [Matrix Operations](https://github.com/storswiftlabs/matrix_operations) - a library for matrix operations that provides functionality for performing various matrix operations
 - [Convolution](https://github.com/storswiftlabs/convolution) - a library for Convolutional Neural Network (CNN) library in Noir, including Convolutional layers, Pooling layers, and Linear (fully connected) layers.
 
 ##### Miscellaneous

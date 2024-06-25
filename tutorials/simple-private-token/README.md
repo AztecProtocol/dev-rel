@@ -370,7 +370,7 @@ Now in your `package.json` add a `scripts` section and set `"type":"module"`:
   },
 ```
 
-Create a `tsconfig.json` in the root and use your favourite config settings. Here’s an example:
+Create a `tsconfig.json` in the root and use your favorite config settings. Here’s an example:
 
 ```json
 {
