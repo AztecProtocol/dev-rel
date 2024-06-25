@@ -175,7 +175,7 @@ Execution contexts for an Aztec transaction:
 
 1. Private Execution
 
-Users provide inputs and execute locally on a their device for privacy reasons. Outputs of the private execution are commitment and nullifier updates, a proof of correct execution and any return data to pass to the public execution context.
+Users provide inputs and execute locally on their device for privacy reasons. Outputs of the private execution are commitment and nullifier updates, a proof of correct execution and any return data to pass to the public execution context.
 
 2. Public Execution
 
