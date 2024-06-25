@@ -127,7 +127,7 @@ contract Token {
     #[aztec(public)]
     internal fn _reduce_total_supply(amount: Field) {}
 
-    // Unconstrained functions (read only)
+    // Unconstrained functions (read-only)
 
     unconstrained fn admin() -> Field {}
 
