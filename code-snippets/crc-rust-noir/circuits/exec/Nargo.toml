@@ -1,0 +1,8 @@
+[package]
+name = "exec"
+type = "bin"
+authors = [""]
+compiler_version = ">=0.30.0"
+
+[dependencies]
+crc = { path = "../crc" }
