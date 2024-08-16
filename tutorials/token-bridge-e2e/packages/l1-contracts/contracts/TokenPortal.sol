@@ -35,7 +35,7 @@ contract TokenPortal {
     returns (bytes32)
   {
     // Preamble
-    IInbox inbox = registry.getInbox();
+    IInbox inbox = registry.getRollup().INBOX();
     DataStructures.L2Actor memory actor = DataStructures.L2Actor(l2Bridge, 1);
 
     // Hash the message content to be reconstructed in the receiving contract
@@ -62,7 +62,7 @@ contract TokenPortal {
     bytes32 _secretHashForL2MessageConsumption
   ) external returns (bytes32) {
     // Preamble
-    IInbox inbox = registry.getInbox();
+    IInbox inbox = registry.getRollup().INBOX();
     DataStructures.L2Actor memory actor = DataStructures.L2Actor(l2Bridge, 1);
 
     // Hash the message content to be reconstructed in the receiving contract
@@ -111,7 +111,7 @@ contract TokenPortal {
         )
     });
 
-    IOutbox outbox = registry.getOutbox();
+    IOutbox outbox = registry.getRollup().OUTBOX();
 
     outbox.consume(message, _l2BlockNumber, _leafIndex, _path);
 
