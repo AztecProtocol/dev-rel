@@ -1,7 +1,0 @@
-[package]
-name = "noirjs_demo"
-type = "bin"
-authors = [""]
-compiler_version = "0.17.0"
-
-[dependencies]
