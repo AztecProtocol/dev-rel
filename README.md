@@ -25,13 +25,13 @@ We keep all our external content and resources here, as well as tracking what we
 
 📑 Learn by doing with [Aztec Tutorials](https://docs.aztec.network/tutorials)
 
-🔷 [Aztec: The Hybrid Rollup](https://medium.com/aztec-protocol/aztec-the-hybrid-zkrollup-a90a197bf22e)
+🔷 [Aztec: The Hybrid zkRollup](https://medium.com/aztec-protocol/aztec-the-hybrid-zkrollup-a90a197bf22e)
 
 ### Noir
 
 📃 [Noir docs](https://noir-lang.org/)
 
-⭐ [Noir Starter](https://github.com/noir-lang/noir-starter/tree/main) - [Foundry](https://github.com/noir-lang/noir-starter/tree/main/with-foundry) | [HardHat](https://github.com/noir-lang/noir-starter/tree/main/next-hardhat) 
+⭐ [Noir Starter](https://github.com/noir-lang/noir-starter/tree/main) - [Foundry](https://github.com/noir-lang/noir-starter/tree/main/with-foundry) | [HardHat](https://github.com/AztecProtocol/noir-starter/tree/main/vite-hardhat) 
 
 💻 [Noir Examples](https://github.com/noir-lang/noir-examples)
 
