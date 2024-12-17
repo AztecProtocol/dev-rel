@@ -4,13 +4,13 @@
 The company - aztec.network
 
 ## Aztec Protocol
-Definition of a layer 2 network that rolls up to Ethereum. Includes how to execute public/private functions, verify proofs, and reaches consensus on shared state.
+A layer 2 network that rolls up to Ethereum. It includes mechanisms to execute public/private functions, verify proofs, and reach consensus on shared state.
 
 ## Aztec Network
 Computers on a network that adhere to the Aztec Protocol.
 
 ## Aztec Client Software
-Software run on individual computers that adhere to the Aztec protocol.
+Software running on individual computers that adhere to the Aztec Protocol. 
 (learn more from the Yellow Paper)
 
 ## Aztec (Public) Virtual Machine
