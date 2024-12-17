@@ -4,7 +4,7 @@ Additional notes in the hackmd [here](https://hackmd.io/WyJlswYJTEmWFjEolGNiww).
 
 The `master` branch is the third step, most complete branch of the workshop.
 
-Check out `0-blank-signerless` for the first, simplest step and `1-counter-signerless` for the second step on [this github repo](https://github.com/critesjosh/aztec-account-abstraction-workshop/).
+Check out `0-blank-signerless` for the first, simplest step and `1-counter-signerless` for the second step on [this GitHub repository](https://github.com/critesjosh/aztec-account-abstraction-workshop/).
 
 ## Setup
 

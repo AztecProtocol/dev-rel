@@ -1,6 +1,6 @@
 # Inspiration
 
-Here you will find some use cases and ideas that we’d love to see people building on Aztec and Noir. The use cases are endless and not limited to this list!
+Here you will find some use cases and ideas that we would love to see people building on Aztec and Noir. The use cases are endless and not limited to this list!
 
 If you are interested in building on Aztec in a hackathon, check out the [Hackathon success guide 💻](../README.md#hackathon-success-guide-) at the bottom of this file so you can improve your chances of winning a prize.
 
@@ -12,9 +12,9 @@ The lack of privacy is consistently brought up as one of the main reasons we are
 
 These projects would be implemented as, or in conjunction with, Aztec contracts:
 
-- **ZK Uniswap frontend -** develop a frontend for our uniswap smart contract found [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/uniswap_contract)
+- **ZK Uniswap frontend -** develop a frontend for our Uniswap smart contract found [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/uniswap_contract)
 - **ZK stablecoin** - build a stablecoin that allows you to wrap a stablecoin so it can be privately transferred
-- **Private lending front end** - you can see an example [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/lending_contract)
+- **Private lending frontend** - you can see an example [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/lending_contract)
 - **ZKollateral** - privately prove assets for collateral or creditworthiness for a loan
 - **Proof of Liquidity** - privately prove solvency and/or compliance without exposing the underlying assets or trades
 - **Private DEX** - allows users to trade assets without revealing the accounts that the assets originate from.
@@ -77,11 +77,11 @@ You could try to implement these in vanilla Noir, or as Aztec contracts.
 - **Chess**
 - **Scrabble**
 - **ZK Quests** - players can prove they have achieved a specific action or quest within a game without revealing the quest, preventing spoilers
-- **ZK Treasure Hunt** - irl experience that validates a user has found a clue/treasure without revealing their location to other players
+- **ZK Treasure Hunt** - IRL experience that validates a user has found a clue/treasure without revealing their location to other players
 
 ## Identity 🕴️
 
-Being able to have a private identity on the blockchain will become increasingly important as more & more use-cases come on chain.
+Being able to have a private identity on the blockchain will become increasingly important as more & more use cases come on-chain.
 
 ### Ideas
 

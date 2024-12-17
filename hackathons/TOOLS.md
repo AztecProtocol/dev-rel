@@ -6,15 +6,15 @@
 
 #### Syntax and plugins
 
-💻 [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=noir-lang.vscode-noir) - Syntax highlight, error highlight, codelens, etc. ([Source Code](https://github.com/noir-lang/vscode-noir))
+💻 [VS Code Extension](https://marketplace.visualstudio.com/items?itemName=noir-lang.vscode-noir) - Syntax highlighting, error highlight, codelens, etc. ([Source Code](https://github.com/noir-lang/vscode-noir))
 
-🖥️ [Vim Plugin](https://github.com/hhamud/tree-sitter-noir#neovim) - Syntax highlight
+🖥️ [Vim Plugin](https://github.com/hhamud/tree-sitter-noir#neovim) - Syntax highlighting
 
-🖥️ [Emacs Plugin](https://melpa.org/#/noir-mode) - Syntax highlight ([Source Code](https://github.com/hhamud/noir-mode))
+🖥️ [Emacs Plugin](https://melpa.org/#/noir-mode) - Syntax highlighting ([Source Code](https://github.com/hhamud/noir-mode))
 
 🖥️ [Tree-sitter-noir](https://github.com/hhamud/tree-sitter-noir) - Tree-sitter grammar for Noir language
 
-🖥️ [Emacs Tree-sitter Plugin](https://melpa.org/#/noir-ts-mode) - Syntax highlight ([Source Code](https://github.com/hhamud/noir-ts-mode))
+🖥️ [Emacs Tree-sitter Plugin](https://melpa.org/#/noir-ts-mode) - Syntax highlighting ([Source Code](https://github.com/hhamud/noir-ts-mode))
 
 ⛑️ [hardhat-noir](https://www.npmjs.com/package/hardhat-noir) - Hardhat plugin ([Source Code](https://github.com/spalladino/hardhat-noir))
 
@@ -38,7 +38,7 @@
 
 - [BigInt](https://github.com/shuklaayush/noir-bigint) - a library that provides a custom BigUint56 data type, allowing for computations on large unsigned integers
 - [Signed Int](https://github.com/resurgencelabs/signed_int) - a library for accessing a custom Signed Integer data type, allowing access to negative numbers on Noir
-- [Fraction](https://github.com/resurgencelabs/fraction) - a library for accessing fractional number data type in Noir, allowing results that aren't whole numbers
+- [Fraction](https://github.com/resurgencelabs/fraction) - a library for accessing a fractional number data type in Noir, allowing results that aren't whole numbers
 - [U(int)2B(ytes)](https://github.com/colinnielsen/noir-u2b/tree/main) - a library for converting `u8`->`u120`s to `[u8]` array
 - [ZKFloat](https://github.com/0x3327/ZKFloat) - a floating point library for Noir
 
@@ -54,7 +54,7 @@
 ##### Ethereum
 
 - [Ethereum Storage Proof Verification](https://github.com/aragonzkresearch/noir-trie-proofs) - a library that contains the primitives necessary for RLP decoding (in the form of look-up table construction) and Ethereum state and storage proof verification (or verification of any trie proof involving 32-byte long keys)
-- [ECrecover](https://github.com/colinnielsen/ecrecover-noir/tree/main) - a library to verify an ECDSA signature and return the source Ethereum address
+- [ECrecover](https://github.com/colinnielsen/ecrecover-noir/tree/main) - a library to verify ECDSA signatures and retrieve the source Ethereum address
 
 ##### Machine Learning
 
@@ -86,7 +86,7 @@ Many of the plugins and libraries listed above are also useful for writing Aztec
 
 #### Aztec Libraries
 
-[Aztec.nr](https://aztec.nr) - a framework for writing Aztec smart contracts in Noir. You can review more detail about the structure and process around writing contracts in the [Aztec.nr docs pages](https://docs.aztec.network/dev_docs/contracts/main). The framework includes 4 libaries:
+[Aztec.nr](https://aztec.nr) - a framework for writing Aztec smart contracts in Noir. You can review more detail about the structure and process around writing contracts in the [Aztec.nr docs pages](https://docs.aztec.network/dev_docs/contracts/main). The framework includes 4 libraries:
 
 - `aztec` includes core functionality
 - `easy-private-state` for creating and managing private state
