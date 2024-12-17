@@ -12,8 +12,7 @@ The lack of privacy is consistently brought up as one of the main reasons we are
 
 These projects would be implemented as, or in conjunction with, Aztec contracts:
 
-- **ZK UniSwap frontend -** develop a frontend for our uniswap smart contract found [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/uniswap_contract)
-- **Shielding** - an app that allows users to convert public tokens into a private form, perform an action, and then unshield back into original token. This could build on the existing token contract implementation, see the [tutorial here](https://docs.aztec.network/dev_docs/tutorials/writing_token_contract).
+- **ZK Uniswap frontend -** develop a frontend for our uniswap smart contract found [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/uniswap_contract)
 - **ZK stablecoin** - build a stablecoin that allows you to wrap a stablecoin so it can be privately transferred
 - **Private lending front end** - you can see an example [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/lending_contract)
 - **ZKollateral** - privately prove assets for collateral or creditworthiness for a loan
@@ -27,13 +26,6 @@ Aztec and Noir are new protocols, so we’re always updating the developer tooli
 
 ### Ideas
 
-These projects would be implemented for Noir, but could be used for Aztec contracts as well:
-
-- **IDE language support** - we have some support with VSCode but would love to expand this through IDE features like auto-complete, hover for documentation, go-to function definition/references, etc. You can find our Language Server protocol [here](https://noir-lang.org/docs/nargo/language_server/)
-- **Ethereum History API** - trustlessly and optionally privately prove any piece of information that exists on Ethereum (e.g. token ownership, historical prices, protocol interactions, etc.) using Ethereum Storage Proofs in Noir - find example [here](https://github.com/Maddiaa0/noir-storage-proofs-demo)
-- **Regex support in Noir** - regular expression (regex) in Noir that provides a mechanism to perform searches, manipulations, and evaluations using regex patterns within the language; more info [here](https://speakerdeck.com/sorasuegami/ethcon-korea-2023-zk-email-on-chain-verification-of-emails-using-zkp)
-- **Hash Maps in Noir** - incorporate hash maps into Noir to allow devs to store and manipulate key-value pairs more efficiently
-
 These projects could be done for Noir or Aztec contracts:
 
 - **Boilerplates for more frameworks** - there are [Noir boilerplates](https://github.com/noir-lang/awesome-noir#boilerplates) and [Aztec boilerplates](https://github.com/AztecProtocol/aztec-packages/tree/master/boxes) for a number of popular frameworks already. Consider creating one for your favorite framework if there isn't one yet.
@@ -44,7 +36,7 @@ These projects would be specific to Noir:
 
 ### Proving backends
 
-Noir does not compile to a specific proof system, so you can implement an entirely different proving system such as Halo2 or Marlin.
+Noir does not compile to a specific proof system, so you can implement an entirely different proving system such as Halo2 or Marlin. You can see what is being worked on [here](https://github.com/noir-lang/awesome-noir#proving-backends).
 
 ### Verifiers
 
@@ -72,8 +64,8 @@ We’re always looking to support applications that utilize privacy and ZK proof
 You could try to implement these in vanilla Noir, or as Aztec contracts.
 
 - **zkPatreon** - privately unlock token-gated content by using Ethereum Storage Proofs in Noir
-- **zkEmail** - privately prove that some email was received, while hiding any private data in the e-mail, without trusting a centralized server to keep your privacy. Inspired by this [great blog post](https://blog.aayushg.com/posts/zkemail)
-- **Privacy Preserving Rewards Protocol** - an app or protocol that rewards participants for doing a specific on-chain action without revealing how much
+- **zkEmail** - privately prove that some email was received, while hiding any private data in the e-mail, without trusting a centralized server to keep your privacy. You can use [this library](https://github.com/zkemail/zkemail.nr).
+- **Privacy Preserving Rewards Protocol** - an app or protocol that rewards participants for doing a specific on-chain action without revealing how much. This [tutorial](https://docs.aztec.network/tutorials/codealong/contract_tutorials/crowdfunding_contract) may be helpful.
 
 ## Gaming 👾
 
@@ -81,9 +73,9 @@ You could try to implement these in vanilla Noir, or as Aztec contracts.
 
 You could try to implement these in vanilla Noir, or as Aztec contracts.
 
-- **ZK Poker**
-- **ZK Chess**
-- **ZK Scrabble**
+- **Poker**
+- **Chess**
+- **Scrabble**
 - **ZK Quests** - players can prove they have achieved a specific action or quest within a game without revealing the quest, preventing spoilers
 - **ZK Treasure Hunt** - irl experience that validates a user has found a clue/treasure without revealing their location to other players
 
@@ -105,32 +97,4 @@ Relevant for Aztec specifically:
 
 ## Cool Noir projects
 
-A curated list of existing projects building with Noir
-
-### Authentication
-
-- Anonymous proof of token ownership on Aztec for token-gated access
-  - [Sequi](https://github.com/sequi-xyz)
-  - [Cyclone](https://github.com/TalDerei/cyclone)
-- [SafeRecover](https://github.com/porco-rosso-j/safe-recovery-noir) - Recovery of ownership of Gnosis Safe accounts
-
-### Gaming
-
-- [Mastermind](https://github.com/vezenovm/mastermind-noir) - Mastermind in Noir
-- [BattleZips](https://battlezips.com/) ([Source Code](https://github.com/BattleZips/BattleZips-Noir)) - On-chain Battleship
-- [Sudoku, Wordle, and Trivia](https://github.com/ruizehung/Zero-Knowledge-Sudoku-Wordle-Trivia) - Sudoku, Wordle, and Trivia games
-- [ZCaptcha](https://github.com/signorecello/zcaptcha) - A ZK version of Captcha
-- [Hangman](https://github.com/resurgencelabs/hangman) - Simple implementation of the Hangman game
-
-### Governance
-
-- [MeloCafe](https://github.com/MeloCafe) - Anonymous on-chain voting
-- [Nouns Research Sprint](https://github.com/aragonzkresearch/nouns-anonymous-voting) - Anonymous voting research sprint solution with NounsDAO
-
-### Social
-
-- [FruityFriends](https://github.com/guelowrd/fruity-lib) - Various circuits (Proof of Intersection, Proof of Proximity, Proof of Proper Secret) to be used in social applications
-
-### Payments
-
-- [Private token](https://github.com/jat9292/Private-token) - Token with private balances using zkSNARKs and Homomorphic Encryption, inspired by Zeestar and Zether, implemented in Noir (and Rust).
+Check the [awesome-noir repo](https://github.com/noir-lang/awesome-noir) for the latest complete list.
