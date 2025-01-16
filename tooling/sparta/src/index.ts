@@ -49,6 +49,16 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 		return;
 	}
 
+	if (
+		ENVIRONMENT === "production" &&
+		interaction.channelId !== DEV_CHANNEL_ID
+	) {
+		console.log(
+			"Can't use this command in development if ENVIRONMENT is set to production"
+		);
+		return;
+	}
+
 	const command = client.commands.get(interaction.commandName);
 	if (!command) return;
 
