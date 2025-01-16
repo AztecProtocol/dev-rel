@@ -39,20 +39,14 @@ client.once("ready", () => {
 client.on("interactionCreate", async (interaction: Interaction) => {
 	if (!interaction.isChatInputCommand()) return;
 
-	// Determine which channel to use based on environment
-	const targetChannelId =
-		ENVIRONMENT === "production" ? PRODUCTION_CHANNEL_ID : DEV_CHANNEL_ID;
-
-	// Check if the command is in the correct channel
-	if (interaction.channelId !== targetChannelId) {
-		const channelName =
-			ENVIRONMENT === "production"
-				? PRODUCTION_CHANNEL_NAME
-				: DEV_CHANNEL_NAME;
-		return interaction.reply({
-			content: `This command can only be used in the ${channelName} channel.`,
-			flags: MessageFlags.Ephemeral,
-		});
+	if (
+		ENVIRONMENT === "development" &&
+		interaction.channelId === PRODUCTION_CHANNEL_ID
+	) {
+		console.log(
+			"Can't use this command in production if ENVIRONMENT is set to development"
+		);
+		return;
 	}
 
 	const command = client.commands.get(interaction.commandName);

@@ -1,4 +1,8 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import {
+	SlashCommandBuilder,
+	ChatInputCommandInteraction,
+	MessageFlags,
+} from "discord.js";
 import { ValidatorService } from "../services/validator-service.js";
 import { ChainInfoService } from "../services/chaininfo-service.js";
 
@@ -40,11 +44,11 @@ export default {
 		if (!address.match(/^0x[a-fA-F0-9]{40}$/)) {
 			return interaction.reply({
 				content: "Please provide a valid Ethereum address.",
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		}
 
-		await interaction.deferReply();
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
 		if (interaction.options.getSubcommand() === "add") {
 			try {
