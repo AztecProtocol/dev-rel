@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { ChainInfoService } from "../services/chaininfo-service";
+import { ChainInfoService } from "../services/chaininfo-service.js";
 
 export default {
 	data: new SlashCommandBuilder()

@@ -24,8 +24,6 @@ export class ChainInfoService {
 		try {
 			// Add validator to the set
 			const command = `docker run --rm aztecprotocol/aztec:unhinged-unicorn debug-rollup -u ${ETHEREUM_HOST} --rollup ${ETHEREUM_ROLLUP_ADDRESS} --l1-chain-id ${ETHEREUM_CHAIN_ID} `;
-
-			console.log("Running command:", command);
 			const { stdout, stderr } = await execAsync(command);
 
 			if (stderr) {

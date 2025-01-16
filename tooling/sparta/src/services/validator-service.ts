@@ -9,7 +9,6 @@ import {
 	ETHEREUM_PRIVATE_KEY,
 	ETHEREUM_VALUE,
 } from "../env.js";
-import { ChainInfoService } from "./chaininfo-service.js";
 
 const execAsync = promisify(exec);
 

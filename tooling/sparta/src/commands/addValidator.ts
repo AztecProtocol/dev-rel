@@ -1,6 +1,6 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { ValidatorService } from "../services/validator-service";
-import { ChainInfoService } from "../services/chaininfo-service";
+import { ValidatorService } from "../services/validator-service.js";
+import { ChainInfoService } from "../services/chaininfo-service.js";
 
 export default {
 	data: new SlashCommandBuilder()

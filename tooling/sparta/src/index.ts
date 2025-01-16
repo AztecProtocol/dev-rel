@@ -5,7 +5,7 @@ import {
 	Interaction,
 	MessageFlags,
 } from "discord.js";
-import { deployCommands } from "./deploy-commands";
+import { deployCommands } from "./deploy-commands.js";
 import commands from "./commands/index.js";
 import {
 	BOT_TOKEN,
@@ -58,40 +58,9 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 	const command = client.commands.get(interaction.commandName);
 	if (!command) return;
 
-	console.log(JSON.stringify(command.execute, null, 2));
-
 	try {
 		console.log("Executing command:", command.data.name);
 		const response = await command.execute(interaction);
-
-		if (typeof response === "string") {
-			const [
-				pendingBlock,
-				provenBlock,
-				validators,
-				committee,
-				archive,
-				currentEpoch,
-				currentSlot,
-				proposerPrevious,
-				proposerNow,
-			] = response
-				.split("\n")
-				.map((line) => line.trim())
-				.filter(Boolean);
-
-			console.log({
-				pendingBlock,
-				provenBlock,
-				validators,
-				committee,
-				archive,
-				currentEpoch,
-				currentSlot,
-				proposerPrevious,
-				proposerNow,
-			});
-		}
 	} catch (error) {
 		console.error(error);
 		await interaction.reply({
