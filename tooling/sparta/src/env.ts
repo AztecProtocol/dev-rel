@@ -5,9 +5,7 @@ export const {
 	TOKEN,
 	CLIENT_ID,
 	GUILD_ID,
-	PRODUCTION_CHANNEL_NAME,
-	DEV_CHANNEL_NAME,
-	PRODUCTION_CHANNEL_ID,
+	PROD_CHANNEL_ID,
 	DEV_CHANNEL_ID,
 	ETHEREUM_HOST,
 	ETHEREUM_ROLLUP_ADDRESS,
@@ -23,8 +21,8 @@ export const {
 	TOKEN: string;
 	CLIENT_ID: string;
 	GUILD_ID: string;
-	PRODUCTION_CHANNEL_NAME: string;
-	DEV_CHANNEL_NAME: string;
+	PROD_CHANNEL_ID: string;
+	DEV_CHANNEL_ID: string;
 	ETHEREUM_HOST: string;
 	ETHEREUM_ROLLUP_ADDRESS: string;
 	ETHEREUM_ADMIN_ADDRESS: string;
@@ -34,7 +32,6 @@ export const {
 	ETHEREUM_VALUE: string;
 	BOT_TOKEN: string;
 	PRODUCTION_CHANNEL_ID: string;
-	DEV_CHANNEL_ID: string;
 	BOT_CLIENT_ID: string;
 	ENVIRONMENT: string;
 };

@@ -9,11 +9,9 @@ import { deployCommands } from "./deploy-commands.js";
 import commands from "./commands/index.js";
 import {
 	BOT_TOKEN,
-	PRODUCTION_CHANNEL_ID,
 	DEV_CHANNEL_ID,
 	ENVIRONMENT,
-	PRODUCTION_CHANNEL_NAME,
-	DEV_CHANNEL_NAME,
+	PROD_CHANNEL_ID,
 } from "./env.js";
 
 // Extend the Client class to include the commands property
@@ -39,23 +37,18 @@ client.once("ready", () => {
 client.on("interactionCreate", async (interaction: Interaction) => {
 	if (!interaction.isChatInputCommand()) return;
 
-	if (
-		ENVIRONMENT === "development" &&
-		interaction.channelId === PRODUCTION_CHANNEL_ID
-	) {
-		console.log(
-			"Can't use this command in production if ENVIRONMENT is set to development"
-		);
+	const { channelId } = interaction;
+	if (ENVIRONMENT === "production" && channelId !== PROD_CHANNEL_ID) {
+		await interaction.reply({
+			content: "This command can only be used in the production channel",
+			flags: MessageFlags.Ephemeral,
+		});
 		return;
-	}
-
-	if (
-		ENVIRONMENT === "production" &&
-		interaction.channelId !== DEV_CHANNEL_ID
-	) {
-		console.log(
-			"Can't use this command in development if ENVIRONMENT is set to production"
-		);
+	} else if (ENVIRONMENT === "development" && channelId !== DEV_CHANNEL_ID) {
+		await interaction.reply({
+			content: "This command can only be used in the development channel",
+			flags: MessageFlags.Ephemeral,
+		});
 		return;
 	}
 
