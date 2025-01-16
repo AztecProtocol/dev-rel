@@ -1,0 +1,21 @@
+{
+    "name": "sparta-bot",
+    "version": "1.0.0",
+    "type": "module",
+    "scripts": {
+        "build": "tsc",
+        "start": "bun run src/index.ts",
+        "dev": "bun run --watch src/index.ts",
+        "deploy": "bun run src/deploy-commands.ts"
+    },
+    "dependencies": {
+        "discord.js": "^14.14.1",
+        "dotenv": "^16.3.1"
+    },
+    "devDependencies": {
+        "typescript": "^5.3.3",
+        "@types/node": "^20.10.5",
+        "ts-node": "^10.9.2",
+        "bun-types": "latest"
+    }
+}
