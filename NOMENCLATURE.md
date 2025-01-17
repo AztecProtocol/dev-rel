@@ -25,7 +25,7 @@ Noir is a Domain-Specific Language for SNARK proving systems developed by Aztec 
 ## Smart Contracts on Aztec
 Definitions of public/private state and functions. Public code is executed in the Protocol's AVM, private code executed in the local PXE.
 
-## Aztec.nr (Framework/website)
+**Aztec.nr (Framework/website)**
 Framework written in Noir to help with development of Aztec Contracts.
 
 ## Abstract Circuit Intermediate Representation (ACIR)
