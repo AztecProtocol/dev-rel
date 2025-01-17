@@ -6,7 +6,7 @@ import {
 	ETHEREUM_CHAIN_ID,
 } from "../env.js";
 
-type ChainInfo<> = {
+type ChainInfo = {
 	pendingBlockNum: string;
 	provenBlockNum: string;
 	validators: string | string[];
