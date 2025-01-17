@@ -38,17 +38,11 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 	if (!interaction.isChatInputCommand()) return;
 
 	const { channelId } = interaction;
-	if (ENVIRONMENT === "production" && channelId !== PROD_CHANNEL_ID) {
-		await interaction.reply({
-			content: "This command can only be used in the production channel",
-			flags: MessageFlags.Ephemeral,
-		});
-		return;
-	} else if (ENVIRONMENT === "development" && channelId !== DEV_CHANNEL_ID) {
-		await interaction.reply({
-			content: "This command can only be used in the development channel",
-			flags: MessageFlags.Ephemeral,
-		});
+	if (
+		(ENVIRONMENT === "production" && channelId !== PROD_CHANNEL_ID) ||
+		(ENVIRONMENT === "development" && channelId !== DEV_CHANNEL_ID)
+	) {
+		console.log(`Ignoring interaction in channel ${channelId}`);
 		return;
 	}
 

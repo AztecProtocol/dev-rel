@@ -1,4 +1,8 @@
-import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
+import {
+	SlashCommandBuilder,
+	ChatInputCommandInteraction,
+	MessageFlags,
+} from "discord.js";
 import { ChainInfoService } from "../services/chaininfo-service.js";
 
 export default {
@@ -7,7 +11,9 @@ export default {
 		.setDescription("Get chain info"),
 
 	execute: async (interaction: ChatInputCommandInteraction) => {
-		await interaction.deferReply();
+		await interaction.deferReply({
+			flags: MessageFlags.Ephemeral,
+		});
 
 		try {
 			const {

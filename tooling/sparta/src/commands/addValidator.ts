@@ -36,7 +36,7 @@ export default {
 		if (!address) {
 			return interaction.reply({
 				content: "Address is required.",
-				ephemeral: true,
+				flags: MessageFlags.Ephemeral,
 			});
 		}
 
