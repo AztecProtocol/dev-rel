@@ -6,12 +6,12 @@ import {
 	ETHEREUM_CHAIN_ID,
 } from "../env.js";
 
-type ChainInfo = {
+type ChainInfo<> = {
 	pendingBlockNum: string;
 	provenBlockNum: string;
-	validators: string[];
-	committee: string[];
-	archive: string[];
+	validators: string | string[];
+	committee: string | string[];
+	archive: string | string[];
 	currentEpoch: string;
 	currentSlot: string;
 	proposerNow: string;
@@ -37,13 +37,18 @@ export class ChainInfoService {
 				.map((line) => line.trim())
 				.filter(Boolean)
 				.reduce((acc, s) => {
-					const [key, value] = s.split(": ");
+					let [key, value] = s.split(": ");
 					const sanitizedKey = key
 						.toLowerCase()
 						.replace(/\s+(.)/g, (_, c) => c.toUpperCase());
 					return { ...acc, [sanitizedKey]: value };
-				}, {});
-
+				}, {}) as ChainInfo;
+			if (typeof info.validators === "string") {
+				info.validators = info.validators.split(", ").map(String);
+			}
+			if (typeof info.committee === "string") {
+				info.committee = info.committee.split(", ").map(String);
+			}
 			return info as ChainInfo;
 		} catch (error) {
 			console.error("Error getting chain info:", error);
