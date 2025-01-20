@@ -1,5 +1,6 @@
 import { REST, Routes } from "discord.js";
-import commands from "./commands/index.js";
+import usersCommands from "./commands/index.js";
+import adminsCommands from "./admins/index.js";
 import { BOT_TOKEN, BOT_CLIENT_ID, GUILD_ID } from "./env.js";
 
 export const deployCommands = async (): Promise<void> => {
@@ -8,9 +9,10 @@ export const deployCommands = async (): Promise<void> => {
 	try {
 		console.log("Started refreshing application (/) commands.");
 
-		const commandsData = Object.values(commands).map((command) =>
-			command.data.toJSON()
-		);
+		const commandsData = Object.values({
+			...usersCommands,
+			...adminsCommands,
+		}).map((command) => command.data.toJSON());
 
 		await rest.put(
 			Routes.applicationGuildCommands(BOT_CLIENT_ID, GUILD_ID),

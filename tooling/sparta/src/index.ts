@@ -6,7 +6,8 @@ import {
 	MessageFlags,
 } from "discord.js";
 import { deployCommands } from "./deploy-commands.js";
-import commands from "./commands/index.js";
+import usersCommands from "./commands/index.js";
+import adminsCommands from "./admins/index.js";
 import {
 	BOT_TOKEN,
 	DEV_CHANNEL_ID,
@@ -25,7 +26,7 @@ const client = new Client({
 
 client.commands = new Collection();
 
-for (const command of Object.values(commands)) {
+for (const command of Object.values({ ...usersCommands, ...adminsCommands })) {
 	client.commands.set(command.data.name, command);
 }
 

@@ -1,0 +1,62 @@
+{
+    "family": "sparta-validator-ops",
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": [
+        "FARGATE"
+    ],
+    "cpu": "256",
+    "memory": "512",
+    "executionRoleArn": "arn:aws:iam::${aws_account_id}:role/ecsTaskExecutionRole",
+    "taskRoleArn": "arn:aws:iam::${aws_account_id}:role/sparta-ecs-task-role",
+    "containerDefinitions": [
+        {
+            "name": "validator-ops",
+            "image": "${ecr_repository_url}:latest",
+            "essential": true,
+            "logConfiguration": {
+                "logDriver": "awslogs",
+                "options": {
+                    "awslogs-group": "/ecs/sparta-validator-ops",
+                    "awslogs-region": "${aws_region}",
+                    "awslogs-stream-prefix": "ecs"
+                }
+            },
+            "environment": [
+                {
+                    "name": "ENVIRONMENT",
+                    "value": "${environment}"
+                }
+            ],
+            "secrets": [
+                {
+                    "name": "ETHEREUM_HOST",
+                    "valueFrom": "arn:aws:ssm:${aws_region}:${aws_account_id}:parameter/sparta/ethereum/host"
+                },
+                {
+                    "name": "ETHEREUM_ROLLUP_ADDRESS",
+                    "valueFrom": "arn:aws:ssm:${aws_region}:${aws_account_id}:parameter/sparta/ethereum/rollup_address"
+                },
+                {
+                    "name": "ETHEREUM_ADMIN_ADDRESS",
+                    "valueFrom": "arn:aws:ssm:${aws_region}:${aws_account_id}:parameter/sparta/ethereum/admin_address"
+                },
+                {
+                    "name": "ETHEREUM_CHAIN_ID",
+                    "valueFrom": "arn:aws:ssm:${aws_region}:${aws_account_id}:parameter/sparta/ethereum/chain_id"
+                },
+                {
+                    "name": "ETHEREUM_MNEMONIC",
+                    "valueFrom": "arn:aws:ssm:${aws_region}:${aws_account_id}:parameter/sparta/ethereum/mnemonic"
+                },
+                {
+                    "name": "ETHEREUM_PRIVATE_KEY",
+                    "valueFrom": "arn:aws:ssm:${aws_region}:${aws_account_id}:parameter/sparta/ethereum/private_key"
+                },
+                {
+                    "name": "ETHEREUM_VALUE",
+                    "valueFrom": "arn:aws:ssm:${aws_region}:${aws_account_id}:parameter/sparta/ethereum/value"
+                }
+            ]
+        }
+    ]
+}

@@ -6,6 +6,7 @@ import {
 } from "discord.js";
 import { ChainInfoService } from "../services/chaininfo-service.js";
 import { paginate } from "../utils/pagination.js";
+import { ValidatorService } from "../services/validator-service.js";
 
 export const EXCLUDED_VALIDATORS = [
 	"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
@@ -60,18 +61,37 @@ export const EXCLUDED_VALIDATORS = [
 
 export default {
 	data: new SlashCommandBuilder()
-		.setName("admin-info")
-		.setDescription("Get admin info about the chain ")
+		.setName("admin")
+		.setDescription("Admin commands")
 		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
-		.addSubcommand((subcommand) =>
-			subcommand
+		.addSubcommandGroup((group) =>
+			group
 				.setName("validators")
-				.setDescription("Get the current list of validators")
+				.setDescription("Manage validators")
+				.addSubcommand((subcommand) =>
+					subcommand.setName("get").setDescription("Get validators")
+				)
+				.addSubcommand((subcommand) =>
+					subcommand
+						.setName("remove")
+						.setDescription("Remove a validator")
+						.addStringOption((option) =>
+							option
+								.setName("address")
+								.setDescription("The validator to remove")
+								.setRequired(true)
+						)
+				)
 		)
-		.addSubcommand((subcommand) =>
-			subcommand
+		.addSubcommandGroup((group) =>
+			group
 				.setName("committee")
-				.setDescription("Get the current committee")
+				.setDescription("Manage the committee")
+				.addSubcommand((subcommand) =>
+					subcommand
+						.setName("get")
+						.setDescription("Get the current committee")
+				)
 		),
 
 	execute: async (interaction: ChatInputCommandInteraction) => {
@@ -106,9 +126,20 @@ export default {
 					interaction,
 					"Validators"
 				);
-
-				return;
+			} else if (interaction.options.getSubcommand() === "remove") {
+				const address = interaction.options.getString("address");
+				if (!address) {
+					await interaction.editReply({
+						content: "Please provide an address to remove",
+					});
+					return;
+				}
+				await ValidatorService.removeValidator(address);
+				await interaction.editReply({
+					content: `Removed validator ${address}`,
+				});
 			}
+			return;
 		} catch (error) {
 			console.error("Error in get-info command:", error);
 			await interaction.editReply({
