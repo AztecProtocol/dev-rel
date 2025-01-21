@@ -91,5 +91,5 @@ This function is required by the protocol to know how to handle private notes.
 ## Future work
 
 - Implement signature verification
-- Discuss [Authentication witnesses](https://docs.aztec.network/learn/concepts/accounts/authwit)
+- Discuss [Authentication witnesses](https://docs.aztec.network/aztec/concepts/accounts/authwit)
 - Review the existing Schnorr signer [implementation](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/src/contracts/schnorr_account_contract)
