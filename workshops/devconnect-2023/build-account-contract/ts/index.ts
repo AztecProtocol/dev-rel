@@ -119,7 +119,7 @@ async function main() {
 
   // const newSecret = Fr.random();
 
-  // const upstateSecretReceipt = await contract.methods
+  // const updateSecretReceipt = await contract.methods
   //   .update_secret(secret, newSecret)
   //   .send()
   //   .wait({ debug: true });
@@ -130,7 +130,7 @@ async function main() {
   //   contract.address,
   //   contract.address,
   //   new Fr(1),
-  //   upstateSecretReceipt.txHash
+  //   updateSecretReceipt.txHash
   // );
   // console.log("adding note manually to pxe");
   // await pxe.addNote(newSecretExtendedNote);
