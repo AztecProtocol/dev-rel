@@ -21,7 +21,7 @@ Also be sure to check out [this list of resources](../README.md)
 
 ### Getting started on Noir
 
-See the [Getting Started](https://noir-lang.org/docs/getting_started/installation/) section of the Noir docs to get set up with Noir.
+See the [Getting Started](https://noir-lang.org/docs/getting_started/noir_installation) section of the Noir docs to get set up with Noir.
 
 ### Getting started on Aztec
 
