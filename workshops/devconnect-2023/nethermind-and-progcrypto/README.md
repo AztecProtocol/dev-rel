@@ -5,7 +5,7 @@ In this workshop, we developed the simplest possible private voting smart contra
 * [Full workshop code](https://github.com/catmcgee/aztec-voting-workshop/tree/main)
 * [Slides](https://docs.google.com/presentation/d/1tZmCYH_rk2MQZ-JnIjB2gFy3015P5iDVMJ2MT84R9lQ/edit?usp=sharing)
 * [Aztec docs](https://docs.aztec.network)
-* [Portal docs](https://docs.aztec.network/concepts/foundation/communication/cross_chain_calls)
+* [Portal docs]()
 
 # Installing Sandbox
 ## Using Docker
