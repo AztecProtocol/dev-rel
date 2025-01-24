@@ -5,15 +5,9 @@ import {
 	Interaction,
 	MessageFlags,
 } from "discord.js";
-import { deployCommands } from "./deploy-commands.js";
+import { deployCommands } from "./utils/deploy-commands.js";
 import usersCommands from "./commands/index.js";
 import adminsCommands from "./admins/index.js";
-import {
-	BOT_TOKEN,
-	DEV_CHANNEL_ID,
-	ENVIRONMENT,
-	PROD_CHANNEL_ID,
-} from "./env.js";
 
 // Extend the Client class to include the commands property
 interface ExtendedClient extends Client {
@@ -38,21 +32,12 @@ client.once("ready", () => {
 client.on("interactionCreate", async (interaction: Interaction) => {
 	if (!interaction.isChatInputCommand()) return;
 
-	const { channelId } = interaction;
-	if (
-		(ENVIRONMENT === "production" && channelId !== PROD_CHANNEL_ID) ||
-		(ENVIRONMENT === "development" && channelId !== DEV_CHANNEL_ID)
-	) {
-		console.log(`Ignoring interaction in channel ${channelId}`);
-		return;
-	}
-
 	const command = client.commands.get(interaction.commandName);
 	if (!command) return;
 
 	try {
 		console.log("Executing command:", command.data.name);
-		const response = await command.execute(interaction);
+		await command.execute(interaction);
 	} catch (error) {
 		console.error(error);
 		await interaction.reply({
@@ -62,4 +47,4 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 	}
 });
 
-client.login(BOT_TOKEN);
+client.login(process.env.BOT_TOKEN);

@@ -1,36 +1,141 @@
-# Sparta
+# Sparta Discord Bot
 
-Welcome to Sparta, the Discord bot. It's like having a virtual assistant, but with less features and less judgment.
+A Discord bot for managing Aztec validators, built with Node.js and deployed on AWS Elastic Beanstalk.
 
-Here's a quick rundown of what this codebase is all about:
+## Prerequisites
 
-## What is Sparta?
+- Node.js v18 or higher
+- AWS CLI configured with appropriate credentials
+- Terraform v1.0 or higher
+- Discord Bot Token and Application ID from [Discord Developer Portal](https://discord.com/developers/applications)
 
-Sparta is a Discord bot that lives to serve (and occasionally sass) testnet participants.
+## Security Notice
 
-## Features (WIP)
-  
-- **Chain Info**: Need to know the latest on your blockchain? Sparta's got you covered with the `/get-info` command. It's like having a blockchain oracle, but without the cryptic riddles.
+⚠️ **Important**: This project uses sensitive credentials that should never be committed to version control:
+- Discord bot tokens
+- Ethereum private keys
+- AWS credentials
+- Environment variables
 
-- **Add Validators**: Are you an S&P Participant and want to be added to the validator set? Just go `/validator add` and send your address, you can then query it with...
+Always use:
+- `.env` files for local development (never commit these)
+- AWS Secrets Manager for production secrets
+- `terraform.tfvars` for Terraform variables (never commit this)
 
-- **Check Validators**: ... `/validator check`, which tells you if you're in the validator set (also tells you if you're in the committee)
+## Local Development
 
-## Getting Started
+1. Clone the repository:
+```bash
+git clone <repository-url>
+cd sparta
+```
 
-To get Sparta up and running, you'll need to:
+2. Install dependencies:
+```bash
+cd src
+npm install
+```
 
-1. Clone the repo.
-2. Install the dependencies with `bun install`.
-3. Copy .env.example and set up with your environment stuff
-4. Start the bot with `bun run start`.
+3. Create a `.env` file in the `src` directory using `.env.example` as a template:
+```bash
+cp .env.example .env
+```
 
-And just like that, you're ready to unleash Sparta on your Discord server!
+4. Fill in the required environment variables in `.env`:
+```
+# Discord Bot Configuration
+BOT_TOKEN=your_bot_token
+BOT_CLIENT_ID=your_client_id
+GUILD_ID=your_guild_id
+
+# Ethereum Configuration
+ETHEREUM_HOST=http://localhost:8545
+ETHEREUM_ROLLUP_ADDRESS=your_rollup_address
+ETHEREUM_ADMIN_ADDRESS=your_admin_address
+ETHEREUM_CHAIN_ID=1337
+ETHEREUM_PRIVATE_KEY=your_private_key
+ETHEREUM_VALUE=20ether
+```
+
+5. Start the bot in development mode:
+```bash
+npm run watch
+```
+
+## Deployment
+
+The bot is deployed using Terraform to AWS Elastic Beanstalk. Follow these steps:
+
+1. Navigate to the terraform directory:
+```bash
+cd terraform
+```
+
+2. Create `terraform.tfvars` using the example file:
+```bash
+cp terraform.tfvars.example terraform.tfvars
+```
+
+3. Fill in the required variables in `terraform.tfvars`:
+```hcl
+environment         = "production"
+aws_region         = "us-west-2"
+bot_token          = "your_bot_token"
+bot_client_id      = "your_client_id"
+guild_id           = "your_guild_id"
+ethereum_host      = "your_ethereum_host"
+# ... other variables
+```
+
+4. Initialize Terraform:
+```bash
+terraform init
+```
+
+5. Deploy:
+```bash
+terraform apply
+```
+
+## Architecture
+
+- **Discord.js**: Handles bot interactions and commands
+- **AWS Elastic Beanstalk**: Hosts the bot in a scalable environment
+- **AWS Secrets Manager**: Securely stores sensitive configuration
+- **TypeScript**: Provides type safety and better development experience
+
+## Environment Variables
+
+### Development
+- Uses `.env` file for local configuration
+- Supports hot reloading through `npm run watch`
+
+### Production
+- Uses AWS Secrets Manager for secure configuration
+- Automatically loads secrets in production environment
+- Supports staging and production environments
+
+## Commands
+
+- `/get-info`: Get chain information
+- `/admin validators get`: List validators
+- `/admin validators remove`: Remove a validator
+- `/admin committee get`: Get committee information
 
 ## Contributing
 
-Want to make Sparta even better? Feel free to fork the repo and submit a pull request. Just remember, with great power comes great responsibility (and maybe a few more memes).
+1. Create a feature branch
+2. Make your changes
+3. Submit a pull request
+
+## Security
+
+- All sensitive information is stored in AWS Secrets Manager
+- IAM roles are configured with least privilege
+- Environment variables are never committed to version control
+- SSH access is controlled via key pairs
+- No sensitive information in logs or error messages
 
 ## License
 
-This project is licensed under the MIT License. Because sharing is caring.
+[Your License]

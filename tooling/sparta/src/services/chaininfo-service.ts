@@ -1,10 +1,5 @@
 import { exec } from "child_process";
 import { promisify } from "util";
-import {
-	ETHEREUM_HOST,
-	ETHEREUM_ROLLUP_ADDRESS,
-	ETHEREUM_CHAIN_ID,
-} from "../env.js";
 
 type ChainInfo = {
 	pendingBlockNum: string;
@@ -23,7 +18,7 @@ export class ChainInfoService {
 	static async getInfo(): Promise<ChainInfo> {
 		try {
 			// Add validator to the set
-			const command = `docker run --rm aztecprotocol/aztec:unhinged-unicorn debug-rollup -u ${ETHEREUM_HOST} --rollup ${ETHEREUM_ROLLUP_ADDRESS} --l1-chain-id ${ETHEREUM_CHAIN_ID} `;
+			const command = `docker run --rm aztecprotocol/aztec:unhinged-unicorn debug-rollup -u ${process.env.ETHEREUM_HOST} --rollup ${process.env.ETHEREUM_ROLLUP_ADDRESS} --l1-chain-id ${process.env.ETHEREUM_CHAIN_ID} `;
 			const { stdout, stderr } = await execAsync(command);
 
 			if (stderr) {

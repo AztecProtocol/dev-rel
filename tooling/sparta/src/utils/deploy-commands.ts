@@ -1,7 +1,7 @@
 import { REST, Routes } from "discord.js";
-import usersCommands from "./commands/index.js";
-import adminsCommands from "./admins/index.js";
-import { BOT_TOKEN, BOT_CLIENT_ID, GUILD_ID } from "./env.js";
+import usersCommands from "../commands/index.js";
+import adminsCommands from "../admins/index.js";
+import { BOT_TOKEN, BOT_CLIENT_ID, GUILD_ID } from "../env.js";
 
 export const deployCommands = async (): Promise<void> => {
 	const rest = new REST({ version: "10" }).setToken(BOT_TOKEN as string);
