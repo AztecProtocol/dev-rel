@@ -21,7 +21,7 @@ We keep all our external content and resources here, as well as tracking what we
 
 📃 [Aztec docs](https://docs.aztec.network/)
 
-⌛ [Sandbox Getting Started](https://docs.aztec.network/guides/developer_guides/getting_started)
+⌛ [Sandbox Getting Started](https://docs.aztec.network/guides/getting_started)
 
 📑 Learn by doing with [Aztec Tutorials](https://docs.aztec.network/tutorials)
 
