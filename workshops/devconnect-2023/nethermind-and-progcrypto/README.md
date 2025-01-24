@@ -154,4 +154,4 @@ Try to do it twice
 
 ### Get vote
 
-`aztec-cli call get_vote --args 1 -c ./target/Voting.json -ca <contract-address`
+`aztec-cli call get_vote --args 1 -c ./target/Voting.json -ca <contract-address>`
