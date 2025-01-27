@@ -4,9 +4,7 @@ import dotenv from "dotenv";
 const loadSecrets = async () => {
 	try {
 		console.log("Loading secrets from AWS Secrets Manager");
-		const secretsManager = new SecretsManager({
-			region: process.env.AWS_REGION || "us-west-2",
-		});
+		const secretsManager = new SecretsManager();
 
 		const secretKeys = [
 			"TOKEN",

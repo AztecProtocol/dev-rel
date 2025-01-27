@@ -16,6 +16,7 @@ export default {
 		});
 
 		try {
+			console.log("Getting chain info");
 			const {
 				pendingBlockNum,
 				provenBlockNum,

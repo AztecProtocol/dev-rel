@@ -3,8 +3,8 @@
     "version": "1.0.0",
     "type": "module",
     "scripts": {
-        "build": "tsc",
-        "start": "node dist/index.js",
+        "build": "bun build index.ts --target bun --minify --outdir=dist",
+        "dev": "bun run --watch index.ts",
         "watch": "tsc -w",
         "test": "jest",
         "lint": "eslint . --ext .ts",
@@ -13,7 +13,8 @@
     "dependencies": {
         "@aws-sdk/client-secrets-manager": "^3.529.1",
         "discord.js": "^14.14.1",
-        "dotenv": "^16.3.1"
+        "dotenv": "^16.3.1",
+        "viem": "^2.22.15"
     },
     "devDependencies": {
         "@types/node": "^20.10.5",
