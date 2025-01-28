@@ -12,7 +12,7 @@
 variable "aws_region" {
   description = "AWS region where resources will be created"
   type        = string
-  default     = "us-west-2"
+  default     = "eu-west-2"
 }
 
 variable "environment" {
@@ -76,6 +76,11 @@ variable "ethereum_value" {
 
 variable "ethereum_admin_address" {
   description = "Ethereum admin wallet address for privileged operations"
+  type        = string
+}
+
+variable "minimum_stake" {
+  description = "Minimum stake amount for staking"
   type        = string
 }
 

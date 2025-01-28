@@ -10,6 +10,12 @@ export const paginate = async (
 	message: string
 ) => {
 	const numMessages = Math.ceil(array.length / perMessage);
+	if (!numMessages) {
+		await interaction.followUp({
+			content: "No validators present",
+			flags: MessageFlags.Ephemeral,
+		});
+	}
 
 	for (let i = 0; i < numMessages; i++) {
 		const start = i * perMessage;

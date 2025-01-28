@@ -1,50 +1,12 @@
-import {
-	Client,
-	GatewayIntentBits,
-	Collection,
-	Interaction,
-	MessageFlags,
-} from "discord.js";
-import { deployCommands } from "./utils/deploy-commands.js";
-import usersCommands from "./commands/index.js";
-import adminsCommands from "./admins/index.js";
+/**
+ * @fileoverview Main entry point for the Sparta Discord bot
+ * @description Initializes the Ethereum client and Discord bot services
+ * @module sparta/index
+ */
 
-// Extend the Client class to include the commands property
-interface ExtendedClient extends Client {
-	commands: Collection<string, any>;
-}
+import { Ethereum } from "./utils/ethereum.js";
 
-const client = new Client({
-	intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
-}) as ExtendedClient;
+// Initialize Ethereum client as a singleton
+export const ethereum = await Ethereum.new();
 
-client.commands = new Collection();
-
-for (const command of Object.values({ ...usersCommands, ...adminsCommands })) {
-	client.commands.set(command.data.name, command);
-}
-
-client.once("ready", () => {
-	console.log("Sparta bot is ready!");
-	deployCommands();
-});
-
-client.on("interactionCreate", async (interaction: Interaction) => {
-	if (!interaction.isChatInputCommand()) return;
-
-	const command = client.commands.get(interaction.commandName);
-	if (!command) return;
-
-	try {
-		console.log("Executing command:", command.data.name);
-		await command.execute(interaction);
-	} catch (error) {
-		console.error(error);
-		await interaction.reply({
-			content: "There was an error executing this command!",
-			flags: MessageFlags.Ephemeral,
-		});
-	}
-});
-
-client.login(process.env.BOT_TOKEN);
+import "./discord/index.js";

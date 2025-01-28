@@ -2,12 +2,21 @@
 
 A Discord bot for managing Aztec validators, built with Node.js and deployed on AWS Elastic Beanstalk.
 
+## Overview
+
+Sparta is a Discord bot designed to manage and monitor Aztec validators. It provides commands for:
+- Validator management (add, remove, list)
+- Chain information retrieval
+- Committee management
+- Stake management
+
 ## Prerequisites
 
 - Node.js v18 or higher
 - AWS CLI configured with appropriate credentials
 - Terraform v1.0 or higher
 - Discord Bot Token and Application ID from [Discord Developer Portal](https://discord.com/developers/applications)
+- Ethereum node access (local or remote)
 
 ## Security Notice
 
@@ -21,6 +30,22 @@ Always use:
 - `.env` files for local development (never commit these)
 - AWS Secrets Manager for production secrets
 - `terraform.tfvars` for Terraform variables (never commit this)
+- Ensure `.gitignore` includes all sensitive files
+- Use environment-specific configuration files
+
+## Project Structure
+
+```
+sparta/
+├── src/                    # Source code
+│   ├── commands/          # Discord bot commands
+│   ├── discord/           # Discord bot setup
+│   ├── services/          # Business logic services
+│   ├── utils/             # Utility functions
+│   └── admins/            # Admin-only commands
+├── terraform/             # Infrastructure as Code
+└── docker/               # Docker configuration
+```
 
 ## Local Development
 
@@ -64,7 +89,7 @@ npm run watch
 
 ## Deployment
 
-The bot is deployed using Terraform to AWS Elastic Beanstalk. Follow these steps:
+The bot is deployed using Terraform to AWS Elastic Container Service (ECS). Follow these steps:
 
 1. Navigate to the terraform directory:
 ```bash
@@ -100,27 +125,57 @@ terraform apply
 ## Architecture
 
 - **Discord.js**: Handles bot interactions and commands
-- **AWS Elastic Beanstalk**: Hosts the bot in a scalable environment
+- **AWS ECS**: Runs the bot in containers for high availability
 - **AWS Secrets Manager**: Securely stores sensitive configuration
 - **TypeScript**: Provides type safety and better development experience
+- **Terraform**: Manages infrastructure as code
+- **Docker**: Containerizes the application
 
 ## Environment Variables
 
 ### Development
 - Uses `.env` file for local configuration
 - Supports hot reloading through `npm run watch`
+- Environment-specific configurations (.env.local, .env.staging)
 
 ### Production
 - Uses AWS Secrets Manager for secure configuration
 - Automatically loads secrets in production environment
 - Supports staging and production environments
 
-## Commands
+## Available Commands
 
+### User Commands
 - `/get-info`: Get chain information
+- `/validator info`: Get validator information
+
+### Admin Commands
 - `/admin validators get`: List validators
 - `/admin validators remove`: Remove a validator
 - `/admin committee get`: Get committee information
+- `/admin stake manage`: Manage validator stakes
+
+## Security Best Practices
+
+1. **Environment Variables**
+   - Never commit .env files
+   - Use different env files for different environments
+   - Rotate secrets regularly
+
+2. **AWS Security**
+   - Use IAM roles with least privilege
+   - Enable CloudWatch logging
+   - Use security groups to restrict access
+
+3. **Discord Security**
+   - Implement command permissions
+   - Use ephemeral messages for sensitive info
+   - Validate user inputs
+
+4. **Ethereum Security**
+   - Never expose private keys
+   - Use secure RPC endpoints
+   - Implement transaction signing safeguards
 
 ## Contributing
 
@@ -128,14 +183,13 @@ terraform apply
 2. Make your changes
 3. Submit a pull request
 
-## Security
+## Monitoring and Logging
 
-- All sensitive information is stored in AWS Secrets Manager
-- IAM roles are configured with least privilege
-- Environment variables are never committed to version control
-- SSH access is controlled via key pairs
-- No sensitive information in logs or error messages
+- AWS CloudWatch for container logs
+- Discord command execution logging
+- Error tracking and reporting
+- Performance monitoring
 
-## License
+## Support
 
-[Your License]
+For support, please open an issue in the repository or contact the maintainers.

@@ -49,6 +49,8 @@ ethereum_value = "20ether"                 # Default funding amount
 # Admin wallet address for privileged operations
 ethereum_admin_address = "0xYourAdminAddress"
 
+minimum_stake = 100000000000000000000
+
 # -----------------------------------------------------------------------------
 # SSH Configuration
 # -----------------------------------------------------------------------------

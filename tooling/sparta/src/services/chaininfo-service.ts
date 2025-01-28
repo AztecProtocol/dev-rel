@@ -1,4 +1,4 @@
-import { Ethereum } from "../utils/ethereum.js";
+import { ethereum } from "../index.js";
 
 type ChainInfo = {
 	pendingBlockNum: string;
@@ -14,8 +14,7 @@ type ChainInfo = {
 export class ChainInfoService {
 	static async getInfo(): Promise<ChainInfo> {
 		try {
-			const ethereum = new Ethereum();
-			const rollup = ethereum.getRollupContract();
+			const rollup = ethereum.getRollup();
 			const [
 				pendingNum,
 				provenNum,

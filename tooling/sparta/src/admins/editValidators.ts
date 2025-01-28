@@ -66,31 +66,28 @@ export default {
 		.setDefaultMemberPermissions(PermissionFlagsBits.Administrator)
 		.addSubcommandGroup((group) =>
 			group
-				.setName("validators")
-				.setDescription("Manage validators")
+				.setName("get")
+				.setDescription("Get info about validators")
 				.addSubcommand((subcommand) =>
-					subcommand.setName("get").setDescription("Get validators")
+					subcommand
+						.setName("validators")
+						.setDescription("Get validators")
 				)
 				.addSubcommand((subcommand) =>
 					subcommand
-						.setName("remove")
-						.setDescription("Remove a validator")
-						.addStringOption((option) =>
-							option
-								.setName("address")
-								.setDescription("The validator to remove")
-								.setRequired(true)
-						)
+						.setName("committee")
+						.setDescription("Get committee")
 				)
 		)
-		.addSubcommandGroup((group) =>
-			group
-				.setName("committee")
-				.setDescription("Manage the committee")
-				.addSubcommand((subcommand) =>
-					subcommand
-						.setName("get")
-						.setDescription("Get the current committee")
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName("remove")
+				.setDescription("Remove a validator")
+				.addStringOption((option) =>
+					option
+						.setName("address")
+						.setDescription("The validator to remove")
+						.setRequired(true)
 				)
 		),
 
@@ -109,7 +106,6 @@ export default {
 			const filteredCommittee = (committee as string[]).filter(
 				(v) => !EXCLUDED_VALIDATORS.includes(v)
 			);
-
 			if (interaction.options.getSubcommand() === "committee") {
 				await paginate(
 					filteredCommittee,

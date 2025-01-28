@@ -5,6 +5,7 @@
     "scripts": {
         "build": "bun build index.ts --target bun --minify --outdir=dist",
         "dev": "bun run --watch index.ts",
+        "start": "bun run index.ts",
         "watch": "tsc -w",
         "test": "jest",
         "lint": "eslint . --ext .ts",

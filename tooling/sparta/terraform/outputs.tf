@@ -10,6 +10,31 @@ output "ecs_desired_count" {
   description = "Desired number of tasks running"
   value       = aws_ecs_service.sparta_discord_bot.desired_count
 }
+# ECR Repository
+output "ecr_repository_url" {
+  description = "URL of the ECR repository"
+  value       = aws_ecr_repository.sparta_bot.repository_url
+}
+
+output "ecr_repository_name" {
+  description = "Name of the ECR repository"
+  value       = aws_ecr_repository.sparta_bot.name
+}
+
+output "ecr_repository_arn" {
+  description = "ARN of the ECR repository" 
+  value       = aws_ecr_repository.sparta_bot.arn
+}
+
+output "ecr_repository_registry_id" {
+  description = "Registry ID where the repository was created"
+  value       = aws_ecr_repository.sparta_bot.registry_id
+}
+
+output "ecr_image_latest_tag" {
+  description = "Latest image tag in the ECR repository"
+  value       = "${aws_ecr_repository.sparta_bot.repository_url}:latest"
+}
 
 # -----------------------------------------------------------------------------
 # Task Definition Outputs
