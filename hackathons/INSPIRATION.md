@@ -40,7 +40,7 @@ Noir does not compile to a specific proof system, so you can implement an entire
 
 ### Verifiers
 
-The default UltraPlonk proving backend of Noir, [barretenberg](https://github.com/AztecProtocol/barretenberg), is currently capable of generating verifiers in [C++](https://github.com/noir-lang/aztec-connect/blob/kw/noir-dsl/barretenberg/src/aztec/plonk/proof_system/verifier/verifier.cpp) and [Solidity](https://github.com/noir-lang/aztec_backend/blob/master/common/src/contract/turbo_verifier.rs). You could extend barretenberg to generate verifiers implementable on other execution environments like Solana, Cosmos, Aptos, Sui, NEAR, Algorand, etc.
+The default UltraPlonk proving backend of Noir, [barretenberg](https://github.com/AztecProtocol/barretenberg), is currently capable of generating verifiers in [C++](https://github.com/noir-lang/aztec-connect/blob/kw/noir-dsl/barretenberg/src/aztec/plonk/proof_system/verifier/verifier.cpp) and [Solidity](https://github.com/noir-lang/acvm-backend-barretenberg/blob/master/src/smart_contract.rs). You could extend barretenberg to generate verifiers implementable on other execution environments like Solana, Cosmos, Aptos, Sui, NEAR, Algorand, etc.
 
 This is only relevant for Noir specifically (not Aztec).
 
