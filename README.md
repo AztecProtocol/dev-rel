@@ -31,8 +31,6 @@ We keep all our external content and resources here, as well as tracking what we
 
 📃 [Noir docs](https://noir-lang.org/)
 
-⭐ [Noir Starter](https://github.com/noir-lang/noir-starter/tree/main) - [Foundry](https://github.com/noir-lang/noir-starter/tree/main/with-foundry) | [HardHat](https://github.com/AztecProtocol/noir-starter/tree/main/vite-hardhat) 
-
 💻 [Noir Examples](https://github.com/noir-lang/noir-examples)
 
 📺 [Introduction to Noir](https://www.youtube.com/watch?v=5CziMfChveY&t=3479s) (ZKHack YouTube)
