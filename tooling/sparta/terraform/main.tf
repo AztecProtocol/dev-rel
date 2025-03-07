@@ -154,12 +154,16 @@ resource "aws_ecs_task_definition" "sparta_discord_bot" {
           value = var.ethereum_host
         },
         {
-          name  = "ETHEREUM_PRIVATE_KEY"
-          value = var.ethereum_private_key
+          name  = "MINTER_PRIVATE_KEY"
+          value = var.minter_private_key
         },
         {
-          name  = "ETHEREUM_ROLLUP_ADDRESS"
-          value = var.ethereum_rollup_address
+          name  = "WITHDRAWER_ADDRESS"
+          value = var.withdrawer_address
+        },
+        {
+          name  = "ETHEREUM_REGISTRY_ADDRESS"
+          value = var.ethereum_registry_address
         },
         {
           name  = "ETHEREUM_CHAIN_ID"
@@ -170,13 +174,13 @@ resource "aws_ecs_task_definition" "sparta_discord_bot" {
           value = var.ethereum_value
         },
         {
-          name  = "ETHEREUM_ADMIN_ADDRESS"
-          value = var.ethereum_admin_address
-        },
-        {
           name  = "MINIMUM_STAKE"
           value = var.minimum_stake
         },
+        {
+          name  = "APPROVAL_AMOUNT"
+          value = var.approval_amount
+        }
       ]
     }
   ])

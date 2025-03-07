@@ -52,13 +52,18 @@ variable "ethereum_host" {
   type        = string
 }
 
-variable "ethereum_private_key" {
-  description = "Ethereum wallet private key for signing transactions"
+variable "minter_private_key" {
+  description = "Ethereum wallet private key for minting tokens"
   type        = string
   sensitive   = true
 }
 
-variable "ethereum_rollup_address" {
+variable "withdrawer_address" {
+  description = "Ethereum wallet address for withdrawing funds"
+  type        = string
+}
+
+variable "ethereum_registry_address" {
   description = "Ethereum rollup contract address for L2 interactions"
   type        = string
 }
@@ -74,13 +79,13 @@ variable "ethereum_value" {
   default     = "20ether"
 }
 
-variable "ethereum_admin_address" {
-  description = "Ethereum admin wallet address for privileged operations"
+variable "minimum_stake" {
+  description = "Minimum stake amount for staking"
   type        = string
 }
 
-variable "minimum_stake" {
-  description = "Minimum stake amount for staking"
+variable "approval_amount" {
+  description = "Approval amount for staking"
   type        = string
 }
 

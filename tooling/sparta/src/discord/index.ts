@@ -10,6 +10,7 @@ import {
 	Collection,
 	Interaction,
 	MessageFlags,
+	TextChannel,
 } from "discord.js";
 import { deployCommands } from "../utils/deploy-commands.js";
 import usersCommands from "../commands/index.js";
@@ -66,8 +67,16 @@ client.on("interactionCreate", async (interaction: Interaction) => {
 	if (!command) return;
 
 	try {
-		console.log("Executing command:", command.data.name);
-		await command.execute(interaction);
+		const channel = interaction.channel as TextChannel;
+
+		const reply = await command.execute(interaction);
+		console.log("Command:", {
+			name: interaction.commandName,
+			channel: channel.name,
+			user: interaction.user.username,
+			date: interaction.createdAt,
+			result: reply,
+		});
 	} catch (error) {
 		console.error(error);
 		await interaction.reply({

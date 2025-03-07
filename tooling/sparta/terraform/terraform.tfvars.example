@@ -35,7 +35,7 @@ ethereum_host = "http://your-ethereum-node:8545"
 
 # Private key for the Ethereum wallet (without 0x prefix)
 # This is a sensitive value - keep it secure
-ethereum_private_key = "0xYourPrivateKey"
+minter_private_key = "0xYourPrivateKey"
 
 # Address of the rollup contract for L2 operations
 ethereum_rollup_address = "0xYourRollupAddress"
@@ -45,9 +45,6 @@ ethereum_chain_id = "1337"                    # 1337 for local, 1 for mainnet
 
 # Default amount of ETH for transactions
 ethereum_value = "20ether"                 # Default funding amount
-
-# Admin wallet address for privileged operations
-ethereum_admin_address = "0xYourAdminAddress"
 
 minimum_stake = 100000000000000000000
 

@@ -16,7 +16,6 @@ export default {
 		});
 
 		try {
-			console.log("Getting chain info");
 			const {
 				pendingBlockNum,
 				provenBlockNum,
@@ -28,11 +27,14 @@ export default {
 			await interaction.editReply({
 				content: `Pending block: ${pendingBlockNum}\nProven block: ${provenBlockNum}\nCurrent epoch: ${currentEpoch}\nCurrent slot: ${currentSlot}\nProposer now: ${proposerNow}`,
 			});
+			return `Got chain info`;
 		} catch (error) {
-			console.error("Error in get-info command:", error);
 			await interaction.editReply({
 				content: `Failed to get chain info`,
 			});
+			return `Failed with error: ${
+				error instanceof Error && error.message
+			}`;
 		}
 	},
 };

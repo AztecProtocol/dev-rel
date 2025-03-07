@@ -8,8 +8,7 @@ const execAsync = promisify(exec);
 export class ValidatorService {
 	static async addValidator(address: string): Promise<TransactionReceipt[]> {
 		try {
-			const receipts = await ethereum.addValidator(address);
-			return receipts;
+			return await ethereum.addValidator(address);
 		} catch (error) {
 			console.error("Error adding validator:", error);
 			throw error;
@@ -27,7 +26,7 @@ export class ValidatorService {
 
 	static async fundValidator(address: string): Promise<string> {
 		try {
-			const command = `cast send --value ${process.env.ETHEREUM_VALUE} --rpc-url ${process.env.ETHEREUM_HOST} --chain-id ${process.env.ETHEREUM_CHAIN_ID} --private-key ${process.env.ETHEREUM_PRIVATE_KEY} ${address}`;
+			const command = `cast send --value ${process.env.ETHEREUM_VALUE} --rpc-url ${process.env.ETHEREUM_HOST} --chain-id ${process.env.ETHEREUM_CHAIN_ID} --private-key ${process.env.MINTER_PRIVATE_KEY} ${address}`;
 
 			const { stdout, stderr } = await execAsync(command);
 

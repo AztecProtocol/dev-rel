@@ -81,6 +81,17 @@ export default {
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
+				.setName("add")
+				.setDescription("Add a validator")
+				.addStringOption((option) =>
+					option
+						.setName("address")
+						.setDescription("The validator to add")
+						.setRequired(true)
+				)
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
 				.setName("remove")
 				.setDescription("Remove a validator")
 				.addStringOption((option) =>
@@ -114,6 +125,7 @@ export default {
 					interaction,
 					"Committee"
 				);
+				return "Checked committee";
 			} else if (interaction.options.getSubcommand() === "validators") {
 				await paginate(
 					filteredValidators,
@@ -122,25 +134,52 @@ export default {
 					interaction,
 					"Validators"
 				);
+				return "Checked validators";
 			} else if (interaction.options.getSubcommand() === "remove") {
 				const address = interaction.options.getString("address");
 				if (!address) {
 					await interaction.editReply({
 						content: "Please provide an address to remove",
 					});
-					return;
+					return `Failed`;
 				}
 				await ValidatorService.removeValidator(address);
 				await interaction.editReply({
 					content: `Removed validator ${address}`,
 				});
+				return "Removed validator";
+			} else if (interaction.options.getSubcommand() === "add") {
+				const address = interaction.options.getString("address");
+
+				if (!address) {
+					await interaction.editReply({
+						content: "Please provide an address to remove",
+					});
+					return `Failed`;
+				}
+
+				// Basic address validation
+				if (!address.match(/^0x[a-fA-F0-9]{40}$/)) {
+					return interaction.reply({
+						content: "Please provide a valid Ethereum address.",
+						flags: MessageFlags.Ephemeral,
+					});
+				}
+
+				await ValidatorService.addValidator(address);
+				await interaction.editReply({
+					content: `Successfully added validator address: ${address}`,
+				});
+				return `Added validator ${address}`;
 			}
 			return;
 		} catch (error) {
-			console.error("Error in get-info command:", error);
 			await interaction.editReply({
-				content: `Failed to get chain info`,
+				content: `Failed with error: ${error}`,
 			});
+			return `Failed with error: ${
+				error instanceof Error && error.message
+			}`;
 		}
 	},
 };

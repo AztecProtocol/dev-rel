@@ -15,7 +15,7 @@ import {
 
 import RollupAbi from "./rollupAbi.json" assert { type: "json" };
 import TestERC20Abi from "./testERC20Abi.json" assert { type: "json" };
-
+import RegistryAbi from "./registryAbi.json" assert { type: "json" };
 import { privateKeyToAccount } from "viem/accounts";
 
 /**
@@ -23,9 +23,9 @@ import { privateKeyToAccount } from "viem/accounts";
  * @const {Object} ethereumChain
  */
 const ethereumChain = {
-	id: 31337, // Hardhat's default chain ID
-	name: "Local Hardhat",
-	network: "hardhat",
+	id: parseInt(process.env.ETHEREUM_CHAIN_ID as string),
+	name: "Sepolia",
+	network: "sepolia",
 	nativeCurrency: {
 		decimals: 18,
 		name: "Ethereum",
@@ -50,35 +50,55 @@ export class Ethereum {
 	) {}
 
 	static new = async () => {
-		const rpcUrl = process.env.ETHEREUM_HOST as string;
-		const privateKey = process.env.ETHEREUM_PRIVATE_KEY as `0x${string}`;
-		const rollupAddress = process.env
-			.ETHEREUM_ROLLUP_ADDRESS as `0x${string}`;
+		try {
+			console.log("Initializing Ethereum client");
+			const rpcUrl = process.env.ETHEREUM_HOST as string;
+			const privateKey = process.env.MINTER_PRIVATE_KEY as `0x${string}`;
 
-		const publicClient = createPublicClient({
-			chain: ethereumChain,
-			transport: http(rpcUrl),
-		});
+			const publicClient = createPublicClient({
+				chain: ethereumChain,
+				transport: http(rpcUrl),
+			});
 
-		const walletClient = createWalletClient({
-			account: privateKeyToAccount(privateKey),
-			chain: ethereumChain,
-			transport: http(rpcUrl),
-		});
+			const walletClient = createWalletClient({
+				account: privateKeyToAccount(privateKey),
+				chain: ethereumChain,
+				transport: http(rpcUrl),
+			});
 
-		const rollup = getContract({
-			address: rollupAddress,
-			abi: RollupAbi.abi,
-			client: walletClient,
-		});
+			const registry = getContract({
+				address: process.env.ETHEREUM_REGISTRY_ADDRESS as `0x${string}`,
+				abi: RegistryAbi.abi,
+				client: walletClient,
+			});
 
-		const stakingAsset = getContract({
-			address: (await rollup.read.STAKING_ASSET()) as `0x${string}`,
-			abi: TestERC20Abi.abi,
-			client: walletClient,
-		});
+			console.log("Registry Address: ", registry.address);
+			const rollupAddress = await registry.read.getRollup();
 
-		return new Ethereum(publicClient, walletClient, rollup, stakingAsset);
+			const rollup = getContract({
+				address: rollupAddress as `0x${string}`,
+				abi: RollupAbi.abi,
+				client: walletClient,
+			});
+			console.log("Rollup Address: ", rollup.address);
+
+			const stakingAsset = getContract({
+				address: (await rollup.read.getStakingAsset()) as `0x${string}`,
+				abi: TestERC20Abi.abi,
+				client: walletClient,
+			});
+			console.log("Staking Asset Address: ", stakingAsset.address);
+
+			return new Ethereum(
+				publicClient,
+				walletClient,
+				rollup,
+				stakingAsset
+			);
+		} catch (error) {
+			console.error("Error initializing Ethereum client:", error);
+			throw error;
+		}
 	};
 
 	getPublicClient = () => {
@@ -102,13 +122,13 @@ export class Ethereum {
 				]),
 				await this.stakingAsset.write.approve([
 					this.rollup.address,
-					process.env.MINIMUM_STAKE as unknown as string,
+					process.env.APPROVAL_AMOUNT as unknown as string,
 				]),
 				await this.rollup.write.deposit([
 					address,
 					address,
 					privateKeyToAccount(
-						process.env.ETHEREUM_PRIVATE_KEY as `0x${string}`
+						process.env.MINTER_PRIVATE_KEY as `0x${string}`
 					).address,
 					process.env.MINIMUM_STAKE as unknown as string,
 				]),
@@ -125,7 +145,7 @@ export class Ethereum {
 	removeValidator = async (address: string): Promise<TransactionReceipt> => {
 		const txHash = await this.rollup.write.initiateWithdraw([
 			address,
-			address,
+			process.env.WITHDRAWER_ADDRESS as `0x${string}`,
 		]);
 
 		return txHash;

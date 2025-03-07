@@ -76,10 +76,11 @@ GUILD_ID=your_guild_id
 # Ethereum Configuration
 ETHEREUM_HOST=http://localhost:8545
 ETHEREUM_ROLLUP_ADDRESS=your_rollup_address
-ETHEREUM_ADMIN_ADDRESS=your_admin_address
 ETHEREUM_CHAIN_ID=1337
-ETHEREUM_PRIVATE_KEY=your_private_key
+MINTER_PRIVATE_KEY=your_private_key
+WITHDRAWER_ADDRESS=address_to_withdraw_funds_to
 ETHEREUM_VALUE=20ether
+APPROVAL_AMOUNT=some_amount
 ```
 
 5. Start the bot in development mode:
@@ -151,6 +152,7 @@ terraform apply
 
 ### Admin Commands
 - `/admin validators get`: List validators
+- `/admin validators add`: Add a validator
 - `/admin validators remove`: Remove a validator
 - `/admin committee get`: Get committee information
 - `/admin stake manage`: Manage validator stakes

@@ -1,0 +1,783 @@
+{
+    "abi": [
+        {
+            "type": "constructor",
+            "inputs": [
+                {
+                    "name": "_owner",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "getCurrentSnapshot",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "tuple",
+                    "internalType": "struct DataStructures.RegistrySnapshot",
+                    "components": [
+                        {
+                            "name": "rollup",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "blockNumber",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        }
+                    ]
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getGovernance",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getRollup",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getSnapshot",
+            "inputs": [
+                {
+                    "name": "_version",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "tuple",
+                    "internalType": "struct DataStructures.RegistrySnapshot",
+                    "components": [
+                        {
+                            "name": "rollup",
+                            "type": "address",
+                            "internalType": "address"
+                        },
+                        {
+                            "name": "blockNumber",
+                            "type": "uint256",
+                            "internalType": "uint256"
+                        }
+                    ]
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "getVersionFor",
+            "inputs": [
+                {
+                    "name": "_rollup",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "isRollupRegistered",
+            "inputs": [
+                {
+                    "name": "_rollup",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "bool",
+                    "internalType": "bool"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "numberOfVersions",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "owner",
+            "inputs": [],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "stateMutability": "view"
+        },
+        {
+            "type": "function",
+            "name": "renounceOwnership",
+            "inputs": [],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "transferOwnership",
+            "inputs": [
+                {
+                    "name": "newOwner",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "function",
+            "name": "upgrade",
+            "inputs": [
+                {
+                    "name": "_rollup",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ],
+            "outputs": [
+                {
+                    "name": "",
+                    "type": "uint256",
+                    "internalType": "uint256"
+                }
+            ],
+            "stateMutability": "nonpayable"
+        },
+        {
+            "type": "event",
+            "name": "InstanceAdded",
+            "inputs": [
+                {
+                    "name": "instance",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "version",
+                    "type": "uint256",
+                    "indexed": true,
+                    "internalType": "uint256"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "event",
+            "name": "OwnershipTransferred",
+            "inputs": [
+                {
+                    "name": "previousOwner",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                },
+                {
+                    "name": "newOwner",
+                    "type": "address",
+                    "indexed": true,
+                    "internalType": "address"
+                }
+            ],
+            "anonymous": false
+        },
+        {
+            "type": "error",
+            "name": "OwnableInvalidOwner",
+            "inputs": [
+                {
+                    "name": "owner",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ]
+        },
+        {
+            "type": "error",
+            "name": "OwnableUnauthorizedAccount",
+            "inputs": [
+                {
+                    "name": "account",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ]
+        },
+        {
+            "type": "error",
+            "name": "Registry__RollupAlreadyRegistered",
+            "inputs": [
+                {
+                    "name": "rollup",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ]
+        },
+        {
+            "type": "error",
+            "name": "Registry__RollupNotRegistered",
+            "inputs": [
+                {
+                    "name": "rollup",
+                    "type": "address",
+                    "internalType": "address"
+                }
+            ]
+        }
+    ],
+    "bytecode": {
+        "object": "0x608060405234801561000f575f5ffd5b506040516107ef3803806107ef83398101604081905261002e9161022f565b806001600160a01b03811661005d57604051631e4fbdf760e01b81525f60048201526024015b60405180910390fd5b61006681610079565b5061007261dead6100c8565b5050610280565b5f80546001600160a01b038381166001600160a01b0319831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b5f806100d3836101ca565b9150508015839061010357604051633c34eabf60e01b81526001600160a01b039091166004820152602401610054565b50604080518082019091526001600160a01b0384168082524360208301819052600280546001600160a01b031916909217909155600355600180545f918261014a8361025c565b909155505f818152600460209081526040808320865181546001600160a01b0319166001600160a01b03918216178255878401516001909201919091558916808452600590925280832084905551929350839290917f1f6dfa612a6bba8cf5f10d1671962f54eab447fad2651649f9a082a493d0425991a3949350505050565b6001600160a01b0381165f9081526005602052604081205490818015158061022657505f805260046020527f17ef568e3e12ab5b9c7254a8d58478811de00f9e6eb34345acd53bf8fd09d3ec546001600160a01b038581169116145b91509150915091565b5f6020828403121561023f575f5ffd5b81516001600160a01b0381168114610255575f5ffd5b9392505050565b5f6001820161027957634e487b7160e01b5f52601160045260245ffd5b5060010190565b6105628061028d5f395ff3fe608060405234801561000f575f5ffd5b50600436106100a6575f3560e01c806376f10ad01161006e57806376f10ad01461012a5780638da5cb5b146101a1578063a4d2342a146101b1578063f2fde38b146101c2578063f6fc7eb6146101d5578063fe8beb711461020a575f5ffd5b80630900f010146100aa578063289b3c0d146100d057806352f44a14146100f45780635a4ce7ba14610117578063715018a614610120575b5f5ffd5b6100bd6100b83660046104c4565b61021d565b6040519081526020015b60405180910390f35b5f546001600160a01b03165b6040516001600160a01b0390911681526020016100c7565b6101076101023660046104c4565b610235565b60405190151581526020016100c7565b6100bd60015481565b610128610248565b005b61017d6101383660046104f1565b604080518082019091525f8082526020820152505f90815260046020908152604091829020825180840190935280546001600160a01b03168352600101549082015290565b6040805182516001600160a01b0316815260209283015192810192909252016100c7565b5f546001600160a01b03166100dc565b6002546001600160a01b03166100dc565b6101286101d03660046104c4565b61025b565b6040805180820182525f80825260209182015281518083019092526002546001600160a01b031682526003549082015261017d565b6100bd6102183660046104c4565b61029d565b5f6102266102e2565b61022f8261030e565b92915050565b5f5f61024083610410565b949350505050565b6102506102e2565b6102595f610475565b565b6102636102e2565b6001600160a01b03811661029157604051631e4fbdf760e01b81525f60048201526024015b60405180910390fd5b61029a81610475565b50565b5f5f5f6102a984610410565b915091508084906102d95760405163a1fee4cf60e01b81526001600160a01b039091166004820152602401610288565b50909392505050565b5f546001600160a01b031633146102595760405163118cdaa760e01b8152336004820152602401610288565b5f5f61031983610410565b9150508015839061034957604051633c34eabf60e01b81526001600160a01b039091166004820152602401610288565b50604080518082019091526001600160a01b0384168082524360208301819052600280546001600160a01b031916909217909155600355600180545f918261039083610508565b909155505f818152600460209081526040808320865181546001600160a01b0319166001600160a01b03918216178255878401516001909201919091558916808452600590925280832084905551929350839290917f1f6dfa612a6bba8cf5f10d1671962f54eab447fad2651649f9a082a493d0425991a3949350505050565b6001600160a01b0381165f9081526005602052604081205490818015158061046c57505f805260046020527f17ef568e3e12ab5b9c7254a8d58478811de00f9e6eb34345acd53bf8fd09d3ec546001600160a01b038581169116145b91509150915091565b5f80546001600160a01b038381166001600160a01b0319831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b5f602082840312156104d4575f5ffd5b81356001600160a01b03811681146104ea575f5ffd5b9392505050565b5f60208284031215610501575f5ffd5b5035919050565b5f6001820161052557634e487b7160e01b5f52601160045260245ffd5b506001019056fea264697066735822122013974f9b675387e108a7e535395dd259b92fa8b0560b6c01d1276afc35adc17e64736f6c634300081b0033",
+        "sourceMap": "488:3615:88:-:0;;;811:222;;;;;;;;;;;;;;;;;;;;;;;;;;;;:::i;:::-;847:6;-1:-1:-1;;;;;1273:26:23;;1269:95;;1322:31;;-1:-1:-1;;;1322:31:23;;1350:1;1322:31;;;455:51:200;428:18;;1322:31:23;;;;;;;;1269:95;1373:32;1392:12;1373:18;:32::i;:::-;-1:-1:-1;1003:25:88::1;1020:6;1003:8;:25::i;:::-;;811:222:::0;488:3615;;2912:187:23;2985:16;3004:6;;-1:-1:-1;;;;;3020:17:23;;;-1:-1:-1;;;;;;3020:17:23;;;;;;3052:40;;3004:6;;;;;;;3052:40;;2985:16;3052:40;2975:124;2912:187;:::o;3363:526:88:-;3416:7;;3449:23;3464:7;3449:14;:23::i;:::-;3431:41;;;3487:6;3486:7;3536;3478:67;;;;;-1:-1:-1;;;3478:67:88;;-1:-1:-1;;;;;473:32:200;;;3478:67:88;;;455:51:200;428:18;;3478:67:88;309:203:200;3478:67:88;-1:-1:-1;3611:54:88;;;;;;;;;-1:-1:-1;;;;;3611:54:88;;;;;3652:12;3611:54;;;;;;3671:15;:29;;-1:-1:-1;;;;;;3671:29:88;;;;;;;;;;3724:18;;3552:50;;;3724:18;;;:::i;:::-;;;;-1:-1:-1;3748:18:88;;;;:9;:18;;;;;;;;:32;;;;-1:-1:-1;;;;;;3748:32:88;-1:-1:-1;;;;;3748:32:88;;;;;;;;;;-1:-1:-1;3748:32:88;;;;;;;3786:24;;;;;:15;:24;;;;;;:34;;;3832:31;3748:18;;-1:-1:-1;3748:18:88;;3786:24;;3832:31;;;3877:7;3363:526;-1:-1:-1;;;;3363:526:88:o;3893:208::-;-1:-1:-1;;;;;4003:24:88;;3957:15;4003:24;;;:15;:24;;;;;;;;4050:11;;;;:45;;-1:-1:-1;4065:12:88;;;:9;:12;;;:19;-1:-1:-1;;;;;4065:30:88;;;:19;;:30;4050:45;4033:63;;;;3893:208;;;:::o;14:290:200:-;84:6;137:2;125:9;116:7;112:23;108:32;105:52;;;153:1;150;143:12;105:52;179:16;;-1:-1:-1;;;;;224:31:200;;214:42;;204:70;;270:1;267;260:12;204:70;293:5;14:290;-1:-1:-1;;;14:290:200:o;517:232::-;556:3;577:17;;;574:140;;636:10;631:3;627:20;624:1;617:31;671:4;668:1;661:15;699:4;696:1;689:15;574:140;-1:-1:-1;741:1:200;730:13;;517:232::o;:::-;488:3615:88;;;;;;",
+        "linkReferences": {}
+    },
+    "deployedBytecode": {
+        "object": "0x608060405234801561000f575f5ffd5b50600436106100a6575f3560e01c806376f10ad01161006e57806376f10ad01461012a5780638da5cb5b146101a1578063a4d2342a146101b1578063f2fde38b146101c2578063f6fc7eb6146101d5578063fe8beb711461020a575f5ffd5b80630900f010146100aa578063289b3c0d146100d057806352f44a14146100f45780635a4ce7ba14610117578063715018a614610120575b5f5ffd5b6100bd6100b83660046104c4565b61021d565b6040519081526020015b60405180910390f35b5f546001600160a01b03165b6040516001600160a01b0390911681526020016100c7565b6101076101023660046104c4565b610235565b60405190151581526020016100c7565b6100bd60015481565b610128610248565b005b61017d6101383660046104f1565b604080518082019091525f8082526020820152505f90815260046020908152604091829020825180840190935280546001600160a01b03168352600101549082015290565b6040805182516001600160a01b0316815260209283015192810192909252016100c7565b5f546001600160a01b03166100dc565b6002546001600160a01b03166100dc565b6101286101d03660046104c4565b61025b565b6040805180820182525f80825260209182015281518083019092526002546001600160a01b031682526003549082015261017d565b6100bd6102183660046104c4565b61029d565b5f6102266102e2565b61022f8261030e565b92915050565b5f5f61024083610410565b949350505050565b6102506102e2565b6102595f610475565b565b6102636102e2565b6001600160a01b03811661029157604051631e4fbdf760e01b81525f60048201526024015b60405180910390fd5b61029a81610475565b50565b5f5f5f6102a984610410565b915091508084906102d95760405163a1fee4cf60e01b81526001600160a01b039091166004820152602401610288565b50909392505050565b5f546001600160a01b031633146102595760405163118cdaa760e01b8152336004820152602401610288565b5f5f61031983610410565b9150508015839061034957604051633c34eabf60e01b81526001600160a01b039091166004820152602401610288565b50604080518082019091526001600160a01b0384168082524360208301819052600280546001600160a01b031916909217909155600355600180545f918261039083610508565b909155505f818152600460209081526040808320865181546001600160a01b0319166001600160a01b03918216178255878401516001909201919091558916808452600590925280832084905551929350839290917f1f6dfa612a6bba8cf5f10d1671962f54eab447fad2651649f9a082a493d0425991a3949350505050565b6001600160a01b0381165f9081526005602052604081205490818015158061046c57505f805260046020527f17ef568e3e12ab5b9c7254a8d58478811de00f9e6eb34345acd53bf8fd09d3ec546001600160a01b038581169116145b91509150915091565b5f80546001600160a01b038381166001600160a01b0319831681178455604051919092169283917f8be0079c531659141344cd1fd0a4f28419497f9722a3daafe3b4186f6b6457e09190a35050565b5f602082840312156104d4575f5ffd5b81356001600160a01b03811681146104ea575f5ffd5b9392505050565b5f60208284031215610501575f5ffd5b5035919050565b5f6001820161052557634e487b7160e01b5f52601160045260245ffd5b506001019056fea264697066735822122013974f9b675387e108a7e535395dd259b92fa8b0560b6c01d1276afc35adc17e64736f6c634300081b0033",
+        "sourceMap": "488:3615:88:-:0;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;3235:124;;;;;;:::i;:::-;;:::i;:::-;;;451:25:200;;;439:2;424:18;3235:124:88;;;;;;;;2862:102;2930:7;1710:6:23;-1:-1:-1;;;;;1710:6:23;2862:102:88;;;-1:-1:-1;;;;;651:32:200;;;633:51;;621:2;606:18;2862:102:88;487:203:200;1879:165:88;;;;;;:::i;:::-;;:::i;:::-;;;860:14:200;;853:22;835:41;;823:2;808:18;1879:165:88;695:187:200;532:51:88;;;;;;2293:101:23;;;:::i;:::-;;2310:177:88;;;;;;:::i;:::-;-1:-1:-1;;;;;;;;;;;;;;;;;;2463:19:88;;;;:9;:19;;;;;;;;;2456:26;;;;;;;;;;-1:-1:-1;;;;;2456:26:88;;;;;;;;;;;2310:177;;;;;1310:13:200;;-1:-1:-1;;;;;1306:39:200;1288:58;;1402:4;1390:17;;;1384:24;1362:20;;;1355:54;;;;1261:18;2310:177:88;1072:343:200;1638:85:23;1684:7;1710:6;-1:-1:-1;;;;;1710:6:23;1638:85;;1137:113:88;1223:15;:22;-1:-1:-1;;;;;1223:22:88;1137:113;;2543:215:23;;;;;;:::i;:::-;;:::i;2595:164:88:-;-1:-1:-1;;;;;;;;;;;;;;;;;2732:22:88;;;;;;;;2739:15;2732:22;-1:-1:-1;;;;;2732:22:88;;;;;;;;;2595:164;;1460:247;;;;;;:::i;:::-;;:::i;3235:124::-;3315:7;1531:13:23;:11;:13::i;:::-;3337:17:88::1;3346:7;3337:8;:17::i;:::-;3330:24:::0;3235:124;-1:-1:-1;;3235:124:88:o;1879:165::-;1967:4;1982:11;1997:23;2012:7;1997:14;:23::i;:::-;1979:41;1879:165;-1:-1:-1;;;;1879:165:88:o;2293:101:23:-;1531:13;:11;:13::i;:::-;2357:30:::1;2384:1;2357:18;:30::i;:::-;2293:101::o:0;2543:215::-;1531:13;:11;:13::i;:::-;-1:-1:-1;;;;;2627:22:23;::::1;2623:91;;2672:31;::::0;-1:-1:-1;;;2672:31:23;;2700:1:::1;2672:31;::::0;::::1;633:51:200::0;606:18;;2672:31:23::1;;;;;;;;2623:91;2723:28;2742:8;2723:18;:28::i;:::-;2543:215:::0;:::o;1460:247:88:-;1543:7;1559:15;1576:11;1591:23;1606:7;1591:14;:23::i;:::-;1558:56;;;;1628:6;1673:7;1620:62;;;;;-1:-1:-1;;;1620:62:88;;-1:-1:-1;;;;;651:32:200;;;1620:62:88;;;633:51:200;606:18;;1620:62:88;487:203:200;1620:62:88;-1:-1:-1;1695:7:88;;1460:247;-1:-1:-1;;;1460:247:88:o;1796:162:23:-;1684:7;1710:6;-1:-1:-1;;;;;1710:6:23;735:10:34;1855:23:23;1851:101;;1901:40;;-1:-1:-1;;;1901:40:23;;735:10:34;1901:40:23;;;633:51:200;606:18;;1901:40:23;487:203:200;3363:526:88;3416:7;3434:11;3449:23;3464:7;3449:14;:23::i;:::-;3431:41;;;3487:6;3486:7;3536;3478:67;;;;;-1:-1:-1;;;3478:67:88;;-1:-1:-1;;;;;651:32:200;;;3478:67:88;;;633:51:200;606:18;;3478:67:88;487:203:200;3478:67:88;-1:-1:-1;3611:54:88;;;;;;;;;-1:-1:-1;;;;;3611:54:88;;;;;3652:12;3611:54;;;;;;3671:15;:29;;-1:-1:-1;;;;;;3671:29:88;;;;;;;;;;3724:18;;3552:50;;;3724:18;;;:::i;:::-;;;;-1:-1:-1;3748:18:88;;;;:9;:18;;;;;;;;:32;;;;-1:-1:-1;;;;;;3748:32:88;-1:-1:-1;;;;;3748:32:88;;;;;;;;;;-1:-1:-1;3748:32:88;;;;;;;3786:24;;;;;:15;:24;;;;;;:34;;;3832:31;3748:18;;-1:-1:-1;3748:18:88;;3786:24;;3832:31;;;3877:7;3363:526;-1:-1:-1;;;;3363:526:88:o;3893:208::-;-1:-1:-1;;;;;4003:24:88;;3957:15;4003:24;;;:15;:24;;;;;;;;4050:11;;;;:45;;-1:-1:-1;4065:12:88;;;:9;:12;;;:19;-1:-1:-1;;;;;4065:30:88;;;:19;;:30;4050:45;4033:63;;;;3893:208;;;:::o;2912:187:23:-;2985:16;3004:6;;-1:-1:-1;;;;;3020:17:23;;;-1:-1:-1;;;;;;3020:17:23;;;;;;3052:40;;3004:6;;;;;;;3052:40;;2985:16;3052:40;2975:124;2912:187;:::o;14:286:200:-;73:6;126:2;114:9;105:7;101:23;97:32;94:52;;;142:1;139;132:12;94:52;168:23;;-1:-1:-1;;;;;220:31:200;;210:42;;200:70;;266:1;263;256:12;200:70;289:5;14:286;-1:-1:-1;;;14:286:200:o;887:180::-;946:6;999:2;987:9;978:7;974:23;970:32;967:52;;;1015:1;1012;1005:12;967:52;-1:-1:-1;1038:23:200;;887:180;-1:-1:-1;887:180:200:o;1420:232::-;1459:3;1480:17;;;1477:140;;1539:10;1534:3;1530:20;1527:1;1520:31;1574:4;1571:1;1564:15;1602:4;1599:1;1592:15;1477:140;-1:-1:-1;1644:1:200;1633:13;;1420:232::o",
+        "linkReferences": {}
+    },
+    "methodIdentifiers": {
+        "getCurrentSnapshot()": "f6fc7eb6",
+        "getGovernance()": "289b3c0d",
+        "getRollup()": "a4d2342a",
+        "getSnapshot(uint256)": "76f10ad0",
+        "getVersionFor(address)": "fe8beb71",
+        "isRollupRegistered(address)": "52f44a14",
+        "numberOfVersions()": "5a4ce7ba",
+        "owner()": "8da5cb5b",
+        "renounceOwnership()": "715018a6",
+        "transferOwnership(address)": "f2fde38b",
+        "upgrade(address)": "0900f010"
+    },
+    "rawMetadata": "{\"compiler\":{\"version\":\"0.8.27+commit.40a35a09\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_owner\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"owner\",\"type\":\"address\"}],\"name\":\"OwnableInvalidOwner\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"account\",\"type\":\"address\"}],\"name\":\"OwnableUnauthorizedAccount\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"rollup\",\"type\":\"address\"}],\"name\":\"Registry__RollupAlreadyRegistered\",\"type\":\"error\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"rollup\",\"type\":\"address\"}],\"name\":\"Registry__RollupNotRegistered\",\"type\":\"error\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"instance\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"uint256\",\"name\":\"version\",\"type\":\"uint256\"}],\"name\":\"InstanceAdded\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"previousOwner\",\"type\":\"address\"},{\"indexed\":true,\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"OwnershipTransferred\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"getCurrentSnapshot\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"rollup\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"blockNumber\",\"type\":\"uint256\"}],\"internalType\":\"struct DataStructures.RegistrySnapshot\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getGovernance\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"getRollup\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_version\",\"type\":\"uint256\"}],\"name\":\"getSnapshot\",\"outputs\":[{\"components\":[{\"internalType\":\"address\",\"name\":\"rollup\",\"type\":\"address\"},{\"internalType\":\"uint256\",\"name\":\"blockNumber\",\"type\":\"uint256\"}],\"internalType\":\"struct DataStructures.RegistrySnapshot\",\"name\":\"\",\"type\":\"tuple\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_rollup\",\"type\":\"address\"}],\"name\":\"getVersionFor\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_rollup\",\"type\":\"address\"}],\"name\":\"isRollupRegistered\",\"outputs\":[{\"internalType\":\"bool\",\"name\":\"\",\"type\":\"bool\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"numberOfVersions\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"owner\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"renounceOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"newOwner\",\"type\":\"address\"}],\"name\":\"transferOwnership\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_rollup\",\"type\":\"address\"}],\"name\":\"upgrade\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"author\":\"Aztec Labs\",\"errors\":{\"OwnableInvalidOwner(address)\":[{\"details\":\"The owner is not a valid owner account. (eg. `address(0)`)\"}],\"OwnableUnauthorizedAccount(address)\":[{\"details\":\"The caller account is not authorized to perform an operation.\"}]},\"kind\":\"dev\",\"methods\":{\"getCurrentSnapshot()\":{\"returns\":{\"_0\":\"The current snapshot\"}},\"getGovernance()\":{\"returns\":{\"_0\":\"The governance address\"}},\"getRollup()\":{\"returns\":{\"_0\":\"The rollup address\"}},\"getSnapshot(uint256)\":{\"details\":\"the version is 0 indexed, so the first snapshot is version 0.\",\"params\":{\"_version\":\"- The version of the rollup to return (i.e. which snapshot)\"},\"returns\":{\"_0\":\"the snapshot\"}},\"getVersionFor(address)\":{\"params\":{\"_rollup\":\"- The address of the rollup contract\"},\"returns\":{\"_0\":\"The version of the rollup contract\"}},\"isRollupRegistered(address)\":{\"params\":{\"_rollup\":\"- The address of the rollup contract\"},\"returns\":{\"_0\":\"Whether the rollup is registered\"}},\"owner()\":{\"details\":\"Returns the address of the current owner.\"},\"renounceOwnership()\":{\"details\":\"Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner.\"},\"transferOwnership(address)\":{\"details\":\"Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner.\"},\"upgrade(address)\":{\"details\":\"Only callable by the ownerReverts if the rollup is already registered\",\"params\":{\"_rollup\":\"- The address of the rollup contract\"},\"returns\":{\"_0\":\"The version of the new snapshot\"}}},\"title\":\"Registry\",\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{\"getCurrentSnapshot()\":{\"notice\":\"Returns the current snapshot of the registry\"},\"getGovernance()\":{\"notice\":\"Returns the address of the governance\"},\"getRollup()\":{\"notice\":\"Returns the address of the rollup contract\"},\"getSnapshot(uint256)\":{\"notice\":\"Fetches a snapshot of the registry indicated by `version`\"},\"getVersionFor(address)\":{\"notice\":\"Returns the version for a specific rollup contract or reverts if not listed\"},\"isRollupRegistered(address)\":{\"notice\":\"Returns whther the rollup is registered\"},\"upgrade(address)\":{\"notice\":\"Creates a new snapshot of the registry\"}},\"notice\":\"Keeps track of addresses of current rollup and historical addresses.\",\"version\":1}},\"settings\":{\"compilationTarget\":{\"src/governance/Registry.sol\":\"Registry\"},\"evmVersion\":\"cancun\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\"},\"optimizer\":{\"enabled\":true,\"runs\":200},\"remappings\":[\":@aztec/=src/\",\":@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/\",\":@oz/=lib/openzeppelin-contracts/contracts/\",\":@test/=test/\",\":erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/\",\":forge-std/=lib/forge-std/src/\",\":halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/\",\":openzeppelin-contracts/=lib/openzeppelin-contracts/\"]},\"sources\":{\"lib/openzeppelin-contracts/contracts/access/Ownable.sol\":{\"keccak256\":\"0xff6d0bb2e285473e5311d9d3caacb525ae3538a80758c10649a4d61029b017bb\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://8ed324d3920bb545059d66ab97d43e43ee85fd3bd52e03e401f020afb0b120f6\",\"dweb:/ipfs/QmfEckWLmZkDDcoWrkEvMWhms66xwTLff9DDhegYpvHo1a\"]},\"lib/openzeppelin-contracts/contracts/utils/Context.sol\":{\"keccak256\":\"0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2\",\"license\":\"MIT\",\"urls\":[\"bzz-raw://6a708e8a5bdb1011c2c381c9a5cfd8a9a956d7d0a9dc1bd8bcdaf52f76ef2f12\",\"dweb:/ipfs/Qmax9WHBnVsZP46ZxEMNRQpLQnrdE4dK8LehML1Py8FowF\"]},\"src/core/libraries/TimeLib.sol\":{\"keccak256\":\"0xf23bbdd4eb9f6d496eae97e036559dda8a106459304279da74781ee6694d878d\",\"license\":\"Apache-2.0\",\"urls\":[\"bzz-raw://1ec5c0b8c8130622f80071f8c3626e1de5aac32ba8f40e730746b7c452d60627\",\"dweb:/ipfs/Qme5dbQdYBdyjCKeksqjzY4N21DFz7pEaVwKCo9edy6ytK\"]},\"src/core/libraries/TimeMath.sol\":{\"keccak256\":\"0xf1d1de946e60b96e6a86187b17928e124ba822ee0189a491503cf79f71287e0d\",\"license\":\"Apache-2.0\",\"urls\":[\"bzz-raw://0575bc4dae4cf4605909a5cb64f6d21674996b286f837f57c3c3b656741f79c4\",\"dweb:/ipfs/QmXxrSF8KrxHhizVhpUSNDrknSTXKMBYtrwwyYW2ydoCAS\"]},\"src/governance/Registry.sol\":{\"keccak256\":\"0x243933a527a104ebb0cc336efbdb25bb8320d0bcb0ed0af46dbf1c2ee81df660\",\"license\":\"Apache-2.0\",\"urls\":[\"bzz-raw://fe9d0b0c99a2563cd0c6c8b57185ab38d5fe27af1624a91c86bdc83af97dfb7f\",\"dweb:/ipfs/QmXmAVxWDPJXVxC1ZB4vw55Pgxr1ajNJKjV1SaqGGWofPX\"]},\"src/governance/interfaces/IPayload.sol\":{\"keccak256\":\"0x07a32aa633c48bdc07c34fefb86441ab2f8e0fdb9a4eca1b11ba806b5c4f1997\",\"license\":\"Apache-2.0\",\"urls\":[\"bzz-raw://46e1161f04c655e8779fbf3d92ad827c80302f47da2be4024a14829955eeec87\",\"dweb:/ipfs/QmcAHwConVo4r79u7WGt7U3GbZzvcPp5rXiaaoskznENJX\"]},\"src/governance/interfaces/IRegistry.sol\":{\"keccak256\":\"0x973aa85eabf4fefd19c96f5205b4b4e3d6db9e701f4fbf4bfd517c631bc91bd2\",\"license\":\"Apache-2.0\",\"urls\":[\"bzz-raw://0dbb13c314d9d2613208064ed6105cbc48e6c9ae68f93eb74294d58e67ff1c0d\",\"dweb:/ipfs/QmcYL77pnsGH2BLJNcx9Kxb4amMmRa6jc1zpb7X4o2UFJ1\"]},\"src/governance/libraries/DataStructures.sol\":{\"keccak256\":\"0x9e1abc53c72a73df7e36d999910ffc7f8e652d9ab05e643b956593b776c38b25\",\"license\":\"Apache-2.0\",\"urls\":[\"bzz-raw://7b9625ac0569d8c403466cf5a2963cef94e758a04ce0d67818691c1afad03ac1\",\"dweb:/ipfs/QmP4Gve2FKGGDtxe37282UgRzXDQkWzSSucfUhu5rJan56\"]},\"src/governance/libraries/Errors.sol\":{\"keccak256\":\"0xa8778a2cd3efbc1243e8dcd8b2d3e7fef56d23d8d235c3112464e3411328efc9\",\"license\":\"Apache-2.0\",\"urls\":[\"bzz-raw://0cf8183e25f5133c120c328177319315bc77f7b40a16d434d5926ad96f68e2c9\",\"dweb:/ipfs/QmQ1z23sdYiCnzvfWjmHNcPeCbbsW3itf1bvLDq9QhvRmG\"]}},\"version\":1}",
+    "metadata": {
+        "compiler": {
+            "version": "0.8.27+commit.40a35a09"
+        },
+        "language": "Solidity",
+        "output": {
+            "abi": [
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "_owner",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "constructor"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "owner",
+                            "type": "address"
+                        }
+                    ],
+                    "type": "error",
+                    "name": "OwnableInvalidOwner"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "account",
+                            "type": "address"
+                        }
+                    ],
+                    "type": "error",
+                    "name": "OwnableUnauthorizedAccount"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "rollup",
+                            "type": "address"
+                        }
+                    ],
+                    "type": "error",
+                    "name": "Registry__RollupAlreadyRegistered"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "rollup",
+                            "type": "address"
+                        }
+                    ],
+                    "type": "error",
+                    "name": "Registry__RollupNotRegistered"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "instance",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "uint256",
+                            "name": "version",
+                            "type": "uint256",
+                            "indexed": true
+                        }
+                    ],
+                    "type": "event",
+                    "name": "InstanceAdded",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "previousOwner",
+                            "type": "address",
+                            "indexed": true
+                        },
+                        {
+                            "internalType": "address",
+                            "name": "newOwner",
+                            "type": "address",
+                            "indexed": true
+                        }
+                    ],
+                    "type": "event",
+                    "name": "OwnershipTransferred",
+                    "anonymous": false
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "getCurrentSnapshot",
+                    "outputs": [
+                        {
+                            "internalType": "struct DataStructures.RegistrySnapshot",
+                            "name": "",
+                            "type": "tuple",
+                            "components": [
+                                {
+                                    "internalType": "address",
+                                    "name": "rollup",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "blockNumber",
+                                    "type": "uint256"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "getGovernance",
+                    "outputs": [
+                        {
+                            "internalType": "address",
+                            "name": "",
+                            "type": "address"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "getRollup",
+                    "outputs": [
+                        {
+                            "internalType": "address",
+                            "name": "",
+                            "type": "address"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "_version",
+                            "type": "uint256"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "getSnapshot",
+                    "outputs": [
+                        {
+                            "internalType": "struct DataStructures.RegistrySnapshot",
+                            "name": "",
+                            "type": "tuple",
+                            "components": [
+                                {
+                                    "internalType": "address",
+                                    "name": "rollup",
+                                    "type": "address"
+                                },
+                                {
+                                    "internalType": "uint256",
+                                    "name": "blockNumber",
+                                    "type": "uint256"
+                                }
+                            ]
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "_rollup",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "getVersionFor",
+                    "outputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "",
+                            "type": "uint256"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "_rollup",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "isRollupRegistered",
+                    "outputs": [
+                        {
+                            "internalType": "bool",
+                            "name": "",
+                            "type": "bool"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "numberOfVersions",
+                    "outputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "",
+                            "type": "uint256"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "view",
+                    "type": "function",
+                    "name": "owner",
+                    "outputs": [
+                        {
+                            "internalType": "address",
+                            "name": "",
+                            "type": "address"
+                        }
+                    ]
+                },
+                {
+                    "inputs": [],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "renounceOwnership"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "newOwner",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "transferOwnership"
+                },
+                {
+                    "inputs": [
+                        {
+                            "internalType": "address",
+                            "name": "_rollup",
+                            "type": "address"
+                        }
+                    ],
+                    "stateMutability": "nonpayable",
+                    "type": "function",
+                    "name": "upgrade",
+                    "outputs": [
+                        {
+                            "internalType": "uint256",
+                            "name": "",
+                            "type": "uint256"
+                        }
+                    ]
+                }
+            ],
+            "devdoc": {
+                "kind": "dev",
+                "methods": {
+                    "getCurrentSnapshot()": {
+                        "returns": {
+                            "_0": "The current snapshot"
+                        }
+                    },
+                    "getGovernance()": {
+                        "returns": {
+                            "_0": "The governance address"
+                        }
+                    },
+                    "getRollup()": {
+                        "returns": {
+                            "_0": "The rollup address"
+                        }
+                    },
+                    "getSnapshot(uint256)": {
+                        "details": "the version is 0 indexed, so the first snapshot is version 0.",
+                        "params": {
+                            "_version": "- The version of the rollup to return (i.e. which snapshot)"
+                        },
+                        "returns": {
+                            "_0": "the snapshot"
+                        }
+                    },
+                    "getVersionFor(address)": {
+                        "params": {
+                            "_rollup": "- The address of the rollup contract"
+                        },
+                        "returns": {
+                            "_0": "The version of the rollup contract"
+                        }
+                    },
+                    "isRollupRegistered(address)": {
+                        "params": {
+                            "_rollup": "- The address of the rollup contract"
+                        },
+                        "returns": {
+                            "_0": "Whether the rollup is registered"
+                        }
+                    },
+                    "owner()": {
+                        "details": "Returns the address of the current owner."
+                    },
+                    "renounceOwnership()": {
+                        "details": "Leaves the contract without owner. It will not be possible to call `onlyOwner` functions. Can only be called by the current owner. NOTE: Renouncing ownership will leave the contract without an owner, thereby disabling any functionality that is only available to the owner."
+                    },
+                    "transferOwnership(address)": {
+                        "details": "Transfers ownership of the contract to a new account (`newOwner`). Can only be called by the current owner."
+                    },
+                    "upgrade(address)": {
+                        "details": "Only callable by the ownerReverts if the rollup is already registered",
+                        "params": {
+                            "_rollup": "- The address of the rollup contract"
+                        },
+                        "returns": {
+                            "_0": "The version of the new snapshot"
+                        }
+                    }
+                },
+                "version": 1
+            },
+            "userdoc": {
+                "kind": "user",
+                "methods": {
+                    "getCurrentSnapshot()": {
+                        "notice": "Returns the current snapshot of the registry"
+                    },
+                    "getGovernance()": {
+                        "notice": "Returns the address of the governance"
+                    },
+                    "getRollup()": {
+                        "notice": "Returns the address of the rollup contract"
+                    },
+                    "getSnapshot(uint256)": {
+                        "notice": "Fetches a snapshot of the registry indicated by `version`"
+                    },
+                    "getVersionFor(address)": {
+                        "notice": "Returns the version for a specific rollup contract or reverts if not listed"
+                    },
+                    "isRollupRegistered(address)": {
+                        "notice": "Returns whther the rollup is registered"
+                    },
+                    "upgrade(address)": {
+                        "notice": "Creates a new snapshot of the registry"
+                    }
+                },
+                "version": 1
+            }
+        },
+        "settings": {
+            "remappings": [
+                "@aztec/=src/",
+                "@openzeppelin/contracts/=lib/openzeppelin-contracts/contracts/",
+                "@oz/=lib/openzeppelin-contracts/contracts/",
+                "@test/=test/",
+                "erc4626-tests/=lib/openzeppelin-contracts/lib/erc4626-tests/",
+                "forge-std/=lib/forge-std/src/",
+                "halmos-cheatcodes/=lib/openzeppelin-contracts/lib/halmos-cheatcodes/src/",
+                "openzeppelin-contracts/=lib/openzeppelin-contracts/"
+            ],
+            "optimizer": {
+                "enabled": true,
+                "runs": 200
+            },
+            "metadata": {
+                "bytecodeHash": "ipfs"
+            },
+            "compilationTarget": {
+                "src/governance/Registry.sol": "Registry"
+            },
+            "evmVersion": "cancun",
+            "libraries": {}
+        },
+        "sources": {
+            "lib/openzeppelin-contracts/contracts/access/Ownable.sol": {
+                "keccak256": "0xff6d0bb2e285473e5311d9d3caacb525ae3538a80758c10649a4d61029b017bb",
+                "urls": [
+                    "bzz-raw://8ed324d3920bb545059d66ab97d43e43ee85fd3bd52e03e401f020afb0b120f6",
+                    "dweb:/ipfs/QmfEckWLmZkDDcoWrkEvMWhms66xwTLff9DDhegYpvHo1a"
+                ],
+                "license": "MIT"
+            },
+            "lib/openzeppelin-contracts/contracts/utils/Context.sol": {
+                "keccak256": "0x493033a8d1b176a037b2cc6a04dad01a5c157722049bbecf632ca876224dd4b2",
+                "urls": [
+                    "bzz-raw://6a708e8a5bdb1011c2c381c9a5cfd8a9a956d7d0a9dc1bd8bcdaf52f76ef2f12",
+                    "dweb:/ipfs/Qmax9WHBnVsZP46ZxEMNRQpLQnrdE4dK8LehML1Py8FowF"
+                ],
+                "license": "MIT"
+            },
+            "src/core/libraries/TimeLib.sol": {
+                "keccak256": "0xf23bbdd4eb9f6d496eae97e036559dda8a106459304279da74781ee6694d878d",
+                "urls": [
+                    "bzz-raw://1ec5c0b8c8130622f80071f8c3626e1de5aac32ba8f40e730746b7c452d60627",
+                    "dweb:/ipfs/Qme5dbQdYBdyjCKeksqjzY4N21DFz7pEaVwKCo9edy6ytK"
+                ],
+                "license": "Apache-2.0"
+            },
+            "src/core/libraries/TimeMath.sol": {
+                "keccak256": "0xf1d1de946e60b96e6a86187b17928e124ba822ee0189a491503cf79f71287e0d",
+                "urls": [
+                    "bzz-raw://0575bc4dae4cf4605909a5cb64f6d21674996b286f837f57c3c3b656741f79c4",
+                    "dweb:/ipfs/QmXxrSF8KrxHhizVhpUSNDrknSTXKMBYtrwwyYW2ydoCAS"
+                ],
+                "license": "Apache-2.0"
+            },
+            "src/governance/Registry.sol": {
+                "keccak256": "0x243933a527a104ebb0cc336efbdb25bb8320d0bcb0ed0af46dbf1c2ee81df660",
+                "urls": [
+                    "bzz-raw://fe9d0b0c99a2563cd0c6c8b57185ab38d5fe27af1624a91c86bdc83af97dfb7f",
+                    "dweb:/ipfs/QmXmAVxWDPJXVxC1ZB4vw55Pgxr1ajNJKjV1SaqGGWofPX"
+                ],
+                "license": "Apache-2.0"
+            },
+            "src/governance/interfaces/IPayload.sol": {
+                "keccak256": "0x07a32aa633c48bdc07c34fefb86441ab2f8e0fdb9a4eca1b11ba806b5c4f1997",
+                "urls": [
+                    "bzz-raw://46e1161f04c655e8779fbf3d92ad827c80302f47da2be4024a14829955eeec87",
+                    "dweb:/ipfs/QmcAHwConVo4r79u7WGt7U3GbZzvcPp5rXiaaoskznENJX"
+                ],
+                "license": "Apache-2.0"
+            },
+            "src/governance/interfaces/IRegistry.sol": {
+                "keccak256": "0x973aa85eabf4fefd19c96f5205b4b4e3d6db9e701f4fbf4bfd517c631bc91bd2",
+                "urls": [
+                    "bzz-raw://0dbb13c314d9d2613208064ed6105cbc48e6c9ae68f93eb74294d58e67ff1c0d",
+                    "dweb:/ipfs/QmcYL77pnsGH2BLJNcx9Kxb4amMmRa6jc1zpb7X4o2UFJ1"
+                ],
+                "license": "Apache-2.0"
+            },
+            "src/governance/libraries/DataStructures.sol": {
+                "keccak256": "0x9e1abc53c72a73df7e36d999910ffc7f8e652d9ab05e643b956593b776c38b25",
+                "urls": [
+                    "bzz-raw://7b9625ac0569d8c403466cf5a2963cef94e758a04ce0d67818691c1afad03ac1",
+                    "dweb:/ipfs/QmP4Gve2FKGGDtxe37282UgRzXDQkWzSSucfUhu5rJan56"
+                ],
+                "license": "Apache-2.0"
+            },
+            "src/governance/libraries/Errors.sol": {
+                "keccak256": "0xa8778a2cd3efbc1243e8dcd8b2d3e7fef56d23d8d235c3112464e3411328efc9",
+                "urls": [
+                    "bzz-raw://0cf8183e25f5133c120c328177319315bc77f7b40a16d434d5926ad96f68e2c9",
+                    "dweb:/ipfs/QmQ1z23sdYiCnzvfWjmHNcPeCbbsW3itf1bvLDq9QhvRmG"
+                ],
+                "license": "Apache-2.0"
+            }
+        },
+        "version": 1
+    },
+    "id": 88
+}
