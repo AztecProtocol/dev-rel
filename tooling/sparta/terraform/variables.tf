@@ -68,15 +68,21 @@ variable "ethereum_registry_address" {
   type        = string
 }
 
-variable "ethereum_chain_id" {
+variable "l1_chain_id" {
   description = "Ethereum network chain ID"
   type        = string
 }
 
-variable "ethereum_value" {
+variable "funder_amount" {
   description = "Default ETH value for transactions"
   type        = string
   default     = "20ether"
+}
+
+variable "funder_address_private_key" {
+  description = "Ethereum wallet private key for funding"
+  type        = string
+  sensitive   = true
 }
 
 variable "minimum_stake" {

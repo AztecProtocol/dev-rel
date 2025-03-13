@@ -7,6 +7,7 @@ import {
 import { ChainInfoService } from "../services/chaininfo-service.js";
 import { paginate } from "../utils/pagination.js";
 import { ValidatorService } from "../services/validator-service.js";
+import { validateAddress } from "../utils/inputValidator.js";
 
 export const EXCLUDED_VALIDATORS = [
 	"0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
@@ -100,8 +101,18 @@ export default {
 						.setDescription("The validator to remove")
 						.setRequired(true)
 				)
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName("fund")
+				.setDescription("Fund a validator with Sepolia ETH")
+				.addStringOption((option) =>
+					option
+						.setName("address")
+						.setDescription("The validator to fund")
+						.setRequired(true)
+				)
 		),
-
 	execute: async (interaction: ChatInputCommandInteraction) => {
 		await interaction.deferReply({
 			flags: MessageFlags.Ephemeral,
@@ -158,12 +169,11 @@ export default {
 					return `Failed`;
 				}
 
-				// Basic address validation
-				if (!address.match(/^0x[a-fA-F0-9]{40}$/)) {
-					return interaction.reply({
+				if (validateAddress(address)) {
+					await interaction.editReply({
 						content: "Please provide a valid Ethereum address.",
-						flags: MessageFlags.Ephemeral,
 					});
+					return `Failed`;
 				}
 
 				await ValidatorService.addValidator(address);
@@ -171,6 +181,24 @@ export default {
 					content: `Successfully added validator address: ${address}`,
 				});
 				return `Added validator ${address}`;
+			} else if (interaction.options.getSubcommand() === "fund") {
+				const address = interaction.options.getString("address");
+				if (!address) {
+					await interaction.editReply({
+						content: "Please provide an address to fund",
+					});
+					return `Failed`;
+				}
+				if (validateAddress(address)) {
+					await interaction.editReply({
+						content: "Please provide a valid Ethereum address.",
+					});
+					return `Failed`;
+				}
+				await ValidatorService.fundValidator(address);
+				await interaction.editReply({
+					content: `Successfully funded validator ${address}`,
+				});
 			}
 			return;
 		} catch (error) {

@@ -166,12 +166,16 @@ resource "aws_ecs_task_definition" "sparta_discord_bot" {
           value = var.ethereum_registry_address
         },
         {
-          name  = "ETHEREUM_CHAIN_ID"
-          value = var.ethereum_chain_id
+          name  = "L1_CHAIN_ID"
+          value = var.l1_chain_id
         },
         {
-          name  = "ETHEREUM_VALUE"
-          value = var.ethereum_value
+          name  = "FUNDER_AMOUNT"
+          value = var.funder_amount
+        },
+        {
+          name  = "FUNDER_ADDRESS_PRIVATE_KEY"
+          value = var.funder_address_private_key
         },
         {
           name  = "MINIMUM_STAKE"

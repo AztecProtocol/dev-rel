@@ -7,16 +7,24 @@
 import {
 	createPublicClient,
 	createWalletClient,
+	encodeDeployData,
 	getContract,
+	getCreate2Address,
 	http,
+	padHex,
 	TransactionReceipt,
 	WalletClient,
 } from "viem";
+import type { Abi, Narrow } from "abitype";
 
-import RollupAbi from "./rollupAbi.json" assert { type: "json" };
-import TestERC20Abi from "./testERC20Abi.json" assert { type: "json" };
-import RegistryAbi from "./registryAbi.json" assert { type: "json" };
+import { RollupAbi } from "./abis/rollup.js";
+import { TestERC20Abi } from "./abis/testERC20Abi.js";
+import { RegistryAbi } from "./abis/registryAbi.js";
 import { privateKeyToAccount } from "viem/accounts";
+import type { Hex } from "viem";
+import { ForwarderBytecode, ForwarderAbi } from "./abis/forwarder.js";
+export const DEPLOYER_ADDRESS: Hex =
+	"0x4e59b44847b379578588920cA78FbF26c0B4956C";
 
 /**
  * Ethereum chain configuration
@@ -68,7 +76,7 @@ export class Ethereum {
 
 			const registry = getContract({
 				address: process.env.ETHEREUM_REGISTRY_ADDRESS as `0x${string}`,
-				abi: RegistryAbi.abi,
+				abi: RegistryAbi,
 				client: walletClient,
 			});
 
@@ -77,14 +85,14 @@ export class Ethereum {
 
 			const rollup = getContract({
 				address: rollupAddress as `0x${string}`,
-				abi: RollupAbi.abi,
+				abi: RollupAbi,
 				client: walletClient,
 			});
 			console.log("Rollup Address: ", rollup.address);
 
 			const stakingAsset = getContract({
 				address: (await rollup.read.getStakingAsset()) as `0x${string}`,
-				abi: TestERC20Abi.abi,
+				abi: TestERC20Abi,
 				client: walletClient,
 			});
 			console.log("Staking Asset Address: ", stakingAsset.address);
@@ -113,6 +121,26 @@ export class Ethereum {
 		return this.rollup;
 	};
 
+	getExpectedAddress(
+		abi: Narrow<Abi | readonly unknown[]>,
+		bytecode: Hex,
+		args: readonly unknown[],
+		salt: Hex
+	) {
+		const paddedSalt = padHex(salt, { size: 32 });
+		const calldata = encodeDeployData({ abi, bytecode, args });
+		const address = getCreate2Address({
+			from: DEPLOYER_ADDRESS,
+			salt: paddedSalt,
+			bytecode: calldata,
+		});
+		return {
+			address,
+			paddedSalt,
+			calldata,
+		};
+	}
+
 	addValidator = async (address: string): Promise<TransactionReceipt[]> => {
 		const hashes = await Promise.all(
 			[
@@ -126,10 +154,13 @@ export class Ethereum {
 				]),
 				await this.rollup.write.deposit([
 					address,
-					address,
-					privateKeyToAccount(
-						process.env.MINTER_PRIVATE_KEY as `0x${string}`
+					this.getExpectedAddress(
+						ForwarderAbi,
+						ForwarderBytecode,
+						[address],
+						address as `0x${string}`
 					).address,
+					process.env.WITHDRAWER_ADDRESS as `0x${string}`,
 					process.env.MINIMUM_STAKE as unknown as string,
 				]),
 			].map((txHash) =>

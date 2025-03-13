@@ -26,7 +26,7 @@ export class ValidatorService {
 
 	static async fundValidator(address: string): Promise<string> {
 		try {
-			const command = `cast send --value ${process.env.ETHEREUM_VALUE} --rpc-url ${process.env.ETHEREUM_HOST} --chain-id ${process.env.ETHEREUM_CHAIN_ID} --private-key ${process.env.MINTER_PRIVATE_KEY} ${address}`;
+			const command = `cast send --value ${process.env.FUNDER_AMOUNT} --rpc-url ${process.env.ETHEREUM_HOST} --chain-id ${process.env.L1_CHAIN_ID} --private-key ${process.env.FUNDER_ADDRESS_PRIVATE_KEY} ${address}`;
 
 			const { stdout, stderr } = await execAsync(command);
 
