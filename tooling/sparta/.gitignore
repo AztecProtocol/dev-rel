@@ -1,0 +1,40 @@
+# Node.js
+node_modules/
+dist/
+*.log
+.env
+.env.*
+!.env.example
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
+terraform.tfvars
+.terraform.lock.hcl
+*.tfvars
+!terraform.tfvars.example
+
+# Build artifacts
+*.zip
+deployment-*.zip
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Elastic Beanstalk Files
+.elasticbeanstalk/*
+!.elasticbeanstalk/*.cfg.yml
+!.elasticbeanstalk/*.global.yml
+
+# Package managers
+bun.lockb
+yarn.lock
+package-lock.json

@@ -1,0 +1,55 @@
+# =============================================================================
+# Example Terraform Variables
+# =============================================================================
+# Copy this file to terraform.tfvars and fill in your values
+# DO NOT commit terraform.tfvars to version control
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# AWS Configuration
+# -----------------------------------------------------------------------------
+# Region where all AWS resources will be created
+aws_region = "us-west-2"
+
+# Deployment environment - affects resource naming and may impact configuration
+environment = "staging"  # Must be either "staging" or "production"
+
+# -----------------------------------------------------------------------------
+# Discord Bot Configuration
+# -----------------------------------------------------------------------------
+# Bot token from Discord Developer Portal (https://discord.com/developers/applications)
+# This is a sensitive value - keep it secure
+bot_token = "your_bot_token"      # From Discord Developer Portal
+
+# Bot application ID from Discord Developer Portal
+bot_client_id = "your_client_id"      # From Discord Developer Portal
+
+# ID of the Discord server where the bot will operate
+guild_id = "your_guild_id"       # Your Discord server ID
+
+# -----------------------------------------------------------------------------
+# Ethereum Configuration
+# -----------------------------------------------------------------------------
+# URL of the Ethereum node for blockchain interactions
+ethereum_host = "http://your-ethereum-node:8545"
+
+# Private key for the Ethereum wallet (without 0x prefix)
+# This is a sensitive value - keep it secure
+minter_private_key = "0xYourPrivateKey"
+
+# Address of the rollup contract for L2 operations
+ethereum_rollup_address = "0xYourRollupAddress"
+
+# Ethereum network identifier
+ethereum_chain_id = "1337"                    # 1337 for local, 1 for mainnet
+
+# Default amount of ETH for transactions
+ethereum_value = "20ether"                 # Default funding amount
+
+minimum_stake = 100000000000000000000
+
+# -----------------------------------------------------------------------------
+# SSH Configuration
+# -----------------------------------------------------------------------------
+# Your public SSH key for accessing EC2 instances (content of your ~/.ssh/id_rsa.pub)
+ssh_public_key = "ssh-rsa AAAA..."  # Your public SSH key for EC2 access
