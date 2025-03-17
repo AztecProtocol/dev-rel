@@ -23,7 +23,7 @@ We keep all our external content and resources here, as well as tracking what we
 
 ⌛ [Sandbox Getting Started](https://docs.aztec.network/guides/getting_started)
 
-📑 Learn by doing with [Aztec Tutorials](https://docs.aztec.network/tutorials)
+📑 Learn by doing with [Aztec Tutorials](https://docs.aztec.network/developers/tutorials/codealong/contract_tutorials/private_voting_contract)
 
 🔷 [Aztec: The Hybrid zkRollup](https://medium.com/aztec-protocol/aztec-the-hybrid-zkrollup-a90a197bf22e)
 
