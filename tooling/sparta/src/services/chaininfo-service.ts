@@ -1,11 +1,14 @@
 import { ethereum } from "../index.js";
+import { Ethereum, getExpectedAddress } from "../utils/ethereum.js";
 
 type ChainInfo = {
 	pendingBlockNum: string;
 	provenBlockNum: string;
-	validators: string | string[];
-	committee: string | string[];
-	archive: string | string[];
+	validators: string[];
+	forwardedValidators: string[];
+	committee: string[];
+	forwardedCommittee: string[];
+	archive: string[];
 	currentEpoch: string;
 	currentSlot: string;
 	proposerNow: string;
@@ -44,8 +47,14 @@ export class ChainInfoService {
 			return {
 				pendingBlockNum: pendingNum as string,
 				provenBlockNum: provenNum as string,
-				validators: validators as string[],
-				committee: committee as string[],
+				validators: validators,
+				forwardedValidators: validators.map(
+					(e: `0x${string}`) => getExpectedAddress([e], e).address
+				),
+				committee: committee,
+				forwardedCommittee: committee.map(
+					(e: `0x${string}`) => getExpectedAddress([e], e).address
+				),
 				archive: archive as string[],
 				currentEpoch: epochNum as string,
 				currentSlot: slot as string,

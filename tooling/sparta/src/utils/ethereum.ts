@@ -12,6 +12,7 @@ import {
 	getCreate2Address,
 	http,
 	padHex,
+	toHex,
 	TransactionReceipt,
 	WalletClient,
 } from "viem";
@@ -31,7 +32,7 @@ export const DEPLOYER_ADDRESS: Hex =
  * @const {Object} ethereumChain
  */
 const ethereumChain = {
-	id: parseInt(process.env.ETHEREUM_CHAIN_ID as string),
+	id: parseInt(process.env.L1_CHAIN_ID as string),
 	name: "Sepolia",
 	network: "sepolia",
 	nativeCurrency: {
@@ -49,6 +50,24 @@ const ethereumChain = {
 	},
 } as const;
 
+export function getExpectedAddress(args: [`0x${string}`], salt: Hex) {
+	const paddedSalt = padHex(salt, { size: 32 });
+	const calldata = encodeDeployData({
+		abi: ForwarderAbi,
+		bytecode: ForwarderBytecode,
+		args,
+	});
+	const address = getCreate2Address({
+		from: DEPLOYER_ADDRESS,
+		salt: paddedSalt,
+		bytecode: calldata,
+	});
+	return {
+		address,
+		paddedSalt,
+		calldata,
+	};
+}
 export class Ethereum {
 	constructor(
 		private publicClient: ReturnType<typeof createPublicClient>,
@@ -121,27 +140,11 @@ export class Ethereum {
 		return this.rollup;
 	};
 
-	getExpectedAddress(
-		abi: Narrow<Abi | readonly unknown[]>,
-		bytecode: Hex,
-		args: readonly unknown[],
-		salt: Hex
-	) {
-		const paddedSalt = padHex(salt, { size: 32 });
-		const calldata = encodeDeployData({ abi, bytecode, args });
-		const address = getCreate2Address({
-			from: DEPLOYER_ADDRESS,
-			salt: paddedSalt,
-			bytecode: calldata,
-		});
-		return {
-			address,
-			paddedSalt,
-			calldata,
-		};
-	}
-
 	addValidator = async (address: string): Promise<TransactionReceipt[]> => {
+		const expectedAddress = getExpectedAddress(
+			[address as `0x${string}`],
+			address as `0x${string}`
+		);
 		const hashes = await Promise.all(
 			[
 				await this.stakingAsset.write.mint([
@@ -154,12 +157,7 @@ export class Ethereum {
 				]),
 				await this.rollup.write.deposit([
 					address,
-					this.getExpectedAddress(
-						ForwarderAbi,
-						ForwarderBytecode,
-						[address],
-						address as `0x${string}`
-					).address,
+					expectedAddress.address,
 					process.env.WITHDRAWER_ADDRESS as `0x${string}`,
 					process.env.MINIMUM_STAKE as unknown as string,
 				]),
