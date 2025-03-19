@@ -58,6 +58,12 @@ variable "minter_private_key" {
   sensitive   = true
 }
 
+variable "withdrawer_private_key" {
+  description = "Ethereum wallet private key for withdrawing funds"
+  type        = string
+  sensitive   = true
+}
+
 variable "withdrawer_address" {
   description = "Ethereum wallet address for withdrawing funds"
   type        = string

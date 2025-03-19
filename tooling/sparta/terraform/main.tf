@@ -158,6 +158,10 @@ resource "aws_ecs_task_definition" "sparta_discord_bot" {
           value = var.minter_private_key
         },
         {
+          name  = "WITHDRAWER_PRIVATE_KEY"
+          value = var.withdrawer_private_key
+        },
+        {
           name  = "WITHDRAWER_ADDRESS"
           value = var.withdrawer_address
         },
