@@ -116,7 +116,7 @@ export default {
 
 				if (!address) {
 					await interaction.editReply({
-						content: "Please provide an address to remove",
+						content: "Please provide an address to add",
 					});
 					return `Failed`;
 				}

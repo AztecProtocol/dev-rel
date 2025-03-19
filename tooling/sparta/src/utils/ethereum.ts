@@ -172,11 +172,29 @@ export class Ethereum {
 	};
 
 	removeValidator = async (address: string): Promise<TransactionReceipt> => {
-		const txHash = await this.rollup.write.initiateWithdraw([
-			address,
+		const withdrawerWalletClient = createWalletClient({
+			account: privateKeyToAccount(
+				process.env.WITHDRAWER_PRIVATE_KEY as `0x${string}`
+			),
+			chain: ethereumChain,
+			transport: http(process.env.ETHEREUM_HOST as string),
+		});
+
+		const rollupWithdrawerScoped = getContract({
+			address: this.rollup.address as `0x${string}`,
+			abi: RollupAbi,
+			client: withdrawerWalletClient,
+		});
+
+		const txHash = await rollupWithdrawerScoped.write.initiateWithdraw([
+			address as `0x${string}`,
 			process.env.WITHDRAWER_ADDRESS as `0x${string}`,
 		]);
 
-		return txHash;
+		const receipt = await this.publicClient.waitForTransactionReceipt({
+			hash: txHash,
+		});
+
+		return receipt;
 	};
 }
