@@ -13,6 +13,7 @@ We keep all our external content and resources here, as well as tracking what we
 ## Hackathon information
 
 - [Project ideas](hackathons/INSPIRATION.md)
+- [Readme](hackathons/README.md)
 - [Tools](hackathons/TOOLS.md)
 
 ## External resources
