@@ -45,6 +45,8 @@ We keep all our external content and resources here, as well as tracking what we
 
 💜 [Aztec Discord](https://discord.aztec.network)
 
+🟢 [Noir Forum](https://forum.aztec.network/c/noir/7)
+
 👾 [Noir Discord](https://discord.com/invite/JtqzkdeQ6G)
 
 >If you can't find what you need here, feel free to submit an Issue so we can work on it. Or contact us on Discord
