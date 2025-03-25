@@ -4,6 +4,10 @@ import {
 	MessageFlags,
 } from "discord.js";
 import { ChainInfoService } from "../services/chaininfo-service.js";
+import { Ethereum, getExpectedAddress } from "../utils/ethereum.js";
+import { ethereum } from "../index.js";
+import { ForwarderBytecode } from "../utils/abis/forwarder.js";
+import { ForwarderAbi } from "../utils/abis/forwarder.js";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -41,26 +45,29 @@ export default {
 				});
 				return `Invalid address`;
 			}
-
 			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+			const forwarder = getExpectedAddress(
+				[address as `0x${string}`],
+				address as `0x${string}`
+			).address;
 
 			if (interaction.options.getSubcommand() === "check") {
 				const info = await ChainInfoService.getInfo();
 				const { validators, committee } = info;
 
-				let reply = "";
+				let reply = "Your forwarder contract is: " + forwarder + "\n";
 				if (validators.includes(address)) {
-					reply += "You are a validator\n";
+					reply += "It is a validator\n";
 				}
 				if (committee.includes(address)) {
-					reply += "You are a committee member\n";
+					reply += "It is a committee member\n";
 				}
 
 				await interaction.editReply({
-					content:
-						reply || "You are not a validator or committee member",
+					content: reply,
 				});
-				return `Checked validator ${address}`;
+				return `Checked validator ${address} with forwarder ${forwarder}`;
 			}
 			return `Unknown subcommand`;
 		} catch (error) {

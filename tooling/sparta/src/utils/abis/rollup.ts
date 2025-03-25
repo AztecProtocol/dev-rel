@@ -1,3 +1,6 @@
+/**
+ * Rollup ABI.
+ */
 export const RollupAbi = [
 	{
 		type: "constructor",
@@ -18,24 +21,41 @@ export const RollupAbi = [
 				internalType: "contract IERC20",
 			},
 			{
-				name: "_vkTreeRoot",
-				type: "bytes32",
-				internalType: "bytes32",
-			},
-			{
-				name: "_protocolContractTreeRoot",
-				type: "bytes32",
-				internalType: "bytes32",
-			},
-			{
-				name: "_ares",
+				name: "_governance",
 				type: "address",
 				internalType: "address",
 			},
 			{
+				name: "_genesisState",
+				type: "tuple",
+				internalType: "struct GenesisState",
+				components: [
+					{
+						name: "vkTreeRoot",
+						type: "bytes32",
+						internalType: "bytes32",
+					},
+					{
+						name: "protocolContractTreeRoot",
+						type: "bytes32",
+						internalType: "bytes32",
+					},
+					{
+						name: "genesisArchiveRoot",
+						type: "bytes32",
+						internalType: "bytes32",
+					},
+					{
+						name: "genesisBlockHash",
+						type: "bytes32",
+						internalType: "bytes32",
+					},
+				],
+			},
+			{
 				name: "_config",
 				type: "tuple",
-				internalType: "struct Config",
+				internalType: "struct RollupConfigInput",
 				components: [
 					{
 						name: "aztecSlotDuration",
@@ -53,7 +73,7 @@ export const RollupAbi = [
 						internalType: "uint256",
 					},
 					{
-						name: "aztecEpochProofClaimWindowInL2Slots",
+						name: "aztecProofSubmissionWindow",
 						type: "uint256",
 						internalType: "uint256",
 					},
@@ -72,49 +92,20 @@ export const RollupAbi = [
 						type: "uint256",
 						internalType: "uint256",
 					},
+					{
+						name: "manaTarget",
+						type: "uint256",
+						internalType: "uint256",
+					},
+					{
+						name: "provingCostPerMana",
+						type: "uint256",
+						internalType: "EthValue",
+					},
 				],
 			},
 		],
 		stateMutability: "nonpayable",
-	},
-	{
-		type: "function",
-		name: "ASSET",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "address",
-				internalType: "contract IERC20",
-			},
-		],
-		stateMutability: "view",
-	},
-	{
-		type: "function",
-		name: "CLAIM_DURATION_IN_L2_SLOTS",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "uint256",
-				internalType: "uint256",
-			},
-		],
-		stateMutability: "view",
-	},
-	{
-		type: "function",
-		name: "CUAUHXICALLI",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "address",
-				internalType: "address",
-			},
-		],
-		stateMutability: "view",
 	},
 	{
 		type: "error",
@@ -191,19 +182,6 @@ export const RollupAbi = [
 		anonymous: false,
 	},
 	{
-		type: "function",
-		name: "FEE_JUICE_PORTAL",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "address",
-				internalType: "contract IFeeJuicePortal",
-			},
-		],
-		stateMutability: "view",
-	},
-	{
 		type: "error",
 		name: "FeeJuicePortal__AlreadyInitialized",
 		inputs: [],
@@ -220,12 +198,7 @@ export const RollupAbi = [
 	},
 	{
 		type: "error",
-		name: "FeeMath__InvalidFeeAssetPriceModifier",
-		inputs: [],
-	},
-	{
-		type: "error",
-		name: "FeeMath__InvalidProvingCostModifier",
+		name: "FeeLib__InvalidFeeAssetPriceModifier",
 		inputs: [],
 	},
 	{
@@ -619,32 +592,6 @@ export const RollupAbi = [
 		],
 	},
 	{
-		type: "function",
-		name: "INBOX",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "address",
-				internalType: "contract IInbox",
-			},
-		],
-		stateMutability: "view",
-	},
-	{
-		type: "function",
-		name: "IS_FOUNDRY_TEST",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "bool",
-				internalType: "bool",
-			},
-		],
-		stateMutability: "view",
-	},
-	{
 		type: "error",
 		name: "Inbox__ActorTooLarge",
 		inputs: [
@@ -742,38 +689,12 @@ export const RollupAbi = [
 			},
 			{
 				name: "proverId",
-				type: "bytes32",
+				type: "address",
 				indexed: true,
-				internalType: "bytes32",
+				internalType: "address",
 			},
 		],
 		anonymous: false,
-	},
-	{
-		type: "function",
-		name: "LAG",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "uint256",
-				internalType: "Slot",
-			},
-		],
-		stateMutability: "view",
-	},
-	{
-		type: "function",
-		name: "LIFETIME",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "uint256",
-				internalType: "Slot",
-			},
-		],
-		stateMutability: "view",
 	},
 	{
 		type: "error",
@@ -800,19 +721,6 @@ export const RollupAbi = [
 				internalType: "uint256",
 			},
 		],
-	},
-	{
-		type: "function",
-		name: "OUTBOX",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "address",
-				internalType: "contract IOutbox",
-			},
-		],
-		stateMutability: "view",
 	},
 	{
 		type: "error",
@@ -1015,32 +923,6 @@ export const RollupAbi = [
 		anonymous: false,
 	},
 	{
-		type: "function",
-		name: "PROOF_COMMITMENT_ESCROW",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "address",
-				internalType: "contract IProofCommitmentEscrow",
-			},
-		],
-		stateMutability: "view",
-	},
-	{
-		type: "function",
-		name: "PROOF_COMMITMENT_MIN_BOND_AMOUNT_IN_TST",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "uint256",
-				internalType: "uint256",
-			},
-		],
-		stateMutability: "view",
-	},
-	{
 		type: "error",
 		name: "ProofCommitmentEscrow__InsufficientBalance",
 		inputs: [
@@ -1085,43 +967,6 @@ export const RollupAbi = [
 	},
 	{
 		type: "event",
-		name: "ProofRightClaimed",
-		inputs: [
-			{
-				name: "epoch",
-				type: "uint256",
-				indexed: true,
-				internalType: "Epoch",
-			},
-			{
-				name: "bondProvider",
-				type: "address",
-				indexed: true,
-				internalType: "address",
-			},
-			{
-				name: "proposer",
-				type: "address",
-				indexed: true,
-				internalType: "address",
-			},
-			{
-				name: "bondAmount",
-				type: "uint256",
-				indexed: false,
-				internalType: "uint256",
-			},
-			{
-				name: "currentSlot",
-				type: "uint256",
-				indexed: false,
-				internalType: "Slot",
-			},
-		],
-		anonymous: false,
-	},
-	{
-		type: "event",
 		name: "PrunedPending",
 		inputs: [
 			{
@@ -1138,19 +983,6 @@ export const RollupAbi = [
 			},
 		],
 		anonymous: false,
-	},
-	{
-		type: "function",
-		name: "REWARD_DISTRIBUTOR",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "address",
-				internalType: "contract IRewardDistributor",
-			},
-		],
-		stateMutability: "view",
 	},
 	{
 		type: "error",
@@ -1187,6 +1019,22 @@ export const RollupAbi = [
 				name: "canonical",
 				type: "address",
 				internalType: "address",
+			},
+		],
+	},
+	{
+		type: "error",
+		name: "Rollup__AlreadyClaimed",
+		inputs: [
+			{
+				name: "prover",
+				type: "address",
+				internalType: "address",
+			},
+			{
+				name: "epoch",
+				type: "uint256",
+				internalType: "Epoch",
 			},
 		],
 	},
@@ -1337,22 +1185,6 @@ export const RollupAbi = [
 	},
 	{
 		type: "error",
-		name: "Rollup__InvalidEpoch",
-		inputs: [
-			{
-				name: "expected",
-				type: "uint256",
-				internalType: "Epoch",
-			},
-			{
-				name: "actual",
-				type: "uint256",
-				internalType: "Epoch",
-			},
-		],
-	},
-	{
-		type: "error",
 		name: "Rollup__InvalidInHash",
 		inputs: [
 			{
@@ -1470,6 +1302,11 @@ export const RollupAbi = [
 	},
 	{
 		type: "error",
+		name: "Rollup__ManaLimitExceeded",
+		inputs: [],
+	},
+	{
+		type: "error",
 		name: "Rollup__NoEpochToProve",
 		inputs: [],
 	},
@@ -1485,38 +1322,17 @@ export const RollupAbi = [
 	},
 	{
 		type: "error",
-		name: "Rollup__NonZeroL2Fee",
-		inputs: [],
-	},
-	{
-		type: "error",
-		name: "Rollup__NotClaimingCorrectEpoch",
+		name: "Rollup__NotPastDeadline",
 		inputs: [
 			{
-				name: "expected",
+				name: "deadline",
 				type: "uint256",
-				internalType: "Epoch",
+				internalType: "Slot",
 			},
 			{
-				name: "actual",
+				name: "currentSlot",
 				type: "uint256",
-				internalType: "Epoch",
-			},
-		],
-	},
-	{
-		type: "error",
-		name: "Rollup__NotInClaimPhase",
-		inputs: [
-			{
-				name: "currentSlotInEpoch",
-				type: "uint256",
-				internalType: "uint256",
-			},
-			{
-				name: "claimDuration",
-				type: "uint256",
-				internalType: "uint256",
+				internalType: "Slot",
 			},
 		],
 	},
@@ -1527,22 +1343,33 @@ export const RollupAbi = [
 	},
 	{
 		type: "error",
-		name: "Rollup__ProofRightAlreadyClaimed",
-		inputs: [],
-	},
-	{
-		type: "error",
-		name: "Rollup__QuoteExpired",
+		name: "Rollup__PastDeadline",
 		inputs: [
+			{
+				name: "deadline",
+				type: "uint256",
+				internalType: "Slot",
+			},
 			{
 				name: "currentSlot",
 				type: "uint256",
 				internalType: "Slot",
 			},
+		],
+	},
+	{
+		type: "error",
+		name: "Rollup__ProverHaveAlreadySubmitted",
+		inputs: [
 			{
-				name: "quoteSlot",
+				name: "prover",
+				type: "address",
+				internalType: "address",
+			},
+			{
+				name: "epoch",
 				type: "uint256",
-				internalType: "Slot",
+				internalType: "Epoch",
 			},
 		],
 	},
@@ -1561,6 +1388,32 @@ export const RollupAbi = [
 				internalType: "Slot",
 			},
 		],
+	},
+	{
+		type: "error",
+		name: "Rollup__StartAndEndNotSameEpoch",
+		inputs: [
+			{
+				name: "start",
+				type: "uint256",
+				internalType: "Epoch",
+			},
+			{
+				name: "end",
+				type: "uint256",
+				internalType: "Epoch",
+			},
+		],
+	},
+	{
+		type: "error",
+		name: "Rollup__StartIsNotBuildingOnProven",
+		inputs: [],
+	},
+	{
+		type: "error",
+		name: "Rollup__StartIsNotFirstBlockOfEpoch",
+		inputs: [],
 	},
 	{
 		type: "error",
@@ -1728,6 +1581,22 @@ export const RollupAbi = [
 	},
 	{
 		type: "error",
+		name: "Staking__InvalidDeposit",
+		inputs: [
+			{
+				name: "attester",
+				type: "address",
+				internalType: "address",
+			},
+			{
+				name: "proposer",
+				type: "address",
+				internalType: "address",
+			},
+		],
+	},
+	{
+		type: "error",
 		name: "Staking__NoOneToSlash",
 		inputs: [
 			{
@@ -1817,45 +1686,6 @@ export const RollupAbi = [
 				internalType: "string",
 			},
 		],
-	},
-	{
-		type: "function",
-		name: "TARGET_COMMITTEE_SIZE",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "uint256",
-				internalType: "uint256",
-			},
-		],
-		stateMutability: "view",
-	},
-	{
-		type: "function",
-		name: "VERSION",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "uint256",
-				internalType: "uint256",
-			},
-		],
-		stateMutability: "view",
-	},
-	{
-		type: "function",
-		name: "VM_ADDRESS",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "address",
-				internalType: "address",
-			},
-		],
-		stateMutability: "view",
 	},
 	{
 		type: "error",
@@ -2039,19 +1869,6 @@ export const RollupAbi = [
 	},
 	{
 		type: "function",
-		name: "canPrune",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "bool",
-				internalType: "bool",
-			},
-		],
-		stateMutability: "view",
-	},
-	{
-		type: "function",
 		name: "canPruneAtTime",
 		inputs: [
 			{
@@ -2119,76 +1936,45 @@ export const RollupAbi = [
 	},
 	{
 		type: "function",
-		name: "claimEpochProofRight",
+		name: "claimProverRewards",
 		inputs: [
 			{
-				name: "_quote",
-				type: "tuple",
-				internalType: "struct SignedEpochProofQuote",
-				components: [
-					{
-						name: "quote",
-						type: "tuple",
-						internalType: "struct EpochProofQuote",
-						components: [
-							{
-								name: "epochToProve",
-								type: "uint256",
-								internalType: "Epoch",
-							},
-							{
-								name: "validUntilSlot",
-								type: "uint256",
-								internalType: "Slot",
-							},
-							{
-								name: "bondAmount",
-								type: "uint256",
-								internalType: "uint256",
-							},
-							{
-								name: "prover",
-								type: "address",
-								internalType: "address",
-							},
-							{
-								name: "basisPointFee",
-								type: "uint32",
-								internalType: "uint32",
-							},
-						],
-					},
-					{
-						name: "signature",
-						type: "tuple",
-						internalType: "struct Signature",
-						components: [
-							{
-								name: "isEmpty",
-								type: "bool",
-								internalType: "bool",
-							},
-							{
-								name: "v",
-								type: "uint8",
-								internalType: "uint8",
-							},
-							{
-								name: "r",
-								type: "bytes32",
-								internalType: "bytes32",
-							},
-							{
-								name: "s",
-								type: "bytes32",
-								internalType: "bytes32",
-							},
-						],
-					},
-				],
+				name: "_recipient",
+				type: "address",
+				internalType: "address",
+			},
+			{
+				name: "_epochs",
+				type: "uint256[]",
+				internalType: "Epoch[]",
 			},
 		],
-		outputs: [],
+		outputs: [
+			{
+				name: "",
+				type: "uint256",
+				internalType: "uint256",
+			},
+		],
+		stateMutability: "nonpayable",
+	},
+	{
+		type: "function",
+		name: "claimSequencerRewards",
+		inputs: [
+			{
+				name: "_recipient",
+				type: "address",
+				internalType: "address",
+			},
+		],
+		outputs: [
+			{
+				name: "",
+				type: "uint256",
+				internalType: "uint256",
+			},
+		],
 		stateMutability: "nonpayable",
 	},
 	{
@@ -2356,38 +2142,6 @@ export const RollupAbi = [
 				internalType: "struct BlockLog",
 				components: [
 					{
-						name: "feeHeader",
-						type: "tuple",
-						internalType: "struct FeeHeader",
-						components: [
-							{
-								name: "excessMana",
-								type: "uint256",
-								internalType: "uint256",
-							},
-							{
-								name: "feeAssetPriceNumerator",
-								type: "uint256",
-								internalType: "uint256",
-							},
-							{
-								name: "manaUsed",
-								type: "uint256",
-								internalType: "uint256",
-							},
-							{
-								name: "provingCostPerManaNumerator",
-								type: "uint256",
-								internalType: "uint256",
-							},
-							{
-								name: "congestionCost",
-								type: "uint256",
-								internalType: "uint256",
-							},
-						],
-					},
-					{
 						name: "archive",
 						type: "bytes32",
 						internalType: "bytes32",
@@ -2409,13 +2163,32 @@ export const RollupAbi = [
 	},
 	{
 		type: "function",
-		name: "getClaimableEpoch",
+		name: "getBurnAddress",
 		inputs: [],
 		outputs: [
 			{
 				name: "",
+				type: "address",
+				internalType: "address",
+			},
+		],
+		stateMutability: "pure",
+	},
+	{
+		type: "function",
+		name: "getCollectiveProverRewardsForEpoch",
+		inputs: [
+			{
+				name: "_epoch",
 				type: "uint256",
 				internalType: "Epoch",
+			},
+		],
+		outputs: [
+			{
+				name: "",
+				type: "uint256",
+				internalType: "uint256",
 			},
 		],
 		stateMutability: "view",
@@ -2598,14 +2371,56 @@ export const RollupAbi = [
 		name: "getEpochProofPublicInputs",
 		inputs: [
 			{
-				name: "_epochSize",
+				name: "_start",
+				type: "uint256",
+				internalType: "uint256",
+			},
+			{
+				name: "_end",
 				type: "uint256",
 				internalType: "uint256",
 			},
 			{
 				name: "_args",
-				type: "bytes32[7]",
-				internalType: "bytes32[7]",
+				type: "tuple",
+				internalType: "struct PublicInputArgs",
+				components: [
+					{
+						name: "previousArchive",
+						type: "bytes32",
+						internalType: "bytes32",
+					},
+					{
+						name: "endArchive",
+						type: "bytes32",
+						internalType: "bytes32",
+					},
+					{
+						name: "previousBlockHash",
+						type: "bytes32",
+						internalType: "bytes32",
+					},
+					{
+						name: "endBlockHash",
+						type: "bytes32",
+						internalType: "bytes32",
+					},
+					{
+						name: "endTimestamp",
+						type: "uint256",
+						internalType: "Timestamp",
+					},
+					{
+						name: "outHash",
+						type: "bytes32",
+						internalType: "bytes32",
+					},
+					{
+						name: "proverId",
+						type: "address",
+						internalType: "address",
+					},
+				],
 			},
 			{
 				name: "_fees",
@@ -2628,19 +2443,6 @@ export const RollupAbi = [
 				name: "",
 				type: "bytes32[]",
 				internalType: "bytes32[]",
-			},
-		],
-		stateMutability: "view",
-	},
-	{
-		type: "function",
-		name: "getEpochToProve",
-		inputs: [],
-		outputs: [
-			{
-				name: "",
-				type: "uint256",
-				internalType: "Epoch",
 			},
 		],
 		stateMutability: "view",
@@ -2691,13 +2493,85 @@ export const RollupAbi = [
 	},
 	{
 		type: "function",
-		name: "getFeeAssetPrice",
+		name: "getFeeAsset",
+		inputs: [],
+		outputs: [
+			{
+				name: "",
+				type: "address",
+				internalType: "contract IERC20",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
+		name: "getFeeAssetPerEth",
 		inputs: [],
 		outputs: [
 			{
 				name: "",
 				type: "uint256",
+				internalType: "FeeAssetPerEthE9",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
+		name: "getFeeAssetPortal",
+		inputs: [],
+		outputs: [
+			{
+				name: "",
+				type: "address",
+				internalType: "contract IFeeJuicePortal",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
+		name: "getFeeHeader",
+		inputs: [
+			{
+				name: "_blockNumber",
+				type: "uint256",
 				internalType: "uint256",
+			},
+		],
+		outputs: [
+			{
+				name: "",
+				type: "tuple",
+				internalType: "struct FeeHeader",
+				components: [
+					{
+						name: "excessMana",
+						type: "uint256",
+						internalType: "uint256",
+					},
+					{
+						name: "manaUsed",
+						type: "uint256",
+						internalType: "uint256",
+					},
+					{
+						name: "feeAssetPriceNumerator",
+						type: "uint256",
+						internalType: "uint256",
+					},
+					{
+						name: "congestionCost",
+						type: "uint256",
+						internalType: "uint256",
+					},
+					{
+						name: "provingCost",
+						type: "uint256",
+						internalType: "uint256",
+					},
+				],
 			},
 		],
 		stateMutability: "view",
@@ -2711,6 +2585,48 @@ export const RollupAbi = [
 				name: "",
 				type: "uint256",
 				internalType: "Timestamp",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
+		name: "getHasSubmitted",
+		inputs: [
+			{
+				name: "_epoch",
+				type: "uint256",
+				internalType: "Epoch",
+			},
+			{
+				name: "_length",
+				type: "uint256",
+				internalType: "uint256",
+			},
+			{
+				name: "_prover",
+				type: "address",
+				internalType: "address",
+			},
+		],
+		outputs: [
+			{
+				name: "",
+				type: "bool",
+				internalType: "bool",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
+		name: "getInbox",
+		inputs: [],
+		outputs: [
+			{
+				name: "",
+				type: "address",
+				internalType: "contract IInbox",
 			},
 		],
 		stateMutability: "view",
@@ -2864,6 +2780,32 @@ export const RollupAbi = [
 	},
 	{
 		type: "function",
+		name: "getManaLimit",
+		inputs: [],
+		outputs: [
+			{
+				name: "",
+				type: "uint256",
+				internalType: "uint256",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
+		name: "getManaTarget",
+		inputs: [],
+		outputs: [
+			{
+				name: "",
+				type: "uint256",
+				internalType: "uint256",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
 		name: "getMinimumStake",
 		inputs: [],
 		outputs: [
@@ -2908,6 +2850,19 @@ export const RollupAbi = [
 	},
 	{
 		type: "function",
+		name: "getOutbox",
+		inputs: [],
+		outputs: [
+			{
+				name: "",
+				type: "address",
+				internalType: "contract IOutbox",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
 		name: "getPendingBlockNumber",
 		inputs: [],
 		outputs: [
@@ -2921,40 +2876,13 @@ export const RollupAbi = [
 	},
 	{
 		type: "function",
-		name: "getProofClaim",
+		name: "getProofSubmissionWindow",
 		inputs: [],
 		outputs: [
 			{
 				name: "",
-				type: "tuple",
-				internalType: "struct DataStructures.EpochProofClaim",
-				components: [
-					{
-						name: "epochToProve",
-						type: "uint256",
-						internalType: "Epoch",
-					},
-					{
-						name: "basisPointFee",
-						type: "uint256",
-						internalType: "uint256",
-					},
-					{
-						name: "bondAmount",
-						type: "uint256",
-						internalType: "uint256",
-					},
-					{
-						name: "bondProvider",
-						type: "address",
-						internalType: "address",
-					},
-					{
-						name: "proposerClaimant",
-						type: "address",
-						internalType: "address",
-					},
-				],
+				type: "uint256",
+				internalType: "uint256",
 			},
 		],
 		stateMutability: "view",
@@ -3031,12 +2959,70 @@ export const RollupAbi = [
 	},
 	{
 		type: "function",
+		name: "getProvingCostPerManaInEth",
+		inputs: [],
+		outputs: [
+			{
+				name: "",
+				type: "uint256",
+				internalType: "EthValue",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
+		name: "getProvingCostPerManaInFeeAsset",
+		inputs: [],
+		outputs: [
+			{
+				name: "",
+				type: "uint256",
+				internalType: "FeeAssetValue",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
+		name: "getRewardDistributor",
+		inputs: [],
+		outputs: [
+			{
+				name: "",
+				type: "address",
+				internalType: "contract IRewardDistributor",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
 		name: "getSampleSeedAt",
 		inputs: [
 			{
 				name: "_ts",
 				type: "uint256",
 				internalType: "Timestamp",
+			},
+		],
+		outputs: [
+			{
+				name: "",
+				type: "uint256",
+				internalType: "uint256",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
+		name: "getSequencerRewards",
+		inputs: [
+			{
+				name: "_sequencer",
+				type: "address",
+				internalType: "address",
 			},
 		],
 		outputs: [
@@ -3095,6 +3081,30 @@ export const RollupAbi = [
 	},
 	{
 		type: "function",
+		name: "getSpecificProverRewardsForEpoch",
+		inputs: [
+			{
+				name: "_epoch",
+				type: "uint256",
+				internalType: "Epoch",
+			},
+			{
+				name: "_prover",
+				type: "address",
+				internalType: "address",
+			},
+		],
+		outputs: [
+			{
+				name: "",
+				type: "uint256",
+				internalType: "uint256",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
 		name: "getStakingAsset",
 		inputs: [],
 		outputs: [
@@ -3102,6 +3112,19 @@ export const RollupAbi = [
 				name: "",
 				type: "address",
 				internalType: "contract IERC20",
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
+		name: "getTargetCommitteeSize",
+		inputs: [],
+		outputs: [
+			{
+				name: "",
+				type: "uint256",
+				internalType: "uint256",
 			},
 		],
 		stateMutability: "view",
@@ -3146,6 +3169,19 @@ export const RollupAbi = [
 						internalType: "uint256",
 					},
 				],
+			},
+		],
+		stateMutability: "view",
+	},
+	{
+		type: "function",
+		name: "getVersion",
+		inputs: [],
+		outputs: [
+			{
+				name: "",
+				type: "uint256",
+				internalType: "uint256",
 			},
 		],
 		stateMutability: "view",
@@ -3212,11 +3248,6 @@ export const RollupAbi = [
 						internalType: "struct OracleInput",
 						components: [
 							{
-								name: "provingCostModifier",
-								type: "int256",
-								internalType: "int256",
-							},
-							{
 								name: "feeAssetPriceModifier",
 								type: "int256",
 								internalType: "int256",
@@ -3263,169 +3294,9 @@ export const RollupAbi = [
 				],
 			},
 			{
-				name: "",
-				type: "bytes",
-				internalType: "bytes",
-			},
-			{
 				name: "_blobInput",
 				type: "bytes",
 				internalType: "bytes",
-			},
-		],
-		outputs: [],
-		stateMutability: "nonpayable",
-	},
-	{
-		type: "function",
-		name: "proposeAndClaim",
-		inputs: [
-			{
-				name: "_args",
-				type: "tuple",
-				internalType: "struct ProposeArgs",
-				components: [
-					{
-						name: "archive",
-						type: "bytes32",
-						internalType: "bytes32",
-					},
-					{
-						name: "blockHash",
-						type: "bytes32",
-						internalType: "bytes32",
-					},
-					{
-						name: "oracleInput",
-						type: "tuple",
-						internalType: "struct OracleInput",
-						components: [
-							{
-								name: "provingCostModifier",
-								type: "int256",
-								internalType: "int256",
-							},
-							{
-								name: "feeAssetPriceModifier",
-								type: "int256",
-								internalType: "int256",
-							},
-						],
-					},
-					{
-						name: "header",
-						type: "bytes",
-						internalType: "bytes",
-					},
-					{
-						name: "txHashes",
-						type: "bytes32[]",
-						internalType: "bytes32[]",
-					},
-				],
-			},
-			{
-				name: "_signatures",
-				type: "tuple[]",
-				internalType: "struct Signature[]",
-				components: [
-					{
-						name: "isEmpty",
-						type: "bool",
-						internalType: "bool",
-					},
-					{
-						name: "v",
-						type: "uint8",
-						internalType: "uint8",
-					},
-					{
-						name: "r",
-						type: "bytes32",
-						internalType: "bytes32",
-					},
-					{
-						name: "s",
-						type: "bytes32",
-						internalType: "bytes32",
-					},
-				],
-			},
-			{
-				name: "_body",
-				type: "bytes",
-				internalType: "bytes",
-			},
-			{
-				name: "_blobInput",
-				type: "bytes",
-				internalType: "bytes",
-			},
-			{
-				name: "_quote",
-				type: "tuple",
-				internalType: "struct SignedEpochProofQuote",
-				components: [
-					{
-						name: "quote",
-						type: "tuple",
-						internalType: "struct EpochProofQuote",
-						components: [
-							{
-								name: "epochToProve",
-								type: "uint256",
-								internalType: "Epoch",
-							},
-							{
-								name: "validUntilSlot",
-								type: "uint256",
-								internalType: "Slot",
-							},
-							{
-								name: "bondAmount",
-								type: "uint256",
-								internalType: "uint256",
-							},
-							{
-								name: "prover",
-								type: "address",
-								internalType: "address",
-							},
-							{
-								name: "basisPointFee",
-								type: "uint32",
-								internalType: "uint32",
-							},
-						],
-					},
-					{
-						name: "signature",
-						type: "tuple",
-						internalType: "struct Signature",
-						components: [
-							{
-								name: "isEmpty",
-								type: "bool",
-								internalType: "bool",
-							},
-							{
-								name: "v",
-								type: "uint8",
-								internalType: "uint8",
-							},
-							{
-								name: "r",
-								type: "bytes32",
-								internalType: "bytes32",
-							},
-							{
-								name: "s",
-								type: "bytes32",
-								internalType: "bytes32",
-							},
-						],
-					},
-				],
 			},
 		],
 		outputs: [],
@@ -3440,67 +3311,8 @@ export const RollupAbi = [
 	},
 	{
 		type: "function",
-		name: "quoteToDigest",
-		inputs: [
-			{
-				name: "_quote",
-				type: "tuple",
-				internalType: "struct EpochProofQuote",
-				components: [
-					{
-						name: "epochToProve",
-						type: "uint256",
-						internalType: "Epoch",
-					},
-					{
-						name: "validUntilSlot",
-						type: "uint256",
-						internalType: "Slot",
-					},
-					{
-						name: "bondAmount",
-						type: "uint256",
-						internalType: "uint256",
-					},
-					{
-						name: "prover",
-						type: "address",
-						internalType: "address",
-					},
-					{
-						name: "basisPointFee",
-						type: "uint32",
-						internalType: "uint32",
-					},
-				],
-			},
-		],
-		outputs: [
-			{
-				name: "",
-				type: "bytes32",
-				internalType: "bytes32",
-			},
-		],
-		stateMutability: "view",
-	},
-	{
-		type: "function",
 		name: "renounceOwnership",
 		inputs: [],
-		outputs: [],
-		stateMutability: "nonpayable",
-	},
-	{
-		type: "function",
-		name: "setAssumeProvenThroughBlockNumber",
-		inputs: [
-			{
-				name: "_blockNumber",
-				type: "uint256",
-				internalType: "uint256",
-			},
-		],
 		outputs: [],
 		stateMutability: "nonpayable",
 	},
@@ -3525,6 +3337,19 @@ export const RollupAbi = [
 				name: "_protocolContractTreeRoot",
 				type: "bytes32",
 				internalType: "bytes32",
+			},
+		],
+		outputs: [],
+		stateMutability: "nonpayable",
+	},
+	{
+		type: "function",
+		name: "setProvingCostPerMana",
+		inputs: [
+			{
+				name: "_provingCostPerMana",
+				type: "uint256",
+				internalType: "EthValue",
 			},
 		],
 		outputs: [],
@@ -3622,14 +3447,56 @@ export const RollupAbi = [
 				internalType: "struct SubmitEpochRootProofArgs",
 				components: [
 					{
-						name: "epochSize",
+						name: "start",
+						type: "uint256",
+						internalType: "uint256",
+					},
+					{
+						name: "end",
 						type: "uint256",
 						internalType: "uint256",
 					},
 					{
 						name: "args",
-						type: "bytes32[7]",
-						internalType: "bytes32[7]",
+						type: "tuple",
+						internalType: "struct PublicInputArgs",
+						components: [
+							{
+								name: "previousArchive",
+								type: "bytes32",
+								internalType: "bytes32",
+							},
+							{
+								name: "endArchive",
+								type: "bytes32",
+								internalType: "bytes32",
+							},
+							{
+								name: "previousBlockHash",
+								type: "bytes32",
+								internalType: "bytes32",
+							},
+							{
+								name: "endBlockHash",
+								type: "bytes32",
+								internalType: "bytes32",
+							},
+							{
+								name: "endTimestamp",
+								type: "uint256",
+								internalType: "Timestamp",
+							},
+							{
+								name: "outHash",
+								type: "bytes32",
+								internalType: "bytes32",
+							},
+							{
+								name: "proverId",
+								type: "address",
+								internalType: "address",
+							},
+						],
 					},
 					{
 						name: "fees",
@@ -3708,85 +3575,6 @@ export const RollupAbi = [
 	},
 	{
 		type: "function",
-		name: "validateEpochProofRightClaimAtTime",
-		inputs: [
-			{
-				name: "_ts",
-				type: "uint256",
-				internalType: "Timestamp",
-			},
-			{
-				name: "_quote",
-				type: "tuple",
-				internalType: "struct SignedEpochProofQuote",
-				components: [
-					{
-						name: "quote",
-						type: "tuple",
-						internalType: "struct EpochProofQuote",
-						components: [
-							{
-								name: "epochToProve",
-								type: "uint256",
-								internalType: "Epoch",
-							},
-							{
-								name: "validUntilSlot",
-								type: "uint256",
-								internalType: "Slot",
-							},
-							{
-								name: "bondAmount",
-								type: "uint256",
-								internalType: "uint256",
-							},
-							{
-								name: "prover",
-								type: "address",
-								internalType: "address",
-							},
-							{
-								name: "basisPointFee",
-								type: "uint32",
-								internalType: "uint32",
-							},
-						],
-					},
-					{
-						name: "signature",
-						type: "tuple",
-						internalType: "struct Signature",
-						components: [
-							{
-								name: "isEmpty",
-								type: "bool",
-								internalType: "bool",
-							},
-							{
-								name: "v",
-								type: "uint8",
-								internalType: "uint8",
-							},
-							{
-								name: "r",
-								type: "bytes32",
-								internalType: "bytes32",
-							},
-							{
-								name: "s",
-								type: "bytes32",
-								internalType: "bytes32",
-							},
-						],
-					},
-				],
-			},
-		],
-		outputs: [],
-		stateMutability: "view",
-	},
-	{
-		type: "function",
 		name: "validateHeader",
 		inputs: [
 			{
@@ -3832,14 +3620,14 @@ export const RollupAbi = [
 				internalType: "Timestamp",
 			},
 			{
-				name: "_blobsHashesCommitment",
+				name: "_blobsHash",
 				type: "bytes32",
 				internalType: "bytes32",
 			},
 			{
 				name: "_flags",
 				type: "tuple",
-				internalType: "struct DataStructures.ExecutionFlags",
+				internalType: "struct BlockHeaderValidationFlags",
 				components: [
 					{
 						name: "ignoreDA",
