@@ -67,19 +67,6 @@ export class Aztec {
 			blockNumber,
 		]);
 	};
-
-	proveSynced = async (blockNumber: string, proof: string): Promise<any> => {
-		if (process.env.BYPASS_SYNC_CHECK === "true") {
-			return true;
-		}
-		const tip = await this.getL2Tips();
-		if (Number(tip) > Number(blockNumber) + 20) {
-			throw new Error("Proof is too old");
-		}
-
-		const rpcProof = await this.getArchiveSiblingPath(blockNumber);
-		return rpcProof === proof;
-	};
 }
 
 export const aztec = await Aztec.new();

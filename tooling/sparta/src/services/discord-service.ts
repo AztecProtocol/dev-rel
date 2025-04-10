@@ -1,19 +1,39 @@
 /**
  * @fileoverview Discord service for role management
- * @description Provides methods for managing Discord roles
+ * @description Provides methods for managing Discord roles and finding users
  * @module sparta/services/discord-service
  */
 
 import { discord } from "../clients/discord.js";
 
 /**
- * Discord service for role management and other Discord-related functionality
+ * Discord service class for role management and user operations
+ *
+ * This service provides methods to:
+ * - Assign roles to Discord users
+ * - Find Discord users by username or tag
+ * - Manage role hierarchies
+ *
+ * @example
+ * // Get the service instance
+ * const service = DiscordService.getInstance();
+ *
+ * // Assign a role to a user
+ * await service.assignRole("1234567890", "Guardian");
+ *
+ * // Find a user by username
+ * const userId = await service.findUserIdByUsername("username");
  */
 export class DiscordService {
 	private static instance: DiscordService;
 
 	/**
 	 * Gets the singleton instance of DiscordService
+	 *
+	 * @returns {DiscordService} The singleton instance
+	 *
+	 * @example
+	 * const service = DiscordService.getInstance();
 	 */
 	public static getInstance(): DiscordService {
 		if (!DiscordService.instance) {
@@ -23,10 +43,28 @@ export class DiscordService {
 	}
 
 	/**
-	 * Assigns a role to a user
-	 * @param userId The Discord user ID
-	 * @param roleName The name of the role to assign
-	 * @returns A promise that resolves to true if the role was assigned, false otherwise
+	 * Assigns a role to a Discord user
+	 *
+	 * This method:
+	 * 1. Finds the guild (Discord server)
+	 * 2. Finds the role by name
+	 * 3. Gets the member by their Discord ID
+	 * 4. Removes any conflicting roles from the hierarchy
+	 * 5. Assigns the new role
+	 *
+	 * @param {string} userId - The Discord user ID to assign the role to
+	 * @param {string} roleName - The name of the role to assign
+	 * @returns {Promise<boolean>} A promise that resolves to true if the role was assigned, false otherwise
+	 *
+	 * @example
+	 * // Assign the "Guardian" role to a user
+	 * const success = await discordService.assignRole("1234567890", "Guardian");
+	 *
+	 * if (success) {
+	 *   console.log("Role assigned successfully");
+	 * } else {
+	 *   console.error("Failed to assign role");
+	 * }
 	 */
 	public async assignRole(
 		userId: string,
@@ -67,9 +105,9 @@ export class DiscordService {
 			// Define the hierarchy roles
 			const hierarchyRoles = ["Guardian", "Defender", "Sentinel"];
 
-			// Remove any existing hierarchy roles from the user
-			const rolesToRemove = member.roles.cache.filter(
-				(r) => hierarchyRoles.includes(r.name) && r.name !== roleName
+			// First check and remove all hierarchy roles (regardless of target role)
+			const rolesToRemove = member.roles.cache.filter((r) =>
+				hierarchyRoles.includes(r.name)
 			);
 
 			if (rolesToRemove.size > 0) {
@@ -78,19 +116,54 @@ export class DiscordService {
 						.map((r) => r.name)
 						.join(", ")}`
 				);
-				await member.roles.remove(rolesToRemove);
+				try {
+					await member.roles.remove(rolesToRemove);
+					console.log(
+						`Successfully removed ${rolesToRemove.size} roles from ${member.user.username}`
+					);
+				} catch (error: any) {
+					console.error(`ERROR removing roles: ${error.message}`);
+					console.error(
+						`Bot might not have sufficient permissions or role hierarchy issue`
+					);
+				}
+
+				// Refresh member data after removing roles
+				try {
+					await member.fetch();
+					console.log(
+						`Member data refreshed. Current roles: ${member.roles.cache
+							.map((r) => r.name)
+							.join(", ")}`
+					);
+				} catch (error: any) {
+					console.error(
+						`ERROR refreshing member data: ${error.message}`
+					);
+				}
 			}
 
-			// Assign the new role if they don't already have it
-			if (!member.roles.cache.has(role.id)) {
+			// Now add the new role
+			try {
 				await member.roles.add(role);
 				console.log(
-					`Assigned role "${roleName}" to user ${member.user.username} (replaced previous roles)`
+					`Successfully added role "${roleName}" to user ${member.user.username}`
 				);
-			} else {
+
+				// Verify role was added
+				const updatedMember = await guild.members.fetch(userId);
+				const hasRole = updatedMember.roles.cache.has(role.id);
+				await member.fetch();
+
 				console.log(
-					`User ${member.user.username} already has role "${roleName}"`
+					`Verification - User ${member.user.username} has role "${roleName}": ${hasRole}`
 				);
+			} catch (error: any) {
+				console.error(`ERROR adding role: ${error.message}`);
+				console.error(
+					`Bot might not have sufficient permissions or role hierarchy issue`
+				);
+				return false;
 			}
 
 			return true;
@@ -101,9 +174,29 @@ export class DiscordService {
 	}
 
 	/**
-	 * Finds a user by username or username#discriminator in a guild
-	 * @param usernameOrTag The Discord username (e.g., "username" or "username#1234")
-	 * @returns A promise that resolves to the user ID if found, null otherwise
+	 * Finds a Discord user by username or username#discriminator
+	 *
+	 * This method attempts to find a user through multiple strategies:
+	 * 1. First checks the cache for the user
+	 * 2. Tries using Discord's search functionality
+	 * 3. Attempts a limited fetch of members
+	 * 4. Tries a direct user lookup if the input looks like an ID
+	 *
+	 * @param {string} usernameOrTag - The Discord username (e.g., "username") or tag (e.g., "username#1234")
+	 * @returns {Promise<string|null>} A promise that resolves to the user ID if found, null otherwise
+	 *
+	 * @example
+	 * // Find a user by username
+	 * const userId = await discordService.findUserIdByUsername("username");
+	 *
+	 * // Find a user by tag (legacy format)
+	 * const userId = await discordService.findUserIdByUsername("username#1234");
+	 *
+	 * if (userId) {
+	 *   console.log(`Found user with ID: ${userId}`);
+	 * } else {
+	 *   console.log("User not found");
+	 * }
 	 */
 	public async findUserIdByUsername(
 		usernameOrTag: string
@@ -184,6 +277,12 @@ export class DiscordService {
 
 	/**
 	 * Attempts to search for a user by username using Discord's search feature
+	 *
+	 * @param {any} guild - The Discord guild object
+	 * @param {string} username - The username to search for
+	 * @returns {Promise<string|null>} A promise that resolves to the user ID if found, null otherwise
+	 *
+	 * @private
 	 */
 	private async trySearchByUsername(
 		guild: any,
@@ -221,6 +320,17 @@ export class DiscordService {
 	/**
 	 * Attempts to find a user by fetching a limited number of members
 	 * Uses a timeout to prevent hanging
+	 *
+	 * This method:
+	 * 1. First tries with a small batch (25 members) for speed
+	 * 2. If unsuccessful, tries with a larger batch (100 members)
+	 * 3. Uses an abort controller to prevent hanging
+	 *
+	 * @param {any} guild - The Discord guild object
+	 * @param {string} username - The username to search for
+	 * @returns {Promise<string|null>} A promise that resolves to the user ID if found, null otherwise
+	 *
+	 * @private
 	 */
 	private async tryLimitedFetch(
 		guild: any,
@@ -291,7 +401,13 @@ export class DiscordService {
 	}
 
 	/**
-	 * Find a matching member from a collection of members
+	 * Find a matching member from a collection of Discord members
+	 *
+	 * @param {any} members - Collection of Discord members
+	 * @param {string} username - The username to find
+	 * @returns {string|null} The user ID if found, null otherwise
+	 *
+	 * @private
 	 */
 	private findMatchingMember(members: any, username: string): string | null {
 		if (!members || typeof members.forEach !== "function") {
@@ -313,7 +429,15 @@ export class DiscordService {
 	}
 
 	/**
-	 * Checks if a member matches the given username or tag
+	 * Checks if a Discord member matches the given username or tag
+	 *
+	 * Supports both modern username format and legacy username#discriminator format
+	 *
+	 * @param {any} member - The Discord member object
+	 * @param {string} usernameOrTag - The username or tag to check against
+	 * @returns {boolean} True if the member matches, false otherwise
+	 *
+	 * @private
 	 */
 	private isUserMatch(member: any, usernameOrTag: string): boolean {
 		// Check if the input includes a discriminator (#)
@@ -330,7 +454,13 @@ export class DiscordService {
 	}
 
 	/**
-	 * Finds a member in the currently cached members
+	 * Finds a Discord member in the currently cached members
+	 *
+	 * @param {any} guild - The Discord guild object
+	 * @param {string} usernameOrTag - The username or tag to find
+	 * @returns {any} The member object if found, undefined otherwise
+	 *
+	 * @private
 	 */
 	private findMemberInCache(guild: any, usernameOrTag: string): any {
 		return guild.members.cache.find((member: any) =>

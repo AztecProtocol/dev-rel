@@ -188,6 +188,18 @@ resource "aws_ecs_task_definition" "sparta_discord_bot" {
         {
           name  = "APPROVAL_AMOUNT"
           value = var.approval_amount
+        },
+        {
+          name  = "GOOGLE_API_KEY"
+          value = var.google_api_key
+        },
+        {
+          name  = "SPREADSHEET_ID"
+          value = var.spreadsheet_id
+        },
+        {
+          name  = "AZTEC_NODE_URL"
+          value = var.aztec_node_url
         }
       ]
     }

@@ -68,31 +68,6 @@ describe("Aztec Integration Tests", () => {
 		// console.log("Sibling path:", JSON.stringify(siblingPath, null, 2));
 	});
 
-	test("proveSynced verifies a live proof", async () => {
-		if (!isNodeAvailable) {
-			console.log("Skipping test: proveSynced - node not available");
-			return;
-		}
-
-		// Get the current proven block
-		const provenBlock = await aztec.getL2Tips();
-
-		// Get the real proof
-		const realProof = await aztec.getArchiveSiblingPath(provenBlock);
-
-		// Verify the proof
-		const isValid = await aztec.proveSynced(provenBlock, realProof);
-		expect(isValid).toBe(true);
-
-		// Test with invalid proof
-		const fakeProof = { ...realProof, siblings: ["0xdeadbeef"] };
-		const isInvalid = await aztec.proveSynced(
-			provenBlock,
-			JSON.stringify(fakeProof)
-		);
-		expect(isInvalid).toBe(false);
-	});
-
 	test("handles RPC errors gracefully", async () => {
 		// Create an instance with an invalid URL to force an error
 		const badAztec = new Aztec("http://nonexistent-url:9999");

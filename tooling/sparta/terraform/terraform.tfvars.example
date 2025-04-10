@@ -12,7 +12,7 @@
 aws_region = "us-west-2"
 
 # Deployment environment - affects resource naming and may impact configuration
-environment = "staging"  # Must be either "staging" or "production"
+environment = "production"  # Must be 'production'
 
 # -----------------------------------------------------------------------------
 # Discord Bot Configuration
@@ -53,3 +53,18 @@ minimum_stake = 100000000000000000000
 # -----------------------------------------------------------------------------
 # Your public SSH key for accessing EC2 instances (content of your ~/.ssh/id_rsa.pub)
 ssh_public_key = "ssh-rsa AAAA..."  # Your public SSH key for EC2 access
+
+# -----------------------------------------------------------------------------
+# Google Sheets Configuration
+# -----------------------------------------------------------------------------
+# Google API key for accessing Google Sheets API
+google_api_key = "your_google_api_key"
+
+# ID of the Google Spreadsheet to use for data source
+spreadsheet_id = "your_spreadsheet_id"
+
+# -----------------------------------------------------------------------------
+# Aztec Configuration
+# -----------------------------------------------------------------------------
+# URL of the Aztec node
+aztec_node_url = "http://localhost:8080"

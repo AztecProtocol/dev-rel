@@ -11,19 +11,15 @@
     "format": "prettier --write \"src/**/*.ts\""
   },
   "dependencies": {
-    "@aws-sdk/client-secrets-manager": "^3.529.1",
+    "@googleapis/sheets": "^9.6.0",
     "discord.js": "^14.14.1",
     "dotenv": "^16.4.7",
-    "google-auth-library": "^8.9.0",
-    "googleapis": "^126.0.1",
     "viem": "^2.22.15"
   },
   "devDependencies": {
+    "@types/bun": "latest",
     "@types/node": "^20.10.5",
-    "ts-node": "^10.9.2",
-    "tsx": "^4.19.2",
-    "typescript": "^5.3.3",
-    "@types/bun": "latest"
+    "typescript": "^5.3.3"
   },
   "module": "index.ts",
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"

@@ -89,7 +89,6 @@ export class Discord {
 			if (!interaction.isChatInputCommand()) return;
 
 			const command = client.commands.get(interaction.commandName);
-			console.log("Command:", command);
 			if (!command) return;
 
 			try {

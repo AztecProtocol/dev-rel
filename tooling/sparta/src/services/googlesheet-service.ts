@@ -1,7 +1,40 @@
+/**
+ * @fileoverview Google Sheets service for integration with Discord
+ * @description Provides methods to monitor Google Sheets and assign Discord roles based on sheet data
+ * @module sparta/services/googlesheet-service
+ */
+
 import { GoogleSheet, googleSheet } from "../clients/google.js";
 import { discordService } from "./discord-service.js";
 
+/**
+ * Service for integrating with Google Sheets and assigning Discord roles based on sheet data
+ *
+ * This service:
+ * - Monitors specific columns in Google Sheets
+ * - Detects changes to user scores
+ * - Assigns Discord roles based on score thresholds
+ *
+ * @example
+ * // Create an instance and watch a sheet
+ * const service = new GoogleSheetService();
+ * service.watchColumn("Sheet1", "A:B");
+ */
 export class GoogleSheetService {
+	/**
+	 * Watches specified columns in a Google Sheet for changes
+	 *
+	 * This method sets up a watch on column A (scores) and column B (Discord usernames).
+	 * When changes are detected, it triggers the role assignment process if both
+	 * a score and username are present.
+	 *
+	 * @param {string} sheetName - The name of the sheet to watch (e.g., "Sheet1")
+	 * @param {string} range - The range of cells to watch (e.g., "A:B")
+	 *
+	 * @example
+	 * // Watch columns A and B in Sheet1
+	 * googleSheetService.watchColumn("Sheet1", "A:B");
+	 */
 	watchColumn(sheetName: string, range: string) {
 		// Watch both columns A and B at the same time
 		googleSheet.watchColumns(
@@ -38,9 +71,22 @@ export class GoogleSheetService {
 
 	/**
 	 * Assigns a Discord role based on a user's score
-	 * @param scoreString The user's score as a string (will be converted to number)
-	 * @param discordUsername The Discord username to assign the role to
-	 * @param row The row number in the spreadsheet (for logging purposes)
+	 *
+	 * This method:
+	 * 1. Validates and parses the score
+	 * 2. Finds the Discord user ID by username
+	 * 3. Determines the appropriate role based on score thresholds:
+	 *    - Score > 10: "Sentinel" (highest role)
+	 *    - Score > 5: "Defender" (middle role)
+	 *    - Default: "Guardian" (lowest role)
+	 * 4. Assigns the role to the user
+	 *
+	 * @param {string} scoreString - The user's score as a string (will be converted to number)
+	 * @param {string} discordUsername - The Discord username to assign the role to
+	 * @param {number} row - The row number in the spreadsheet (for logging purposes)
+	 * @returns {Promise<void>} A promise that resolves when the role assignment is complete
+	 *
+	 * @private
 	 */
 	private async assignRoleBasedOnScore(
 		scoreString: string,

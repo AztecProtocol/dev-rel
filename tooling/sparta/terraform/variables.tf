@@ -19,8 +19,8 @@ variable "environment" {
   description = "Deployment environment (staging/production)"
   type        = string
   validation {
-    condition     = contains(["staging", "production"], var.environment)
-    error_message = "Environment must be either 'staging' or 'production'"
+    condition     = contains(["production"], var.environment)
+    error_message = "Environment must be 'production'"
   }
 }
 
@@ -107,4 +107,27 @@ variable "approval_amount" {
 variable "ssh_public_key" {
   description = "Public SSH key for accessing EC2 instances"
   type        = string
+}
+
+# -----------------------------------------------------------------------------
+# Google Sheets Configuration
+# -----------------------------------------------------------------------------
+variable "google_api_key" {
+  description = "Google API key for Google Sheets access"
+  type        = string
+  sensitive   = true
+}
+
+variable "spreadsheet_id" {
+  description = "Google Spreadsheet ID for data source"
+  type        = string
+}
+
+# -----------------------------------------------------------------------------
+# Aztec Configuration
+# -----------------------------------------------------------------------------
+variable "aztec_node_url" {
+  description = "URL for the Aztec node"
+  type        = string
+  default     = ""
 }
