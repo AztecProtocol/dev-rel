@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@googleapis/sheets": "^9.6.0"
+  }
+}

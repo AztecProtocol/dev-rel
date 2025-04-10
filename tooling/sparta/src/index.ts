@@ -4,9 +4,18 @@
  * @module sparta/index
  */
 
-import { Ethereum } from "./utils/ethereum.js";
+import {
+	ChainInfoService,
+	ValidatorService,
+	GoogleSheetService,
+} from "./services/index.js";
+import "./clients/discord.js"; // Import to ensure Discord client is initialized
 
-// Initialize Ethereum client as a singleton
-export const ethereum = await Ethereum.new();
+// Initialize services
+export const chainInfoService = new ChainInfoService();
+export const validatorService = new ValidatorService();
+export const googleSheetService = new GoogleSheetService();
 
-import "./discord/index.js";
+// Start services
+console.log("Starting services...");
+googleSheetService.watchColumn("Sheet1", "A:B");

@@ -4,10 +4,10 @@ import {
 	MessageFlags,
 	PermissionFlagsBits,
 } from "discord.js";
-import { ChainInfoService } from "../services/chaininfo-service.js";
-import { paginate } from "../utils/pagination.js";
-import { ValidatorService } from "../services/validator-service.js";
-import { validateAddress } from "../utils/inputValidator.js";
+import { ChainInfoService } from "../../services/chaininfo-service.js";
+import { paginate } from "../../utils/pagination.js";
+import { ValidatorService } from "../../services/validator-service.js";
+import { validateAddress } from "../../utils/inputValidator.js";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -111,41 +111,10 @@ export default {
 					content: `Removed validator ${address}`,
 				});
 				return "Removed validator";
-			} else if (interaction.options.getSubcommand() === "add") {
-				const address = interaction.options.getString("address");
-
-				if (!address) {
-					await interaction.editReply({
-						content: "Please provide an address to add",
-					});
-					return `Failed`;
-				}
-
-				if (validateAddress(address)) {
-					await interaction.editReply({
-						content: "Please provide a valid Ethereum address.",
-					});
-					return `Failed`;
-				}
-
-				await ValidatorService.addValidator(address);
-				await interaction.editReply({
-					content: `Successfully added validator address: ${address}`,
-				});
-				return `Added validator ${address}`;
 			} else if (interaction.options.getSubcommand() === "fund") {
-				const address = interaction.options.getString("address");
-				if (!address) {
-					await interaction.editReply({
-						content: "Please provide an address to fund",
-					});
-					return `Failed`;
-				}
-				if (validateAddress(address)) {
-					await interaction.editReply({
-						content: "Please provide a valid Ethereum address.",
-					});
-					return `Failed`;
+				const address = validateAddress(interaction);
+				if (typeof address !== "string") {
+					return `Invalid address`;
 				}
 				await ValidatorService.fundValidator(address);
 				await interaction.editReply({

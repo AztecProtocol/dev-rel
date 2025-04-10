@@ -1,5 +1,5 @@
-import { ethereum } from "../index.js";
-import { Ethereum, getExpectedAddress } from "../utils/ethereum.js";
+import { ethereum } from "../clients/ethereum.js";
+import { getExpectedAddress } from "../clients/ethereum.js";
 
 type ChainInfo = {
 	pendingBlockNum: string;

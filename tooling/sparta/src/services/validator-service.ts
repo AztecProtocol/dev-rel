@@ -1,11 +1,39 @@
 import { exec } from "child_process";
 import { promisify } from "util";
-import { ethereum } from "../index.js";
+import { ethereum } from "../clients/ethereum.js";
+import { aztec } from "../clients/aztec.js";
 import { Transaction, TransactionReceipt } from "viem";
 
 const execAsync = promisify(exec);
 
 export class ValidatorService {
+	static async checkSync(
+		blockNumber: string,
+		merkleProof: string
+	): Promise<boolean> {
+		try {
+			const isSynced = await aztec.proveSynced(blockNumber, merkleProof);
+			if (!isSynced) {
+				throw new Error("Validator is not synced, won't be added");
+			}
+			return true;
+		} catch (error) {
+			console.error("Error registering validator:", error);
+			throw error;
+		}
+	}
+
+	static async stakingAssetFaucet(
+		address: string
+	): Promise<TransactionReceipt> {
+		try {
+			return await ethereum.stakingAssetFaucet(address);
+		} catch (error) {
+			console.error("Error adding validator:", error);
+			throw error;
+		}
+	}
+
 	static async addValidator(address: string): Promise<TransactionReceipt[]> {
 		try {
 			return await ethereum.addValidator(address);

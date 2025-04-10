@@ -5,7 +5,7 @@ import {
 	TextChannel,
 	DiscordAPIError,
 } from "discord.js";
-import { ChainInfoService } from "../services/chaininfo-service.js";
+import { ChainInfoService } from "../../services/chaininfo-service.js";
 
 export default {
 	data: new SlashCommandBuilder()
