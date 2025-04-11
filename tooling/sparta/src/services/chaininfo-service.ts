@@ -6,6 +6,7 @@
 
 import { ethereum } from "../clients/ethereum.js";
 import { getExpectedAddress } from "../clients/ethereum.js";
+import { logger } from "../utils/logger.js";
 
 /**
  * Interface for blockchain information data
@@ -112,7 +113,7 @@ export class ChainInfoService {
 				proposerNow: proposer as string,
 			};
 		} catch (error) {
-			console.error("Error getting chain info:", error);
+			logger.error({ error }, "Error getting chain info");
 			throw error;
 		}
 	}

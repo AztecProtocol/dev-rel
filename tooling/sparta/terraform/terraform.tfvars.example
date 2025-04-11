@@ -68,3 +68,9 @@ spreadsheet_id = "your_spreadsheet_id"
 # -----------------------------------------------------------------------------
 # URL of the Aztec node
 aztec_node_url = "http://localhost:8080"
+
+#=====================
+# Logging Configuration
+#=====================
+log_level        = "info"   # Available levels: trace, debug, info, warn, error, fatal
+log_pretty_print = true     # Enable colorful, pretty-printed logs

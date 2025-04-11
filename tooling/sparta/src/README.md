@@ -34,7 +34,7 @@ The `services/` directory contains the core business logic:
 
 The `roles/` directory contains command definitions for different user roles:
 
-- **00_guardians/**: Commands available to users with the Guardian role
+- **nodeOperators/**: Commands available to users with the Node Operator role
   - **validator.ts**: Commands for validator registration and checking
   - **getChainInfo.ts**: Commands for retrieving chain information
 - **admins/**: Commands available only to administrators
@@ -45,18 +45,18 @@ The `roles/` directory contains command definitions for different user roles:
 
 The bot automatically assigns hierarchical Discord roles based on user scores from Google Sheets:
 
-1. **Guardian**: Base role (default)
-2. **Defender**: Middle role (score > 5)
-3. **Sentinel**: Highest role (score > 10)
+1. **Guardian**: Base role (default, requires minimum score of 0)
+2. **Defender**: Middle role (requires score > 5)
+3. **Sentinel**: Highest role (set manually, but can be removed by this service)
 
 ```typescript
 // Example from googlesheet-service.ts
 if (score > 10) {
-  roleName = "Sentinel"; // Highest role
+  roleName = NodeOperatorRoles.Sentinel; // Highest role
 } else if (score > 5) {
-  roleName = "Defender"; // Middle role
+  roleName = NodeOperatorRoles.Defender; // Middle role
 } else {
-  roleName = "Guardian"; // Default/lowest role
+  roleName = NodeOperatorRoles.Guardian; // Default/lowest role
 }
 ```
 

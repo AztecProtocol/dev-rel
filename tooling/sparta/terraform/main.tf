@@ -200,6 +200,14 @@ resource "aws_ecs_task_definition" "sparta_discord_bot" {
         {
           name  = "AZTEC_NODE_URL"
           value = var.aztec_node_url
+        },
+        {
+          name  = "LOG_LEVEL"
+          value = var.log_level
+        },
+        {
+          name  = "LOG_PRETTY_PRINT"
+          value = var.log_pretty_print ? "true" : "false"
         }
       ]
     }

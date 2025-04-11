@@ -23,6 +23,8 @@ import { RegistryAbi } from "../utils/abis/registryAbi.js";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Hex } from "viem";
 import { ForwarderBytecode, ForwarderAbi } from "../utils/abis/forwarder.js";
+import { logger } from "../utils/logger.js";
+
 export const DEPLOYER_ADDRESS: Hex =
 	"0x4e59b44847b379578588920cA78FbF26c0B4956C";
 
@@ -67,6 +69,7 @@ export function getExpectedAddress(args: [`0x${string}`], salt: Hex) {
 		calldata,
 	};
 }
+
 export class Ethereum {
 	constructor(
 		private publicClient: ReturnType<typeof createPublicClient>,
@@ -77,7 +80,7 @@ export class Ethereum {
 
 	static new = async () => {
 		try {
-			console.log("Initializing Ethereum client");
+			logger.info("Initializing Ethereum client");
 			const rpcUrl = process.env.ETHEREUM_HOST as string;
 			const privateKey = process.env.MINTER_PRIVATE_KEY as `0x${string}`;
 
@@ -119,7 +122,7 @@ export class Ethereum {
 				stakingAsset
 			);
 		} catch (error) {
-			console.error("Error initializing Ethereum client:", error);
+			logger.error({ error }, "Error initializing Ethereum client");
 			throw error;
 		}
 	};

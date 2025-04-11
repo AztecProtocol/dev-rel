@@ -8,6 +8,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import { ethereum } from "../clients/ethereum.js";
 import { Transaction, TransactionReceipt } from "viem";
+import { logger } from "../utils/logger.js";
 
 const execAsync = promisify(exec);
 
@@ -33,7 +34,7 @@ export class ValidatorService {
 	 * @example
 	 * // Request staking tokens for a validator
 	 * const receipt = await ValidatorService.stakingAssetFaucet("0x123...");
-	 * console.log(`Transaction hash: ${receipt.transactionHash}`);
+	 * logger.info({ transactionHash: receipt.transactionHash }, "Staking asset faucet transaction completed");
 	 *
 	 * @throws Will throw an error if the faucet transaction fails
 	 */
@@ -43,7 +44,7 @@ export class ValidatorService {
 		try {
 			return await ethereum.stakingAssetFaucet(address);
 		} catch (error) {
-			console.error("Error adding validator:", error);
+			logger.error({ error, address }, "Error adding validator");
 			throw error;
 		}
 	}
@@ -60,7 +61,7 @@ export class ValidatorService {
 	 * @example
 	 * // Add a new validator
 	 * const receipts = await ValidatorService.addValidator("0x123...");
-	 * console.log(`Added validator in ${receipts.length} transactions`);
+	 * logger.info({ transactionCount: receipts.length }, "Added validator");
 	 *
 	 * @throws Will throw an error if adding the validator fails
 	 */
@@ -68,7 +69,7 @@ export class ValidatorService {
 		try {
 			return await ethereum.addValidator(address);
 		} catch (error) {
-			console.error("Error adding validator:", error);
+			logger.error({ error, address }, "Error adding validator");
 			throw error;
 		}
 	}
@@ -85,7 +86,7 @@ export class ValidatorService {
 	 * @example
 	 * // Remove a validator
 	 * const receipt = await ValidatorService.removeValidator("0x123...");
-	 * console.log(`Removed validator in transaction ${receipt.transactionHash}`);
+	 * logger.info({ transactionHash: receipt.transactionHash }, "Removed validator");
 	 *
 	 * @throws Will throw an error if removing the validator fails
 	 */
@@ -93,7 +94,7 @@ export class ValidatorService {
 		try {
 			return await ethereum.removeValidator(address);
 		} catch (error) {
-			console.error("Error removing validator:", error);
+			logger.error({ error, address }, "Error removing validator");
 			throw error;
 		}
 	}
@@ -111,7 +112,7 @@ export class ValidatorService {
 	 * @example
 	 * // Fund a validator with ETH
 	 * const output = await ValidatorService.fundValidator("0x123...");
-	 * console.log(`Funding result: ${output}`);
+	 * logger.info({ output }, "Funded validator with ETH");
 	 *
 	 * @throws Will throw an error if funding the validator fails
 	 */
@@ -119,6 +120,10 @@ export class ValidatorService {
 		try {
 			const command = `cast send --value ${process.env.FUNDER_AMOUNT} --rpc-url ${process.env.ETHEREUM_HOST} --chain-id ${process.env.L1_CHAIN_ID} --private-key ${process.env.FUNDER_ADDRESS_PRIVATE_KEY} ${address}`;
 
+			logger.debug(
+				{ address, amount: process.env.FUNDER_AMOUNT },
+				"Funding validator"
+			);
 			const { stdout, stderr } = await execAsync(command);
 
 			if (stderr) {
@@ -127,7 +132,7 @@ export class ValidatorService {
 
 			return stdout;
 		} catch (error) {
-			console.error("Error funding validator:", error);
+			logger.error({ error, address }, "Error funding validator");
 			throw error;
 		}
 	}

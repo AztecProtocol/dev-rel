@@ -44,7 +44,7 @@ sparta/
 ├── src/                      # Source code
 │   ├── clients/              # External API clients (Discord, Ethereum, Google)
 │   ├── roles/                # Role-specific Discord commands
-│   │   ├── 00_guardians/     # Commands for Guardian role 
+│   │   ├── nodeOperators/    # Commands for Node Operator role 
 │   │   └── admins/           # Admin-only commands
 │   ├── services/             # Business logic services
 │   │   ├── chaininfo-service.ts    # Chain information retrieval
@@ -156,7 +156,7 @@ terraform apply
 ### Role Management
 - Monitors Google Sheets for user scores
 - Assigns Discord roles based on score thresholds:
-  - Guardian (base role): Default role
+  - Node Operator (base role): Default role
   - Defender (middle role): Score > 5
   - Sentinel (highest role): Score > 10
 
@@ -173,7 +173,7 @@ terraform apply
 
 ## Available Commands
 
-### Guardian Commands
+### Node Operator Commands
 - `/get-info`: Get chain information including pending block, proven block, current epoch, current slot, and proposer
 - `/validator check`: Check if an address is a validator
 - `/validator register`: Register a validator address
@@ -222,6 +222,44 @@ terraform apply
 - Discord command execution logging
 - Error tracking and reporting
 - Performance monitoring
+
+## Logging
+
+The application uses Pino for structured logging with the following features:
+
+- **Multiple log levels**: trace, debug, info, warn, error, fatal
+- **Colorful output**: Different colors for different log levels when pretty printing is enabled
+- **Timestamps**: Each log includes an ISO timestamp
+- **Request logging**: HTTP requests can be logged at the debug level
+- **Structured logging**: Logs are output in JSON format for easy parsing
+
+### Configuration
+
+Logging can be configured through environment variables:
+
+- `LOG_LEVEL`: Set the minimum log level (trace, debug, info, warn, error, fatal)
+- `LOG_PRETTY_PRINT`: Enable/disable colorful, human-readable logs (true/false)
+
+#### Example
+
+```sh
+# Set log level to debug and enable pretty printing
+export LOG_LEVEL=debug
+export LOG_PRETTY_PRINT=true
+npm run dev
+```
+
+### Terraform Configuration
+
+Logging can also be configured through Terraform variables:
+
+```hcl
+module "sparta" {
+  # ...
+  log_level        = "debug"
+  log_pretty_print = true
+}
+```
 
 ## Contributing
 

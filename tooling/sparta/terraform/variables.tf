@@ -131,3 +131,15 @@ variable "aztec_node_url" {
   type        = string
   default     = ""
 }
+
+variable "log_level" {
+  description = "Log level for the application (trace, debug, info, warn, error, fatal)"
+  type        = string
+  default     = "info"
+}
+
+variable "log_pretty_print" {
+  description = "Enable or disable colorful, pretty-printed logs"
+  type        = bool
+  default     = true
+}

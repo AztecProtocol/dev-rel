@@ -1,4 +1,5 @@
 import { sheets, sheets_v4 } from "@googleapis/sheets";
+import { logger } from "../utils/logger.js";
 
 export class GoogleSheet {
 	private sheets: sheets_v4.Sheets;
@@ -11,10 +12,10 @@ export class GoogleSheet {
 	 * @param apiKey Google API key
 	 */
 	constructor(spreadsheetId: string) {
-		console.log("Initializing GoogleSheetService");
+		logger.info("Initializing GoogleSheetService");
 		this.spreadsheetId = spreadsheetId;
 		if (!process.env.GOOGLE_API_KEY) {
-			console.error("GOOGLE_API_KEY environment variable is required");
+			logger.error("GOOGLE_API_KEY environment variable is required");
 			process.exit(1);
 		}
 		this.sheets = sheets({
@@ -42,7 +43,10 @@ export class GoogleSheet {
 		) => void,
 		intervalMs: number = 10000
 	): void {
-		console.log("Watching column", columnIndex, "in sheet", sheetRange);
+		logger.info(
+			{ columnIndex, sheetRange, intervalMs },
+			"Watching column for changes"
+		);
 		// Initial fetch to establish baseline
 		this.fetchData(this.spreadsheetId, sheetRange)
 			.then((data) => {
@@ -77,12 +81,12 @@ export class GoogleSheet {
 							}
 						});
 					} catch (error) {
-						console.error("Error checking for updates:", error);
+						logger.error({ error }, "Error checking for updates");
 					}
 				}, intervalMs);
 			})
 			.catch((error) => {
-				console.error("Error initializing sheet watcher:", error);
+				logger.error({ error }, "Error initializing sheet watcher");
 			});
 	}
 
@@ -105,11 +109,9 @@ export class GoogleSheet {
 		) => void,
 		intervalMs: number = 1000
 	): void {
-		console.log(
-			"Watching columns",
-			columnIndexes.join(", "),
-			"in sheet",
-			sheetRange
+		logger.info(
+			{ columnIndexes, sheetRange, intervalMs },
+			"Watching multiple columns for changes"
 		);
 
 		// Initial fetch to establish baseline
@@ -160,12 +162,12 @@ export class GoogleSheet {
 							}
 						});
 					} catch (error) {
-						console.error("Error checking for updates:", error);
+						logger.error({ error }, "Error checking for updates");
 					}
 				}, intervalMs);
 			})
 			.catch((error) => {
-				console.error("Error initializing sheet watcher:", error);
+				logger.error({ error }, "Error initializing sheet watcher");
 			});
 	}
 
@@ -176,6 +178,7 @@ export class GoogleSheet {
 		if (this.watchInterval) {
 			clearInterval(this.watchInterval);
 			this.watchInterval = null;
+			logger.info("Stopped watching spreadsheet");
 		}
 	}
 
@@ -189,6 +192,7 @@ export class GoogleSheet {
 		range: string
 	): Promise<any[][]> {
 		try {
+			logger.debug({ spreadsheetId, range }, "Fetching sheet data");
 			const response = await this.sheets.spreadsheets.values.get({
 				spreadsheetId,
 				range,
@@ -196,7 +200,10 @@ export class GoogleSheet {
 
 			return response.data.values || [];
 		} catch (error) {
-			console.error("Error fetching sheet data:", error);
+			logger.error(
+				{ error, spreadsheetId, range },
+				"Error fetching sheet data"
+			);
 			throw error;
 		}
 	}
@@ -212,21 +219,41 @@ export class GoogleSheet {
 		cellRange: string
 	): Promise<any> {
 		try {
+			logger.debug({ spreadsheetId, cellRange }, "Fetching cell value");
 			const response = await this.sheets.spreadsheets.values.get({
 				spreadsheetId,
 				range: cellRange,
 			});
 
 			const values = response.data.values;
-			if (!values || values.length === 0 || values[0].length === 0) {
+			if (!values || values.length === 0) {
+				logger.debug({ cellRange }, "Cell value is null");
 				return null;
 			}
 
-			return values[0][0]; // Return the value of the requested cell
+			// When fetching a single cell, sheets API returns a 2D array with just that cell
+			// Get the value directly
+			return values[0][0];
 		} catch (error) {
-			console.error(`Error fetching cell ${cellRange}:`, error);
+			logger.error(
+				{ error, spreadsheetId, cellRange },
+				"Error fetching cell"
+			);
 			throw error;
 		}
+	}
+
+	/**
+	 * Convert a column letter (A, B, C, ..., Z, AA, AB, ...) to a zero-based column index
+	 * @param column The column letter(s)
+	 * @returns The zero-based index
+	 */
+	private columnLetterToIndex(column: string): number {
+		let index = 0;
+		for (let i = 0; i < column.length; i++) {
+			index = index * 26 + column.charCodeAt(i) - 64; // 'A' is ASCII 65
+		}
+		return index - 1; // Convert to 0-based index
 	}
 
 	/**
@@ -241,6 +268,7 @@ export class GoogleSheet {
 		values: any[][]
 	): Promise<void> {
 		try {
+			logger.debug({ spreadsheetId, range }, "Updating sheet data");
 			await this.sheets.spreadsheets.values.update({
 				spreadsheetId,
 				range,
@@ -249,8 +277,12 @@ export class GoogleSheet {
 					values,
 				},
 			});
+			logger.info({ range }, "Successfully updated sheet data");
 		} catch (error) {
-			console.error("Error updating sheet data:", error);
+			logger.error(
+				{ error, spreadsheetId, range },
+				"Error updating sheet data"
+			);
 			throw error;
 		}
 	}

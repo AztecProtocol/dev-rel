@@ -5,6 +5,8 @@
  */
 
 import { discord } from "../clients/discord.js";
+import { logger } from "../utils/logger.js";
+import { NodeOperatorRoles } from "../const.js";
 
 /**
  * Discord service class for role management and user operations
@@ -19,7 +21,7 @@ import { discord } from "../clients/discord.js";
  * const service = DiscordService.getInstance();
  *
  * // Assign a role to a user
- * await service.assignRole("1234567890", "Guardian");
+ * await service.assignRole("1234567890", NodeOperatorRoles.Guardian);
  *
  * // Find a user by username
  * const userId = await service.findUserIdByUsername("username");
@@ -57,13 +59,13 @@ export class DiscordService {
 	 * @returns {Promise<boolean>} A promise that resolves to true if the role was assigned, false otherwise
 	 *
 	 * @example
-	 * // Assign the "Guardian" role to a user
-	 * const success = await discordService.assignRole("1234567890", "Guardian");
+	 * // Assign the Guardian role to a user
+	 * const success = await discordService.assignRole("1234567890", NodeOperatorRoles.Guardian);
 	 *
 	 * if (success) {
-	 *   console.log("Role assigned successfully");
+	 *   logger.info("Role assigned successfully");
 	 * } else {
-	 *   console.error("Failed to assign role");
+	 *   logger.error("Failed to assign role");
 	 * }
 	 */
 	public async assignRole(
@@ -74,21 +76,22 @@ export class DiscordService {
 			// Get the guild (server)
 			const guildId = process.env.GUILD_ID;
 			if (!guildId) {
-				console.error("GUILD_ID not set in environment variables");
+				logger.error("GUILD_ID not set in environment variables");
 				return false;
 			}
 
 			const guild = await discord.getGuild(guildId);
 			if (!guild) {
-				console.error(`Guild with ID ${guildId} not found`);
+				logger.error({ guildId }, "Guild not found");
 				return false;
 			}
 
 			// Find the role
 			const role = guild.roles.cache.find((r) => r.name === roleName);
 			if (!role) {
-				console.error(
-					`Role "${roleName}" not found in guild ${guild.name}`
+				logger.error(
+					{ roleName, guildName: guild.name },
+					"Role not found in guild"
 				);
 				return false;
 			}
@@ -96,49 +99,63 @@ export class DiscordService {
 			// Get the member
 			const member = await guild.members.fetch(userId);
 			if (!member) {
-				console.error(
-					`Member with ID ${userId} not found in guild ${guild.name}`
+				logger.error(
+					{ userId, guildName: guild.name },
+					"Member not found in guild"
 				);
 				return false;
 			}
 
-			// Define the hierarchy roles
-			const hierarchyRoles = ["Guardian", "Defender", "Sentinel"];
-
 			// First check and remove all hierarchy roles (regardless of target role)
 			const rolesToRemove = member.roles.cache.filter((r) =>
-				hierarchyRoles.includes(r.name)
+				Object.values(NodeOperatorRoles).includes(
+					r.name as NodeOperatorRoles
+				)
 			);
 
 			if (rolesToRemove.size > 0) {
-				console.log(
-					`Removing existing roles: ${rolesToRemove
-						.map((r) => r.name)
-						.join(", ")}`
+				logger.info(
+					{
+						roles: rolesToRemove.map((r) => r.name).join(", "),
+						username: member.user.username,
+					},
+					"Removing existing roles"
 				);
 				try {
 					await member.roles.remove(rolesToRemove);
-					console.log(
-						`Successfully removed ${rolesToRemove.size} roles from ${member.user.username}`
+					logger.debug(
+						{
+							count: rolesToRemove.size,
+							username: member.user.username,
+						},
+						"Successfully removed roles"
 					);
 				} catch (error: any) {
-					console.error(`ERROR removing roles: ${error.message}`);
-					console.error(
-						`Bot might not have sufficient permissions or role hierarchy issue`
+					logger.error(
+						{ error: error.message },
+						"Error removing roles"
+					);
+					logger.error(
+						"Bot might not have sufficient permissions or role hierarchy issue"
 					);
 				}
 
 				// Refresh member data after removing roles
 				try {
 					await member.fetch();
-					console.log(
-						`Member data refreshed. Current roles: ${member.roles.cache
-							.map((r) => r.name)
-							.join(", ")}`
+					logger.debug(
+						{
+							roles: member.roles.cache
+								.map((r) => r.name)
+								.join(", "),
+							username: member.user.username,
+						},
+						"Member data refreshed"
 					);
 				} catch (error: any) {
-					console.error(
-						`ERROR refreshing member data: ${error.message}`
+					logger.error(
+						{ error: error.message },
+						"Error refreshing member data"
 					);
 				}
 			}
@@ -146,8 +163,12 @@ export class DiscordService {
 			// Now add the new role
 			try {
 				await member.roles.add(role);
-				console.log(
-					`Successfully added role "${roleName}" to user ${member.user.username}`
+				logger.info(
+					{
+						roleName,
+						username: member.user.username,
+					},
+					"Successfully added role"
 				);
 
 				// Verify role was added
@@ -155,20 +176,25 @@ export class DiscordService {
 				const hasRole = updatedMember.roles.cache.has(role.id);
 				await member.fetch();
 
-				console.log(
-					`Verification - User ${member.user.username} has role "${roleName}": ${hasRole}`
+				logger.debug(
+					{
+						username: member.user.username,
+						roleName,
+						hasRole,
+					},
+					"Role verification"
 				);
 			} catch (error: any) {
-				console.error(`ERROR adding role: ${error.message}`);
-				console.error(
-					`Bot might not have sufficient permissions or role hierarchy issue`
+				logger.error({ error: error.message }, "Error adding role");
+				logger.error(
+					"Bot might not have sufficient permissions or role hierarchy issue"
 				);
 				return false;
 			}
 
 			return true;
 		} catch (error) {
-			console.error("Error assigning role:", error);
+			logger.error({ error }, "Error assigning role");
 			return false;
 		}
 	}
@@ -193,46 +219,53 @@ export class DiscordService {
 	 * const userId = await discordService.findUserIdByUsername("username#1234");
 	 *
 	 * if (userId) {
-	 *   console.log(`Found user with ID: ${userId}`);
+	 *   logger.info(`Found user with ID: ${userId}`);
 	 * } else {
-	 *   console.log("User not found");
+	 *   logger.info("User not found");
 	 * }
 	 */
 	public async findUserIdByUsername(
 		usernameOrTag: string
 	): Promise<string | null> {
 		try {
-			console.log(`Starting lookup for user: ${usernameOrTag}`);
+			logger.debug({ username: usernameOrTag }, "Starting user lookup");
 
 			// Get the guild (server)
 			const guildId = process.env.GUILD_ID;
 			if (!guildId) {
-				console.error("GUILD_ID not set in environment variables");
+				logger.error("GUILD_ID not set in environment variables");
 				return null;
 			}
 
 			const guild = await discord.getGuild(guildId);
 			if (!guild) {
-				console.error(`Guild with ID ${guildId} not found`);
+				logger.error({ guildId }, "Guild not found");
 				return null;
 			}
 
-			console.log(`Guild found: ${guild.name} (${guild.id})`);
+			logger.debug(
+				{ guildName: guild.name, guildId: guild.id },
+				"Guild found"
+			);
 
 			// Instead of loading all members at once, which can be slow and cause timeouts,
 			// we'll use search functionality if available or limit the fetch
 
 			// First try with currently cached members
-			console.log("Checking cached members first...");
+			logger.debug("Checking cached members first");
 			const cachedMember = this.findMemberInCache(guild, usernameOrTag);
 			if (cachedMember) {
-				console.log(
-					`Found user in cache: ${cachedMember.user.username} (${cachedMember.id})`
+				logger.info(
+					{
+						username: cachedMember.user.username,
+						userId: cachedMember.id,
+					},
+					"Found user in cache"
 				);
 				return cachedMember.id;
 			}
 
-			console.log("User not found in cache, attempting limited fetch...");
+			logger.debug("User not found in cache, attempting limited fetch");
 
 			// Try different strategies to find the user
 			let userId = null;
@@ -248,29 +281,38 @@ export class DiscordService {
 			// Strategy 3: Try direct user lookup if it might be an ID already
 			if (/^\d+$/.test(usernameOrTag)) {
 				try {
-					console.log(
-						`Username looks like an ID, trying direct fetch: ${usernameOrTag}`
+					logger.debug(
+						{ username: usernameOrTag },
+						"Username looks like an ID, trying direct fetch"
 					);
 					const member = await guild.members
 						.fetch(usernameOrTag)
 						.catch(() => null);
 					if (member) {
-						console.log(
-							`Found user directly: ${member.user.username} (${member.id})`
+						logger.info(
+							{
+								username: member.user.username,
+								userId: member.id,
+							},
+							"Found user directly"
 						);
 						return member.id;
 					}
 				} catch (error: any) {
-					console.log(`Direct fetch failed: ${error.message}`);
+					logger.debug(
+						{ error: error.message },
+						"Direct fetch failed"
+					);
 				}
 			}
 
-			console.log(
-				`Could not find user with username: ${usernameOrTag} after trying all strategies`
+			logger.info(
+				{ username: usernameOrTag },
+				"Could not find user with username after trying all strategies"
 			);
 			return null;
 		} catch (error) {
-			console.error("Error finding user by username:", error);
+			logger.error({ error }, "Error finding user by username");
 			return null;
 		}
 	}
@@ -289,11 +331,11 @@ export class DiscordService {
 		username: string
 	): Promise<string | null> {
 		if (!guild.members.search) {
-			console.log("Search capability not available");
+			logger.debug("Search capability not available");
 			return null;
 		}
 
-		console.log(`Attempting to search for username: ${username}`);
+		logger.debug({ username }, "Attempting to search for username");
 		try {
 			const searchResults = await guild.members.search({
 				query: username,
@@ -303,16 +345,20 @@ export class DiscordService {
 			if (searchResults && searchResults.size > 0) {
 				const member = searchResults.first();
 				if (member && member.user) {
-					console.log(
-						`Found user via search: ${member.user.username} (${member.id})`
+					logger.info(
+						{
+							username: member.user.username,
+							userId: member.id,
+						},
+						"Found user via search"
 					);
 					return member.id;
 				}
 			}
-			console.log("Search returned no results");
+			logger.debug("Search returned no results");
 			return null;
 		} catch (searchError) {
-			console.error("Error using member search:", searchError);
+			logger.error({ searchError }, "Error using member search");
 			return null;
 		}
 	}
@@ -336,18 +382,18 @@ export class DiscordService {
 		guild: any,
 		username: string
 	): Promise<string | null> {
-		console.log("Attempting limited fetch with timeout protection...");
+		logger.debug("Attempting limited fetch with timeout protection");
 		try {
 			// Create a controller to allow aborting the fetch
 			const controller = new AbortController();
 			const timeoutId = setTimeout(() => {
 				controller.abort();
-				console.log("Fetch operation aborted due to timeout");
+				logger.debug("Fetch operation aborted due to timeout");
 			}, 5000);
 
 			// Try a smaller batch first (faster)
 			try {
-				console.log("Trying fetch with limit 25...");
+				logger.debug("Trying fetch with limit 25");
 				const members = await guild.members.fetch({
 					limit: 25,
 					signal: controller.signal,
@@ -360,16 +406,19 @@ export class DiscordService {
 				}
 			} catch (error: any) {
 				if (error.name === "AbortError") {
-					console.log("First fetch attempt aborted");
+					logger.debug("First fetch attempt aborted");
 				} else {
-					console.error("Error in first fetch attempt:", error);
+					logger.error(
+						{ error: error.message },
+						"Error in first fetch attempt"
+					);
 				}
 			}
 
 			// Try a larger batch if first attempt failed but not timed out
 			if (!controller.signal.aborted) {
 				try {
-					console.log("Trying fetch with limit 100...");
+					logger.debug("Trying fetch with limit 100");
 					const members = await guild.members.fetch({
 						limit: 100,
 						signal: controller.signal,
@@ -382,20 +431,23 @@ export class DiscordService {
 					}
 				} catch (error: any) {
 					if (error.name === "AbortError") {
-						console.log("Second fetch attempt aborted");
+						logger.debug("Second fetch attempt aborted");
 					} else {
-						console.error("Error in second fetch attempt:", error);
+						logger.error(
+							{ error: error.message },
+							"Error in second fetch attempt"
+						);
 					}
 				}
 			}
 
 			clearTimeout(timeoutId);
-			console.log(
+			logger.debug(
 				"Limited fetch attempts completed without finding user"
 			);
 			return null;
 		} catch (error) {
-			console.error("Error in limited fetch process:", error);
+			logger.error({ error }, "Error in limited fetch process");
 			return null;
 		}
 	}
@@ -411,20 +463,24 @@ export class DiscordService {
 	 */
 	private findMatchingMember(members: any, username: string): string | null {
 		if (!members || typeof members.forEach !== "function") {
-			console.log("Invalid members data received");
+			logger.debug("Invalid members data received");
 			return null;
 		}
 
 		for (const [_, member] of members) {
 			if (this.isUserMatch(member, username)) {
-				console.log(
-					`Found user: ${member.user.username} (${member.id})`
+				logger.info(
+					{
+						username: member.user.username,
+						userId: member.id,
+					},
+					"Found user"
 				);
 				return member.id;
 			}
 		}
 
-		console.log(`No matching user found among ${members.size} members`);
+		logger.debug(`No matching user found among ${members.size} members`);
 		return null;
 	}
 

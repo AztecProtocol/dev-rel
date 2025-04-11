@@ -6,6 +6,8 @@
 
 import { GoogleSheet, googleSheet } from "../clients/google.js";
 import { discordService } from "./discord-service.js";
+import { logger } from "../utils/logger.js";
+import { ADDRESSES_PER_PAGE, NodeOperatorRoles } from "../const.js";
 
 /**
  * Service for integrating with Google Sheets and assigning Discord roles based on sheet data
@@ -42,10 +44,13 @@ export class GoogleSheetService {
 			[0, 1], // Watch columns A (index 0) and B (index 1)
 			(changedColumnIndex, newValue, oldValue, row, rowData) => {
 				const columnLetter = changedColumnIndex === 0 ? "A" : "B";
-				console.log(
-					`Cell ${columnLetter}${
-						row + 2
-					} changed from ${oldValue} to ${newValue}`
+				logger.info(
+					{
+						cell: `${columnLetter}${row + 2}`,
+						oldValue,
+						newValue,
+					},
+					"Cell value changed"
 				);
 
 				// Only execute if both columns have values
@@ -59,9 +64,9 @@ export class GoogleSheetService {
 						discordUsername,
 						row
 					).catch((error) => {
-						console.error(
-							"Error in role assignment process:",
-							error
+						logger.error(
+							{ error, scoreValue, discordUsername, row },
+							"Error in role assignment process"
 						);
 					});
 				}
@@ -76,9 +81,9 @@ export class GoogleSheetService {
 	 * 1. Validates and parses the score
 	 * 2. Finds the Discord user ID by username
 	 * 3. Determines the appropriate role based on score thresholds:
-	 *    - Score > 10: "Sentinel" (highest role)
-	 *    - Score > 5: "Defender" (middle role)
-	 *    - Default: "Guardian" (lowest role)
+	 *    - Score > 10: NodeOperatorRoles.Sentinel (highest role)
+	 *    - Score > 5: NodeOperatorRoles.Defender (middle role)
+	 *    - Default: NodeOperatorRoles.Guardian (lowest role)
 	 * 4. Assigns the role to the user
 	 *
 	 * @param {string} scoreString - The user's score as a string (will be converted to number)
@@ -93,9 +98,10 @@ export class GoogleSheetService {
 		discordUsername: string,
 		row: number
 	): Promise<void> {
-		console.log(`Processing role assignment for row ${row + 2}`);
-		console.log(
-			`Score: ${scoreString}, Discord Username: ${discordUsername}`
+		logger.debug(`Processing role assignment for row ${row + 2}`);
+		logger.debug(
+			{ score: scoreString, username: discordUsername },
+			"Processing score for role assignment"
 		);
 
 		// Parse score as a number
@@ -103,35 +109,37 @@ export class GoogleSheetService {
 
 		// Validate score is a number
 		if (isNaN(score)) {
-			console.error(
-				`Invalid score value: ${scoreString}, expected a number`
+			logger.error(
+				{ score: scoreString },
+				"Invalid score value, expected a number"
 			);
 			return;
 		}
 
-		console.log(`Finding Discord ID for username: ${discordUsername}`);
+		logger.debug(`Finding Discord ID for username: ${discordUsername}`);
 		// Find the Discord ID by username
 		const discordUserId = await discordService.findUserIdByUsername(
 			discordUsername
 		);
 
-		console.log(`Discord ID found: ${discordUserId}`);
+		logger.debug({ userId: discordUserId }, "Discord ID lookup completed");
 
 		if (!discordUserId) {
-			console.error(
-				`Could not find Discord user with username: ${discordUsername}`
+			logger.error(
+				{ username: discordUsername },
+				"Could not find Discord user"
 			);
 			return;
 		}
 
 		// Determine role based on score threshold using the hierarchy:
 		// Guardian (lowest) -> Defender -> Sentinel (highest)
-		let roleName = "Guardian"; // Default/lowest role
+		let roleName = NodeOperatorRoles.Guardian; // Default/lowest role
 
 		if (score > 10) {
-			roleName = "Sentinel"; // Highest role
+			roleName = NodeOperatorRoles.Sentinel; // Highest role
 		} else if (score > 5) {
-			roleName = "Defender"; // Middle role
+			roleName = NodeOperatorRoles.Defender; // Middle role
 		}
 
 		// Assign the appropriate role to the Discord user
@@ -142,18 +150,33 @@ export class GoogleSheetService {
 			);
 
 			if (success) {
-				console.log(
-					`Successfully assigned role ${roleName} to user ${discordUsername} (ID: ${discordUserId})`
+				logger.info(
+					{
+						username: discordUsername,
+						userId: discordUserId,
+						role: roleName,
+					},
+					"Successfully assigned role"
 				);
 			} else {
-				console.error(
-					`Failed to assign role ${roleName} to user ${discordUsername} (ID: ${discordUserId})`
+				logger.error(
+					{
+						username: discordUsername,
+						userId: discordUserId,
+						role: roleName,
+					},
+					"Failed to assign role"
 				);
 			}
 		} catch (error) {
-			console.error(
-				`Error assigning role ${roleName} to user ${discordUsername} (ID: ${discordUserId}):`,
-				error
+			logger.error(
+				{
+					error,
+					username: discordUsername,
+					userId: discordUserId,
+					role: roleName,
+				},
+				"Error assigning role"
 			);
 		}
 	}

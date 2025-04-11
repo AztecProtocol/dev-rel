@@ -1,3 +1,3 @@
-import manageValidators from "./manageValidators.js";
+import manageValidators from "./manageValidators/index.js";
 
 export default { manageValidators };

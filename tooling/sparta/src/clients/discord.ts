@@ -14,8 +14,9 @@ import {
 	REST,
 	Routes,
 } from "discord.js";
-import guardianCommands from "../roles/00_guardians/index.js";
+import nodeOperatorCommands from "../roles/nodeOperators/index.js";
 import adminsCommands from "../roles/admins/index.js";
+import { logger } from "../utils/logger.js";
 
 // Extended Discord client interface with commands collection
 export interface ExtendedClient extends Client {
@@ -34,7 +35,7 @@ export class Discord {
 	 */
 	static new = async () => {
 		try {
-			console.log("Initializing Discord client");
+			logger.info("Initializing Discord client");
 
 			// Initialize Discord client with required intents
 			const client = new Client({
@@ -55,7 +56,7 @@ export class Discord {
 
 			return new Discord(client);
 		} catch (error) {
-			console.error("Error initializing Discord client:", error);
+			logger.error({ error }, "Error initializing Discord client");
 			throw error;
 		}
 	};
@@ -69,15 +70,18 @@ export class Discord {
 		 * Error event handler
 		 */
 		client.once("error", (error) => {
-			console.error("Error:", error);
+			logger.error({ error }, "Discord client error");
 		});
 
 		/**
 		 * Ready event handler - called when bot is initialized
 		 */
 		client.once("ready", async () => {
-			console.log("Sparta bot is ready!");
-			console.log("Bot Client ID: ", process.env.BOT_CLIENT_ID);
+			logger.info("Sparta bot is ready!");
+			logger.info(
+				{ clientId: process.env.BOT_CLIENT_ID },
+				"Bot connected with Client ID"
+			);
 			Discord.deployCommands(client);
 		});
 
@@ -95,15 +99,21 @@ export class Discord {
 				const channel = interaction.channel as TextChannel;
 
 				const reply = await command.execute(interaction);
-				console.log("Command:", {
-					name: interaction.commandName,
-					channel: channel.name,
-					user: interaction.user.username,
-					date: interaction.createdAt,
-					result: reply,
-				});
+				logger.info(
+					{
+						name: interaction.commandName,
+						channel: channel.name,
+						user: interaction.user.username,
+						date: interaction.createdAt,
+						result: reply,
+					},
+					"Command executed"
+				);
 			} catch (error) {
-				console.error(error);
+				logger.error(
+					{ error, command: interaction.commandName },
+					"Error executing command"
+				);
 				await interaction.reply({
 					content: "There was an error executing this command!",
 					flags: MessageFlags.Ephemeral,
@@ -122,10 +132,10 @@ export class Discord {
 		);
 
 		try {
-			console.log("Started refreshing application (/) commands.");
+			logger.info("Started refreshing application (/) commands");
 
 			const commandsData = Object.values({
-				...guardianCommands,
+				...nodeOperatorCommands,
 				...adminsCommands,
 			}).map((command) => command.data.toJSON());
 
@@ -140,16 +150,16 @@ export class Discord {
 			);
 
 			for (const command of Object.values({
-				...guardianCommands,
+				...nodeOperatorCommands,
 				...adminsCommands,
 			})) {
 				client.commands.set(command.data.name, command);
-				console.log(`Registered command: ${command.data.name}`);
+				logger.debug(`Registered command: ${command.data.name}`);
 			}
 
-			console.log("Successfully reloaded application (/) commands.");
+			logger.info("Successfully reloaded application (/) commands");
 		} catch (error) {
-			console.error(error);
+			logger.error({ error }, "Error deploying commands");
 		}
 	}
 

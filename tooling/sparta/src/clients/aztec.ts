@@ -3,6 +3,7 @@
  * @description Provides Aztec node interaction methods via JSON-RPC
  * @module sparta/utils/aztec
  */
+import { logger } from "../utils/logger.js";
 
 export class Aztec {
 	private readonly rpcUrl: string;
@@ -13,7 +14,7 @@ export class Aztec {
 
 	static new = async () => {
 		try {
-			console.log("Initializing Aztec client");
+			logger.info("Initializing Aztec client");
 			const rpcUrl = process.env.AZTEC_NODE_URL;
 
 			if (!rpcUrl) {
@@ -22,7 +23,7 @@ export class Aztec {
 
 			return new Aztec(rpcUrl);
 		} catch (error) {
-			console.error("Error initializing Aztec client:", error);
+			logger.error({ error }, "Error initializing Aztec client");
 			throw error;
 		}
 	};

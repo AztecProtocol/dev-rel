@@ -1,6 +1,6 @@
-# Guardian Role Commands
+# Node Operator Role Commands
 
-The Guardian role is the base role for users in the Sparta Discord bot system. Users who have successfully verified in Discord receive this role and can access the following commands.
+The Node Operator role is the base role for users in the Sparta Discord bot system. Users who have successfully verified in Discord receive this role and can access the following commands.
 
 ## Available Commands
 
@@ -107,7 +107,7 @@ The address should be a valid Ethereum address.
 
 ## Permission Requirements
 
-- All users with the Guardian role can access these commands
+- All users with the Node Operator role can access these commands
 - The `/validator register` command requires additional verification that the user controls the address being registered
 
 ## Technical Implementation
