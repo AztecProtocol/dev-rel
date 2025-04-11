@@ -17,6 +17,7 @@ import {
 import nodeOperatorCommands from "../roles/nodeOperators/index.js";
 import adminsCommands from "../roles/admins/index.js";
 import { logger } from "../utils/logger.js";
+import { subscribe } from "diagnostics_channel";
 
 // Extended Discord client interface with commands collection
 export interface ExtendedClient extends Client {
@@ -95,25 +96,33 @@ export class Discord {
 			const command = client.commands.get(interaction.commandName);
 			if (!command) return;
 
+			logger.debug(
+				{
+					command: interaction.commandName,
+					subcommand: interaction.options.getSubcommand(),
+				},
+				"Command"
+			);
 			try {
 				const channel = interaction.channel as TextChannel;
 
-				const reply = await command.execute(interaction);
-				logger.info(
+				logger.debug(
 					{
-						name: interaction.commandName,
 						channel: channel.name,
 						user: interaction.user.username,
 						date: interaction.createdAt,
-						result: reply,
 					},
-					"Command executed"
+					"Command info"
+				);
+				const reply = await command.execute(interaction);
+				logger.debug(
+					{
+						reply,
+					},
+					"Command reply"
 				);
 			} catch (error) {
-				logger.error(
-					{ error, command: interaction.commandName },
-					"Error executing command"
-				);
+				logger.error({ error }, "Error executing command");
 				await interaction.reply({
 					content: "There was an error executing this command!",
 					flags: MessageFlags.Ephemeral,

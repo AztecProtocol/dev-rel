@@ -18,31 +18,25 @@ export default {
 				.setName(NodeOperatorSubcommands.ChainInfo)
 				.setDescription("Get chain information")
 		),
-	execute: async (
-		interaction: ChatInputCommandInteraction
-	): Promise<string> => {
+	execute: async (interaction: ChatInputCommandInteraction) => {
 		try {
-			await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
 			const subcommand = interaction.options.getSubcommand();
 			switch (subcommand) {
 				case NodeOperatorSubcommands.ChainInfo:
 					await get(interaction);
-					return `Retrieved chain info`;
+					break;
 				default:
 					await interaction.editReply({
-						content: `Unknown subcommand: ${subcommand}`,
+						content: `Invalid subcommand: ${subcommand}`,
 					});
-					return `Unknown subcommand`;
+					return;
 			}
 		} catch (error) {
 			await interaction.editReply({
-				content: `Failed with error: ${
-					error instanceof Error ? error.message : "Unknown error"
-				}`,
+				content: `Failed with error: ${error}`,
 			});
 			return `Failed with error: ${
-				error instanceof Error ? error.message : "Unknown error"
+				error instanceof Error && error.message
 			}`;
 		}
 	},

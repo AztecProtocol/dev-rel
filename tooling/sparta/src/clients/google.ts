@@ -107,7 +107,7 @@ export class GoogleSheet {
 			row: number,
 			rowData: any[]
 		) => void,
-		intervalMs: number = 1000
+		intervalMs: number = 10000
 	): void {
 		logger.info(
 			{ columnIndexes, sheetRange, intervalMs },
@@ -192,7 +192,6 @@ export class GoogleSheet {
 		range: string
 	): Promise<any[][]> {
 		try {
-			logger.debug({ spreadsheetId, range }, "Fetching sheet data");
 			const response = await this.sheets.spreadsheets.values.get({
 				spreadsheetId,
 				range,

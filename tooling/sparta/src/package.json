@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "FOUNDRY_DISABLE_NIGHTLY_WARNING=true bun build index.ts --target bun --minify --outdir=dist",
-    "dev": "FOUNDRY_DISABLE_NIGHTLY_WARNING=true bun run --watch index.ts",
+    "dev": "LOG_LEVEL=debug FOUNDRY_DISABLE_NIGHTLY_WARNING=true bun run --watch index.ts",
     "start": "FOUNDRY_DISABLE_NIGHTLY_WARNING=true bun run index.ts",
     "watch": "FOUNDRY_DISABLE_NIGHTLY_WARNING=true tsc -w",
     "lint": "eslint . --ext .ts",
