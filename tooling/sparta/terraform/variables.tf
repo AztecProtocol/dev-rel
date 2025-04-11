@@ -19,8 +19,8 @@ variable "environment" {
   description = "Deployment environment (staging/production)"
   type        = string
   validation {
-    condition     = contains(["staging", "production"], var.environment)
-    error_message = "Environment must be either 'staging' or 'production'"
+    condition     = contains(["production"], var.environment)
+    error_message = "Environment must be 'production'"
   }
 }
 
@@ -54,6 +54,12 @@ variable "ethereum_host" {
 
 variable "minter_private_key" {
   description = "Ethereum wallet private key for minting tokens"
+  type        = string
+  sensitive   = true
+}
+
+variable "withdrawer_private_key" {
+  description = "Ethereum wallet private key for withdrawing funds"
   type        = string
   sensitive   = true
 }
@@ -101,4 +107,39 @@ variable "approval_amount" {
 variable "ssh_public_key" {
   description = "Public SSH key for accessing EC2 instances"
   type        = string
+}
+
+# -----------------------------------------------------------------------------
+# Google Sheets Configuration
+# -----------------------------------------------------------------------------
+variable "google_api_key" {
+  description = "Google API key for Google Sheets access"
+  type        = string
+  sensitive   = true
+}
+
+variable "spreadsheet_id" {
+  description = "Google Spreadsheet ID for data source"
+  type        = string
+}
+
+# -----------------------------------------------------------------------------
+# Aztec Configuration
+# -----------------------------------------------------------------------------
+variable "aztec_node_url" {
+  description = "URL for the Aztec node"
+  type        = string
+  default     = ""
+}
+
+variable "log_level" {
+  description = "Log level for the application (trace, debug, info, warn, error, fatal)"
+  type        = string
+  default     = "info"
+}
+
+variable "log_pretty_print" {
+  description = "Enable or disable colorful, pretty-printed logs"
+  type        = bool
+  default     = true
 }

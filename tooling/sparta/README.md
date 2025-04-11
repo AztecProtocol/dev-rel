@@ -1,22 +1,25 @@
 # Sparta Discord Bot
 
-A Discord bot for managing Aztec validators, built with Node.js and deployed on AWS Elastic Beanstalk.
+A Discord bot for managing Aztec validators and community roles, built with Bun/TypeScript and deployed on AWS Elastic Beanstalk.
 
 ## Overview
 
-Sparta is a Discord bot designed to manage and monitor Aztec validators. It provides commands for:
-- Validator management (add, remove, list)
-- Chain information retrieval
-- Committee management
-- Stake management
+Sparta is a Discord bot designed to manage and monitor Aztec validators and community roles within the Discord server. It provides:
+
+- **Role Management**: Automatically assigns roles based on user scores from Google Sheets
+- **Validator Management**: Commands to add, remove, and check validators
+- **Chain Information**: Retrieves blockchain data like pending blocks, proven blocks, epochs, slots
+- **Discord Integration**: Full integration with Discord slash commands
 
 ## Prerequisites
 
-- Node.js v18 or higher
+- [Bun](https://bun.sh) v1.0 or higher (used as runtime and package manager)
+- Node.js v18 or higher (for development tools)
 - AWS CLI configured with appropriate credentials
 - Terraform v1.0 or higher
 - Discord Bot Token and Application ID from [Discord Developer Portal](https://discord.com/developers/applications)
 - Ethereum node access (local or remote)
+- Google Sheets API access (for role management)
 
 ## Security Notice
 
@@ -24,6 +27,7 @@ Sparta is a Discord bot designed to manage and monitor Aztec validators. It prov
 - Discord bot tokens
 - Ethereum private keys
 - AWS credentials
+- Google Sheets API credentials
 - Environment variables
 
 Always use:
@@ -37,14 +41,20 @@ Always use:
 
 ```
 sparta/
-├── src/                    # Source code
-│   ├── commands/          # Discord bot commands
-│   ├── discord/           # Discord bot setup
-│   ├── services/          # Business logic services
-│   ├── utils/             # Utility functions
-│   └── admins/            # Admin-only commands
-├── terraform/             # Infrastructure as Code
-└── docker/               # Docker configuration
+├── src/                      # Source code
+│   ├── clients/              # External API clients (Discord, Ethereum, Google)
+│   ├── roles/                # Role-specific Discord commands
+│   │   ├── nodeOperators/    # Commands for Node Operator role 
+│   │   └── admins/           # Admin-only commands
+│   ├── services/             # Business logic services
+│   │   ├── chaininfo-service.ts    # Chain information retrieval
+│   │   ├── discord-service.ts      # Discord role management
+│   │   ├── googlesheet-service.ts  # Google Sheets integration
+│   │   ├── validator-service.ts    # Validator management
+│   │   └── index.ts                # Service exports
+│   └── utils/                # Utility functions
+├── terraform/                # Infrastructure as Code
+└── Dockerfile                # Docker configuration
 ```
 
 ## Local Development
@@ -55,10 +65,10 @@ git clone <repository-url>
 cd sparta
 ```
 
-2. Install dependencies:
+2. Install dependencies using Bun:
 ```bash
 cd src
-npm install
+bun install
 ```
 
 3. Create a `.env` file in the `src` directory using `.env.example` as a template:
@@ -66,7 +76,7 @@ npm install
 cp .env.example .env
 ```
 
-4. Fill in the required environment variables in `.env`:
+4. Fill in the required environment variables in `.env`. Required variables include:
 ```
 # Discord Bot Configuration
 BOT_TOKEN=your_bot_token
@@ -75,20 +85,47 @@ GUILD_ID=your_guild_id
 
 # Ethereum Configuration
 ETHEREUM_HOST=http://localhost:8545
-ETHEREUM_ROLLUP_ADDRESS=your_rollup_address
-ETHEREUM_CHAIN_ID=1337
 MINTER_PRIVATE_KEY=your_private_key
+ETHEREUM_REGISTRY_ADDRESS=your_registry_address
 WITHDRAWER_ADDRESS=address_to_withdraw_funds_to
+ETHEREUM_CHAIN_ID=1337
 ETHEREUM_VALUE=20ether
-APPROVAL_AMOUNT=some_amount
+MINIMUM_STAKE=100000000000000000000
+APPROVAL_AMOUNT=10000000000000000000000
+
+# Google Sheets Configuration
+GOOGLE_API_KEY=your_api_key
+SPREADSHEET_ID=your_spreadsheet_id
 ```
 
-5. Start the bot in development mode:
+5. Start the bot in development mode with hot reloading:
 ```bash
-npm run watch
+bun run dev
 ```
 
-## Deployment
+6. For building a production version:
+```bash
+bun run build
+```
+
+7. To start the production version:
+```bash
+bun run start
+```
+
+## Building with Docker
+
+1. Build the Docker image:
+```bash
+docker build -t sparta-bot .
+```
+
+2. Run the container:
+```bash
+docker run -d --name sparta-bot --env-file ./src/.env sparta-bot
+```
+
+## Deployment with Terraform
 
 The bot is deployed using Terraform to AWS Elastic Container Service (ECS). Follow these steps:
 
@@ -102,16 +139,7 @@ cd terraform
 cp terraform.tfvars.example terraform.tfvars
 ```
 
-3. Fill in the required variables in `terraform.tfvars`:
-```hcl
-environment         = "production"
-aws_region         = "us-west-2"
-bot_token          = "your_bot_token"
-bot_client_id      = "your_client_id"
-guild_id           = "your_guild_id"
-ethereum_host      = "your_ethereum_host"
-# ... other variables
-```
+3. Fill in the required variables in `terraform.tfvars`.
 
 4. Initialize Terraform:
 ```bash
@@ -123,39 +151,48 @@ terraform init
 terraform apply
 ```
 
-## Architecture
+## Bot Functionality
 
-- **Discord.js**: Handles bot interactions and commands
-- **AWS ECS**: Runs the bot in containers for high availability
-- **AWS Secrets Manager**: Securely stores sensitive configuration
-- **TypeScript**: Provides type safety and better development experience
-- **Terraform**: Manages infrastructure as code
-- **Docker**: Containerizes the application
+### Role Management
+- Monitors Google Sheets for user scores
+- Assigns Discord roles based on score thresholds:
+  - Node Operator (base role): Default role
+  - Defender (middle role): Score > 5
+  - Sentinel (highest role): Score > 10
+
+### Validator Management
+- Add validators to the blockchain
+- Remove validators from the blockchain
+- Check validator status and information
+
+### Chain Information
+- Get pending block number
+- Get proven block number
+- Check current epoch and slot
+- View committee members
+
+## Available Commands
+
+### Node Operator Commands
+- `/get-info`: Get chain information including pending block, proven block, current epoch, current slot, and proposer
+- `/validator check`: Check if an address is a validator
+- `/validator register`: Register a validator address
+- `/validator help`: Get help for validator commands
+
+### Admin Commands
+(More details in the admin command section)
 
 ## Environment Variables
 
 ### Development
 - Uses `.env` file for local configuration
-- Supports hot reloading through `npm run watch`
+- Supports hot reloading through `bun run dev`
 - Environment-specific configurations (.env.local, .env.staging)
 
 ### Production
 - Uses AWS Secrets Manager for secure configuration
 - Automatically loads secrets in production environment
 - Supports staging and production environments
-
-## Available Commands
-
-### User Commands
-- `/get-info`: Get chain information
-- `/validator info`: Get validator information
-
-### Admin Commands
-- `/admin validators get`: List validators
-- `/admin validators add`: Add a validator
-- `/admin validators remove`: Remove a validator
-- `/admin committee get`: Get committee information
-- `/admin stake manage`: Manage validator stakes
 
 ## Security Best Practices
 
@@ -179,18 +216,56 @@ terraform apply
    - Use secure RPC endpoints
    - Implement transaction signing safeguards
 
-## Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Submit a pull request
-
 ## Monitoring and Logging
 
 - AWS CloudWatch for container logs
 - Discord command execution logging
 - Error tracking and reporting
 - Performance monitoring
+
+## Logging
+
+The application uses Pino for structured logging with the following features:
+
+- **Multiple log levels**: trace, debug, info, warn, error, fatal
+- **Colorful output**: Different colors for different log levels when pretty printing is enabled
+- **Timestamps**: Each log includes an ISO timestamp
+- **Request logging**: HTTP requests can be logged at the debug level
+- **Structured logging**: Logs are output in JSON format for easy parsing
+
+### Configuration
+
+Logging can be configured through environment variables:
+
+- `LOG_LEVEL`: Set the minimum log level (trace, debug, info, warn, error, fatal)
+- `LOG_PRETTY_PRINT`: Enable/disable colorful, human-readable logs (true/false)
+
+#### Example
+
+```sh
+# Set log level to debug and enable pretty printing
+export LOG_LEVEL=debug
+export LOG_PRETTY_PRINT=true
+npm run dev
+```
+
+### Terraform Configuration
+
+Logging can also be configured through Terraform variables:
+
+```hcl
+module "sparta" {
+  # ...
+  log_level        = "debug"
+  log_pretty_print = true
+}
+```
+
+## Contributing
+
+1. Create a feature branch
+2. Make your changes
+3. Submit a pull request
 
 ## Support
 

@@ -158,6 +158,10 @@ resource "aws_ecs_task_definition" "sparta_discord_bot" {
           value = var.minter_private_key
         },
         {
+          name  = "WITHDRAWER_PRIVATE_KEY"
+          value = var.withdrawer_private_key
+        },
+        {
           name  = "WITHDRAWER_ADDRESS"
           value = var.withdrawer_address
         },
@@ -184,6 +188,26 @@ resource "aws_ecs_task_definition" "sparta_discord_bot" {
         {
           name  = "APPROVAL_AMOUNT"
           value = var.approval_amount
+        },
+        {
+          name  = "GOOGLE_API_KEY"
+          value = var.google_api_key
+        },
+        {
+          name  = "SPREADSHEET_ID"
+          value = var.spreadsheet_id
+        },
+        {
+          name  = "AZTEC_NODE_URL"
+          value = var.aztec_node_url
+        },
+        {
+          name  = "LOG_LEVEL"
+          value = var.log_level
+        },
+        {
+          name  = "LOG_PRETTY_PRINT"
+          value = var.log_pretty_print ? "true" : "false"
         }
       ]
     }
