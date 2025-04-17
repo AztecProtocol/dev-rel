@@ -41,7 +41,7 @@ We keep all our external content and resources here, as well as tracking what we
 
 ## Support
 
-🟣 [Aztec Forum](https://discourse.aztec.network/)
+🟣 [Aztec Forum](https://forum.aztec.network/)
 
 💜 [Aztec Discord](https://discord.aztec.network)
 
