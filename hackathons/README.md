@@ -37,7 +37,7 @@ Find more information about the sandbox and how to deploy a counter contract to 
 
 #### Writing private programs with aztec.nr
 
-Noir is a ZKDSL for writing zk circuits and verifying them on-chain. [Aztec.nr](http://aztec.nr) is a smart contract framework -- written in Noir -- that has types and methods for rich smart contract semantics.
+Noir is a ZKDSL for writing zk circuits and verifying them on-chain. [Aztec.nr](https://github.com/AztecProtocol/aztec-nr) is a smart contract framework -- written in Noir -- that has types and methods for rich smart contract semantics.
 
 ## Submission tips
 
