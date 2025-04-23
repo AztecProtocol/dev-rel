@@ -14,7 +14,7 @@ These projects would be implemented as, or in conjunction with, Aztec contracts:
 
 - **ZK Uniswap frontend -** develop a frontend for our uniswap smart contract found [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/uniswap_contract)
 - **ZK stablecoin** - build a stablecoin that allows you to wrap a stablecoin so it can be privately transferred
-- **Private lending front end** - you can see an example [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/lending_contract)
+- **Private lending frontend** - you can see an example [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/lending_contract)
 - **ZKollateral** - privately prove assets for collateral or creditworthiness for a loan
 - **Proof of Liquidity** - privately prove solvency and/or compliance without exposing the underlying assets or trades
 - **Private DEX** - allows users to trade assets without revealing the accounts that the assets originate from.
@@ -77,7 +77,7 @@ You could try to implement these in vanilla Noir, or as Aztec contracts.
 - **Chess**
 - **Scrabble**
 - **ZK Quests** - players can prove they have achieved a specific action or quest within a game without revealing the quest, preventing spoilers
-- **ZK Treasure Hunt** - irl experience that validates a user has found a clue/treasure without revealing their location to other players
+- **ZK Treasure Hunt** - IRL experience that validates a user has found a clue/treasure without revealing their location to other players
 
 ## Identity 🕴️
 
@@ -91,7 +91,7 @@ Relevant for Aztec contracts or Noir:
 
 Relevant for Aztec specifically:
 
-- **Private Account Abstraction Wallet using Touch or Face ID** - user logs in with TouchID/FaceID using AA, and zk proofs are generated to confirm that correct biometric data has been provided
+- **Private Account Abstraction Wallet using Touch or Face ID** - user logs in with Touch ID/Face ID using AA, and zk proofs are generated to confirm that correct biometric data has been provided
 
 ---
 
