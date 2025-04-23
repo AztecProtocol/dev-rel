@@ -25,15 +25,18 @@ RUN cast --version
 # Set the working directory
 WORKDIR /app
 
-# Copy package files first to leverage Docker layer caching
-# This way, dependencies are only re-installed when package files change
-COPY src/package.json src/bun.lockb ./
-RUN bun install
+# Copy the root package.json and lockfile
+COPY package.json bun.lockb ./
 
-# Then copy the rest of the source code
-# This step is separate to avoid reinstalling dependencies when only code changes
-COPY src ./
+# Copy package.json files from workspaces to ensure dependencies are captured
+COPY packages/*/package.json ./packages/
 
-# Start the bot
-# Uses the production start command from package.json
-CMD ["bun", "run", "start"]
+# Install all dependencies for the monorepo
+RUN bun install --frozen-lockfile
+
+# Copy the entire monorepo source code
+COPY . .
+
+# Start the bot (Assuming the main entry point remains or is adjusted)
+# Update this if your main start script moves to a specific package
+CMD ["bun", "run", "start"] # Adjust if needed, e.g., bun run packages/bot/start

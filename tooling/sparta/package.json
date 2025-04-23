@@ -1,0 +1,17 @@
+{
+  "name": "sparta",
+  "type": "module",
+  "workspaces": [
+    "packages/*"
+  ],
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "scripts": {
+    "start:discord": "bun --filter='@sparta/discord' run start",
+    "build": "bun --filter='@sparta/verify' run build"
+  }
+}

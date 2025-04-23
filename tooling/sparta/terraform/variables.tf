@@ -69,8 +69,8 @@ variable "withdrawer_address" {
   type        = string
 }
 
-variable "ethereum_registry_address" {
-  description = "Ethereum rollup contract address for L2 interactions"
+variable "staking_asset_handler_address" {
+  description = "Ethereum staking asset handler contract address for L2 interactions"
   type        = string
 }
 

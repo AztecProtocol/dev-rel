@@ -86,7 +86,7 @@ GUILD_ID=your_guild_id
 # Ethereum Configuration
 ETHEREUM_HOST=http://localhost:8545
 MINTER_PRIVATE_KEY=your_private_key
-ETHEREUM_REGISTRY_ADDRESS=your_registry_address
+STAKING_ASSET_HANDLER_ADDRESS=your_registry_address
 WITHDRAWER_ADDRESS=address_to_withdraw_funds_to
 ETHEREUM_CHAIN_ID=1337
 ETHEREUM_VALUE=20ether
@@ -270,3 +270,9 @@ module "sparta" {
 ## Support
 
 For support, please open an issue in the repository or contact the maintainers.
+
+## Monorepo Structure
+
+This project is now structured as a monorepo using Bun workspaces. Packages are located in the `packages/` directory. Dependencies are managed from the root `package.json`.
+
+To run commands within a specific package, use `bun run --filter <package-name> <script-name>`.

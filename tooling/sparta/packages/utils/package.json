@@ -1,0 +1,17 @@
+{
+    "name": "@sparta/utils",
+    "version": "0.1.0",
+    "type": "module",
+    "main": "index.ts",
+    "types": "index.ts",
+    "scripts": {
+        "build": "echo 'No build step needed for utils yet'"
+    },
+    "devDependencies": {
+        "@types/bun": "latest",
+        "typescript": "^5.3.3"
+    },
+    "peerDependencies": {
+        "typescript": "^5.0.0"
+    }
+}

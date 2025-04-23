@@ -166,8 +166,8 @@ resource "aws_ecs_task_definition" "sparta_discord_bot" {
           value = var.withdrawer_address
         },
         {
-          name  = "ETHEREUM_REGISTRY_ADDRESS"
-          value = var.ethereum_registry_address
+          name  = "STAKING_ASSET_HANDLER_ADDRESS"
+          value = var.staking_asset_handler_address
         },
         {
           name  = "L1_CHAIN_ID"

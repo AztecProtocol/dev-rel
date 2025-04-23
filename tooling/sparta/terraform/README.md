@@ -28,22 +28,22 @@ Before deploying, ensure you have:
 
 The deployment is configured using the following variables:
 
-| Variable                    | Description                                                                | Default      |
-| --------------------------- | -------------------------------------------------------------------------- | ------------ |
-| `aws_region`                | AWS region to deploy to                                                    | `us-west-2`  |
-| `environment`               | Environment name (e.g., production, staging)                               | `production` |
-| `bot_token`                 | Discord bot token                                                          | Required     |
-| `bot_client_id`             | Discord bot client ID                                                      | Required     |
-| `guild_id`                  | Discord server/guild ID                                                    | Required     |
-| `ethereum_host`             | Ethereum RPC endpoint                                                      | Required     |
-| `ethereum_registry_address` | Address of validator registry contract                                     | Required     |
-| `minter_private_key`        | Private key for minting/transactions                                       | Required     |
-| `withdrawer_address`        | Address for withdrawing funds                                              | Required     |
-| `ethereum_chain_id`         | Ethereum chain ID                                                          | Required     |
-| `google_api_key`            | Google API key for Sheets access                                           | Required     |
-| `spreadsheet_id`            | Google Spreadsheet ID to monitor                                           | Required     |
-| `log_level`                 | The log level for the application (trace, debug, info, warn, error, fatal) | `string`     | `"info"` |
-| `log_pretty_print`          | Enable or disable colorful, pretty-printed logs                            | `bool`       | `true`   |
+| Variable                        | Description                                                                | Default      |
+| ------------------------------- | -------------------------------------------------------------------------- | ------------ |
+| `aws_region`                    | AWS region to deploy to                                                    | `us-west-2`  |
+| `environment`                   | Environment name (e.g., production, staging)                               | `production` |
+| `bot_token`                     | Discord bot token                                                          | Required     |
+| `bot_client_id`                 | Discord bot client ID                                                      | Required     |
+| `guild_id`                      | Discord server/guild ID                                                    | Required     |
+| `ethereum_host`                 | Ethereum RPC endpoint                                                      | Required     |
+| `staking_asset_handler_address` | Address of staking asset handler contract                                  | Required     |
+| `minter_private_key`            | Private key for minting/transactions                                       | Required     |
+| `withdrawer_address`            | Address for withdrawing funds                                              | Required     |
+| `ethereum_chain_id`             | Ethereum chain ID                                                          | Required     |
+| `google_api_key`                | Google API key for Sheets access                                           | Required     |
+| `spreadsheet_id`                | Google Spreadsheet ID to monitor                                           | Required     |
+| `log_level`                     | The log level for the application (trace, debug, info, warn, error, fatal) | `string`     | `"info"` |
+| `log_pretty_print`              | Enable or disable colorful, pretty-printed logs                            | `bool`       | `true`   |
 
 ## Deployment Steps
 
