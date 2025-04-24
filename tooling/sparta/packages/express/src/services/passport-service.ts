@@ -5,21 +5,15 @@
  */
 
 import axios from "axios";
-import { logger, inMemoryDB } from "@sparta/utils";
-
-/**
- * Human Passport Role constants
- */
-export enum PassportRoles {
-	Verified = "Passport Verified", // Base role for verification
-}
-
+import { logger, dynamoDB } from "@sparta/utils";
+import { MINIMUM_SCORE, HIGH_SCORE_THRESHOLD } from "@sparta/utils/const.js";
 /**
  * Configuration for the Passport service
  */
 interface PassportConfig {
 	scorerId: string;
 	minimumScore: number;
+	highScoreThreshold: number; // Threshold for high score role
 	apiKey: string;
 }
 
@@ -58,8 +52,9 @@ export class PassportService {
 		this.config = {
 			scorerId: process.env.PASSPORT_SCORER_ID || "",
 			minimumScore: parseFloat(
-				process.env.PASSPORT_MINIMUM_SCORE || "0.5"
+				String(MINIMUM_SCORE)
 			),
+			highScoreThreshold: HIGH_SCORE_THRESHOLD, // Score threshold for high scorer role
 			apiKey: process.env.PASSPORT_API_KEY || "",
 		};
 
@@ -116,89 +111,21 @@ export class PassportService {
 	}
 
 	/**
-	 * Processes verification for an address
-	 *
-	 * @param {string} sessionId - The verification session ID
-	 * @param {string} signature - The signature from the wallet
-	 * @returns {Promise<boolean>} True if verification was successful
-	 */
-	public async processVerification(
-		sessionId: string,
-		signature: string
-	): Promise<boolean> {
-		try {
-			// Get the session
-			const session = inMemoryDB.getSession(sessionId);
-			if (!session || !session.walletAddress) {
-				logger.error({ sessionId }, "Invalid session for verification");
-				return false;
-			}
-
-			// Update the session with the signature
-			inMemoryDB.updateSignature(sessionId, signature);
-			// Update session status
-			inMemoryDB.updateSession(sessionId, { status: "submitted" });
-
-			// Get the score directly
-			const scoreResponse = await this.getScore(
-				session.walletAddress
-			);
-
-			if (!scoreResponse) {
-				logger.error(
-					{ sessionId, address: session.walletAddress },
-					"Failed to retrieve passport score"
-				);
-				// Update session status
-				inMemoryDB.updateSession(sessionId, { status: "score_retrieval_failed" });
-				return false;
-			}
-
-			// Parse the score
-			const score = parseFloat(scoreResponse.score);
-			const lastScoreTimestamp = scoreResponse.last_score_timestamp ? 
-				new Date(scoreResponse.last_score_timestamp).getTime() : 
-				Date.now();
-
-			// Update the session with the score and timestamp
-			const verified = score >= this.config.minimumScore;
-			inMemoryDB.updateSession(sessionId, {
-				score,
-				lastScoreTimestamp,
-				verified,
-				status: verified ? "verified" : "verification_failed"
-			});
-
-			logger.info(
-				{
-					sessionId,
-					address: session.walletAddress,
-					score,
-					threshold: this.config.minimumScore,
-					verified,
-				},
-				"Passport verification result"
-			);
-
-			return verified;
-		} catch (error: any) {
-			logger.error(
-				{ error: error.message, sessionId },
-				"Error processing verification"
-			);
-			// Update session status
-			inMemoryDB.updateSession(sessionId, { status: "error" });
-			return false;
-		}
-	}
-
-	/**
 	 * Gets the current minimum score threshold
 	 *
 	 * @returns {number} The minimum score threshold
 	 */
 	public getMinimumScore(): number {
 		return this.config.minimumScore;
+	}
+
+	/**
+	 * Gets the high score threshold
+	 *
+	 * @returns {number} The high score threshold
+	 */
+	public getHighScoreThreshold(): number {
+		return this.config.highScoreThreshold;
 	}
 }
 

@@ -46,7 +46,7 @@ const PassportVerificationApp: React.FC = () => {
 	// Get session ID from URL
 	useEffect(() => {
 		const urlParams = new URLSearchParams(window.location.search);
-		const session = urlParams.get('session');
+		const session = urlParams.get('sessionId');
 		if (session) {
 			setSessionId(session);
 		}
@@ -99,13 +99,12 @@ const PassportVerificationApp: React.FC = () => {
 				
 				const data = response.data;
 				console.log("Signature verification response:", data);
-				
-				// Refresh session data after verification
+
+				// Refresh session data after verification to update UI
 				const sessionResponse = await axios.get(`${API_BASE_URL}/session/${sessionId}`);
 				if (sessionResponse.data.success) {
 					setSessionData(sessionResponse.data);
 				}
-				
 			} catch (error) {
 				console.error("Error verifying signature:", error);
 				console.log("Error connecting to verification server. Please try again later.", true);

@@ -113,6 +113,68 @@ resource "null_resource" "docker_build" {
   }
 }
 
+# DynamoDB table for sessions
+resource "aws_dynamodb_table" "sparta_sessions" {
+  name           = "sparta-sessions-${var.environment}"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "sessionId"
+
+  attribute {
+    name = "sessionId"
+    type = "S"
+  }
+
+  attribute {
+    name = "discordUserId"
+    type = "S"
+  }
+
+  global_secondary_index {
+    name               = "DiscordUserIdIndex"
+    hash_key           = "discordUserId"
+    projection_type    = "ALL"
+  }
+
+  tags = {
+    Environment = var.environment
+    Project     = "sparta"
+  }
+}
+
+# IAM policy for DynamoDB access
+resource "aws_iam_policy" "dynamodb_access_policy" {
+  name        = "dynamodb-access-policy-${var.environment}"
+  description = "Policy for accessing DynamoDB sessions table"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:GetItem",
+          "dynamodb:PutItem",
+          "dynamodb:UpdateItem",
+          "dynamodb:DeleteItem",
+          "dynamodb:Query",
+          "dynamodb:Scan",
+          "dynamodb:BatchWriteItem"
+        ]
+        Resource = [
+          aws_dynamodb_table.sparta_sessions.arn,
+          "${aws_dynamodb_table.sparta_sessions.arn}/index/*"
+        ]
+      }
+    ]
+  })
+}
+
+# Attach DynamoDB policy to task execution role
+resource "aws_iam_role_policy_attachment" "dynamodb_policy_attachment" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = aws_iam_policy.dynamodb_access_policy.arn
+}
+
 # Define task definition and service.
 resource "aws_ecs_task_definition" "sparta_discord_bot" {
   family                   = "sparta-discord-bot-${var.environment}"
@@ -208,6 +270,10 @@ resource "aws_ecs_task_definition" "sparta_discord_bot" {
         {
           name  = "LOG_PRETTY_PRINT"
           value = var.log_pretty_print ? "true" : "false"
+        },
+        {
+          name  = "SESSION_TABLE_NAME"
+          value = aws_dynamodb_table.sparta_sessions.name
         }
       ]
     }

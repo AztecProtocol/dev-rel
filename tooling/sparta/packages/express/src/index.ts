@@ -1,15 +1,21 @@
 import express from 'express';
 import cors from 'cors';
 import passportRoutes from './routes/passport-routes.js';
+import { swaggerSpec, swaggerUi } from './swagger.js';
+import { dynamoDB } from "@sparta/utils";
+import DiscordService from './discord/services/discord-service.js';
+import { discord } from './discord/clients/discord.js';
+import { logger } from '@sparta/utils';
+
+// Define constants for session status (assuming these exist elsewhere or should be defined)
+// const PENDING_ROLE_STATUS = 'pending_role_assignment'; // Removed local definition
 
 const app = express();
 
 // Enhanced CORS configuration
 const allowedOrigins = [
   `${process.env.WEBAPP_HOST}:${process.env.WEBAPP_PORT}`,
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:3002'
+  'http://localhost:5173',
 ];
 
 // Debug middleware to log all requests
@@ -42,6 +48,18 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+// Swagger documentation
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
+  explorer: true,
+  customCss: '.swagger-ui .topbar { display: none }' // Hide the top bar (optional)
+}));
+
+// Serve the Swagger spec as JSON
+app.get('/api-docs.json', (req, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(swaggerSpec);
+});
+
 // Routes
 app.use('/api', passportRoutes);
 
@@ -51,7 +69,38 @@ app.get('/health', (req, res) => {
 });
 
 // Start server
-app.listen(process.env.API_PORT as unknown as number, '0.0.0.0', () => {
+app.listen(process.env.API_PORT as unknown as number, '0.0.0.0', async () => {
   console.log(`Server is running on port ${process.env.API_PORT}`);
   console.log(`Allowing CORS for: ${allowedOrigins.join(', ')}`);
-}); 
+  console.log(`API Documentation available at: http://localhost:${process.env.API_PORT}/api-docs`);
+
+  // Start Discord Bot and then the background processor
+  try {
+    // Wait for the client to be ready (login happens in Discord.new)
+    discord.getClient().once('ready', async () => {
+      logger.info("Discord bot client is ready.");
+      // Removed background processor startup
+      // await processPendingRoleAssignments(); // Run once immediately on startup
+      // setInterval(processPendingRoleAssignments, 60 * 1000);
+      // logger.info("Started periodic check for pending role assignments (every 60 seconds).");
+    });
+    // Log that we are waiting for the ready event
+    logger.info("Waiting for Discord bot client to signal ready...");
+
+  } catch (error) {
+    logger.error({ error }, "Failed to start Discord bot client.");
+    // Decide if the server should exit or run without the bot
+    // process.exit(1); 
+  }
+});
+
+// Function to handle Discord interactions - Removed
+// async function handleInteraction(interaction: Interaction<CacheType>) { ... }
+
+// Handler for /passport verify command - Removed
+// async function handlePassportVerify(interaction: CommandInteraction) { ... }
+
+// Removed background processing function
+// async function processPendingRoleAssignments() { ... }
+
+ 

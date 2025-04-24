@@ -276,3 +276,39 @@ For support, please open an issue in the repository or contact the maintainers.
 This project is now structured as a monorepo using Bun workspaces. Packages are located in the `packages/` directory. Dependencies are managed from the root `package.json`.
 
 To run commands within a specific package, use `bun run --filter <package-name> <script-name>`.
+
+## AWS DynamoDB Integration
+
+The application now uses AWS DynamoDB for session storage instead of in-memory storage. This provides several benefits:
+- Persistence across container restarts
+- Ability to scale horizontally with multiple instances
+- Improved reliability for session management
+
+### Local Development with DynamoDB
+
+For local development, you can use DynamoDB Local, which is provided by AWS as a downloadable version that simulates the DynamoDB service.
+
+1. Start the local DynamoDB instance:
+   ```
+   ./scripts/start-local-dynamodb.sh
+   ```
+
+2. Run your application with the appropriate environment variables:
+   ```
+   IS_LOCAL=true DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000 SESSION_TABLE_NAME=sparta-sessions npm run dev
+   ```
+
+### Environment Variables for DynamoDB
+
+The following environment variables are used to configure the DynamoDB connection:
+
+- `SESSION_TABLE_NAME`: The name of the DynamoDB table to use (default: "sparta-sessions")
+- `IS_LOCAL`: Set to "true" when using DynamoDB Local (default: "false")
+- `DYNAMODB_LOCAL_ENDPOINT`: The endpoint URL for DynamoDB Local (default: "http://localhost:8000")
+
+### AWS Deployment
+
+When deploying to AWS, the Terraform configuration will:
+1. Create the DynamoDB table
+2. Set up appropriate IAM permissions
+3. Configure the application to use the AWS DynamoDB service
