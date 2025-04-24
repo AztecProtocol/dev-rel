@@ -23,9 +23,10 @@ import {
 	// STATUS_WALLET_CONNECTED, // Unused
 	STATUS_SIGNATURE_RECEIVED,
 	VERIFICATION_MESSAGE, // Import shared constant
+	PassportRoles, // Import PassportRoles enum
 } from "@sparta/utils/const.js"; // Import status constants
+import { EmbedBuilder } from 'discord.js'; 
 
-const WEBAPP_URL = `${process.env.WEBAPP_HOST}:${process.env.WEBAPP_PORT}` || `http://localhost:5173`;
 // Augment Express Request type to include session property
 declare global {
 	namespace Express {
@@ -248,6 +249,9 @@ router.get("/session/:sessionId", validateSession, (req: Request, res: Response)
  *               userId:
  *                 type: string
  *                 description: Discord user ID
+ *               interactionToken:
+ *                 type: string
+ *                 description: Token from the original Discord interaction
  *     responses:
  *       200:
  *         description: Session created successfully
@@ -258,7 +262,7 @@ router.get("/session/:sessionId", validateSession, (req: Request, res: Response)
  */
 router.post("/create-session", async (req: Request, res: Response) => {
 	try {
-		const { userId } = req.body;
+		const { userId, interactionToken } = req.body; // Destructure interactionToken
 
 		if (!userId) {
 			return res.status(400).json({
@@ -266,12 +270,18 @@ router.post("/create-session", async (req: Request, res: Response) => {
 				error: "Missing userId parameter",
 			});
 		}
+		if (!interactionToken) { // Validate interactionToken presence
+			return res.status(400).json({
+				success: false,
+				error: "Missing interactionToken parameter",
+			});
+		}
 
 		// Generate a unique session ID
 		const sessionId = randomUUID();
 
-		// Create a verification session in DynamoDB - Pass separate args
-		const sessionCreated = await dynamoDB.createSession(sessionId, userId);
+		// Create a verification session in DynamoDB - Pass separate args including the token
+		const sessionCreated = await dynamoDB.createSession(sessionId, userId, interactionToken);
 
 		if (!sessionCreated) {
 			// Handle potential session ID collision or other creation error
@@ -282,8 +292,16 @@ router.post("/create-session", async (req: Request, res: Response) => {
 			});
 		}
 
-		// Construct the verification URL
-        const verificationUrl = `${WEBAPP_URL}/verify?sessionId=${sessionId}`;
+		// Construct the verification URL using the public frontend URL from environment variables
+		const publicFrontendUrl = process.env.PUBLIC_FRONTEND_URL;
+		if (!publicFrontendUrl) {
+			logger.error("PUBLIC_FRONTEND_URL environment variable is not set!");
+			return res.status(500).json({
+				success: false,
+				error: "Server configuration error: Frontend URL missing.",
+			});
+		}
+        const verificationUrl = `${publicFrontendUrl}/?sessionId=${sessionId}`; // Use '/' as base path for SPA
 
 		// Return the session ID and URL to the Discord bot command handler
 		return res.status(200).json({
@@ -371,7 +389,47 @@ router.post("/verify", validateSession, async (req: Request, res: Response) => {
                 message += " Could not assign Discord roles. Please contact an admin.";
                 // Decide if role assignment failure should be treated as a bigger error (e.g., return 500 or specific error code?)
             }
+
+			// --- Edit Interaction Reply --- START
+			if (session.interactionToken) {
+				let finalEmbed = new EmbedBuilder()
+					.setTitle("Human Passport Verification Complete")
+					.setColor(roleAssignedSuccess ? 0x00FF00 : 0xFFCC00) // Green for success, Yellow for partial
+					.addFields(
+						{ name: "Status", value: message },
+						{ name: "Your Score", value: score.toString() },
+						{ name: "Minimum Required", value: MINIMUM_SCORE.toString() }
+					)
+					.setFooter({ text: "You can dismiss this message." });
+
+				if (score >= HIGH_SCORE_THRESHOLD) {
+					finalEmbed.addFields({ name: "Role Awarded", value: `Verified & High Scorer (${PassportRoles.HighScorer})` });
+				} else {
+					finalEmbed.addFields({ name: "Role Awarded", value: `Verified (${PassportRoles.Verified})` });
+				}
+
+				await discordService.editInteractionReply(session.interactionToken, { 
+					embeds: [finalEmbed],
+					components: [] // Remove the button
+				});
+			} else {
+				logger.warn({ sessionId }, "No interactionToken found in session, cannot edit original reply.");
+			}
+			// --- Edit Interaction Reply --- END
 		}
+        // If verification failed due to low score, update the interaction reply as well
+        else if (session.interactionToken) {
+            const failEmbed = new EmbedBuilder()
+                .setTitle("Human Passport Verification Failed")
+                .setColor(0xFF0000) // Red for failure
+                .setDescription(`Your Human Passport score of **${score}** did not meet the minimum requirement of **${MINIMUM_SCORE}**. No roles were assigned.`)
+                .setFooter({ text: "You can dismiss this message." });
+            
+            await discordService.editInteractionReply(session.interactionToken, {
+                embeds: [failEmbed],
+                components: [] // Remove button
+            });
+        }
 
         // Step 4: Final session status update
 		const finalStatus = verified ? STATUS_VERIFIED_COMPLETE : STATUS_VERIFICATION_FAILED_SCORE;
@@ -522,7 +580,8 @@ router.get("/dynamo-health", async (_req: Request, res: Response) => { // Mark r
 			// 1. Test creation
 			const createStart = Date.now();
 			logger.info(`DynamoDB Health Check - Creating test session: ${healthCheckId}`);
-			const session = await dynamoDB.createSession(healthCheckId, "health-check-user");
+			// Pass a dummy interaction token for the health check
+			const session = await dynamoDB.createSession(healthCheckId, "health-check-user", "dummy-health-check-token"); 
 			const createEnd = Date.now();
 			health.latency.create = createEnd - createStart;
 			

@@ -8,20 +8,20 @@ import {
 import { useAccount } from 'wagmi';
 import { useSignMessage } from 'wagmi'
 import axios from 'axios';
-import { VERIFICATION_MESSAGE, type SessionData } from "@sparta/utils";
+// import { VERIFICATION_MESSAGE, type SessionData } from "@sparta/utils"; // REMOVED - Using local definitions for now
 
 // Standard verification message - must match backend constant
-// const VERIFICATION_MESSAGE = "Verify wallet ownership for Aztec Discord";
+const VERIFICATION_MESSAGE = "Verify wallet ownership for Aztec Discord"; // UNCOMMENTED
 
-// interface SessionData {
-// 	sessionId: string;
-// 	walletConnected: boolean;
-// 	walletAddress: string | null;
-// 	verified: boolean;
-// 	status: string;
-// 	score: number | null;
-// 	lastScoreTimestamp: number | null;
-// }
+interface SessionData { // UNCOMMENTED
+	sessionId: string;
+	walletConnected: boolean;
+	walletAddress: string | null;
+	verified: boolean;
+	status: string;
+	score: number | null;
+	lastScoreTimestamp: number | null;
+} // UNCOMMENTED
 
 const PassportVerificationApp: React.FC = () => {
 	// State variables
@@ -29,6 +29,7 @@ const PassportVerificationApp: React.FC = () => {
 	// const [error, setError] = useState<string | null>(null);
 	const [sessionId, setSessionId] = useState<string | null>(null);
 	const [sessionData, setSessionData] = useState<SessionData | null>(null);
+	const [isSigning, setIsSigning] = useState<boolean>(false); // Added state for signing process
 	// const [verificationResult, _setVerificationResult] = useState<VerificationResult | null>(null); // State unused
 
 	const { isConnected } = useAppKitAccount();
@@ -86,6 +87,7 @@ const PassportVerificationApp: React.FC = () => {
 		const verifySignature = async () => {
 			if (!signature || !sessionId) return;
 			
+			// Keep isSigning true until verification attempt completes
 			try {
 				console.log("Verifying your signature for session:", sessionId);
 				const response = await axios.post(`${API_BASE_URL}/verify`, {
@@ -105,11 +107,32 @@ const PassportVerificationApp: React.FC = () => {
 			} catch (error) {
 				console.error("Error verifying signature:", error);
 				console.log("Error connecting to verification server. Please try again later.", true);
+			} finally {
+				setIsSigning(false); // Set loading false after verification attempt (success or error)
 			}
 		};
 		
 		verifySignature();
-	}, [signature]);
+	}, [signature, sessionId, API_BASE_URL]); // Added dependencies
+
+	// Effect to auto-close window after successful verification
+	useEffect(() => {
+		let timer: NodeJS.Timeout | number | undefined;
+		if (sessionData?.verified) {
+			console.log("Verification successful, closing window in 5 seconds...");
+			timer = setTimeout(() => {
+				window.close();
+			}, 5000); // 5 seconds delay
+		}
+
+		// Cleanup function to clear the timeout if the component unmounts
+		// or if verification status changes before the timeout completes
+		return () => {
+			if (timer) {
+				clearTimeout(timer);
+			}
+		};
+	}, [sessionData?.verified]); // Dependency array ensures this runs when verified status changes
 
 	return (
 		<div className="container">
@@ -120,6 +143,7 @@ const PassportVerificationApp: React.FC = () => {
 					exclusive Discord roles.
 				</p>
 
+				{/* Removed conditional rendering - Steps always shown, content changes */} 
 				<div className="steps">
 					<VerificationStep
 						title="Connect Wallet"
@@ -135,30 +159,32 @@ const PassportVerificationApp: React.FC = () => {
 					<VerificationStep
 						title="Sign Message"
 						description="Sign a message to verify your wallet ownership and complete the verification."
-						isActive={isConnected && !!address}
-						isCompleted={!!signature}
+						isActive={isConnected && !!address && !(sessionData?.verified ?? false)} // Active until verified
+						isCompleted={sessionData?.verified ?? false} // Completed when verified
 						buttonText={"Sign Message"}
-						showButton={isConnected && !!address}
-						buttonDisabled={!address}
+						showButton={isConnected && !!address} // Button shown when wallet connected
+						buttonDisabled={!address || isSigning || !!signature} 
+						isLoading={isSigning} 
 						onButtonClick={() => {
-							signMessage({ message: VERIFICATION_MESSAGE });
+							setIsSigning(true); 
+							signMessage({ message: VERIFICATION_MESSAGE }, {
+								onSuccess: (data) => {
+									console.log("Signed message successfully:", data);
+								},
+								onError: (error) => {
+									console.error("Error signing message:", error);
+									setIsSigning(false); 
+								}
+							});
 						}}
+						// Pass the success message as completed content
+						completedContent={(
+							<div className="verification-success">
+								<h2>✓ Verification Successful!</h2> {/* Added checkmark */} 
+								<p>You have been successfully verified. You can now close this window and return to Discord.</p>
+							</div>
+						)}
 					/>
-
-					{sessionData?.verified && (
-						<div className="verification-success">
-							<h2>Verification Successful!</h2>
-							<p>You have been successfully verified. You can now close this window and return to Discord.</p>
-						</div>
-					)}
-				</div>
-
-				{/* Debug info */}
-				<div className="debug-info" style={{ marginTop: '30px', fontSize: '12px', color: '#888' }}>
-					<h4>Debug Information</h4>
-					<p>Session ID: {sessionId || 'No session ID'}</p>
-					<p>Wallet Address: {address || 'Not connected'}</p>
-					<p>Session Data: {sessionData ? JSON.stringify(sessionData, null, 2) : 'No data'}</p>
 				</div>
 			</div>
 		</div>

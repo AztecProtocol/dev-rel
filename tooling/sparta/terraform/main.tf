@@ -2,155 +2,261 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = "~> 5.0"  # Using AWS Provider version 5.x for latest features
+      version = "~> 5.0"
     }
   }
+  required_version = ">= 1.0" # Specify minimum Terraform version
 
   backend "s3" {
-    bucket = "sparta-tf-state"
-    key    = "sparta/terraform"
-    region = "eu-west-2"
+    bucket = "sparta-tf-state" # Ensure this bucket exists
+    key    = "sparta/terraform-${var.environment}" # Use environment in key for isolation
+    region = var.aws_region
   }
 }
 
 provider "aws" {
-  profile = "default"
-  region  = var.aws_region
+  region = var.aws_region
+  # Assuming credentials are configured via environment variables, IAM instance profile, or AWS config/credentials file
 }
 
+locals {
+  resource_prefix = "sparta-${var.environment}"
+  common_tags = {
+    Environment = var.environment
+    Project     = "sparta"
+    ManagedBy   = "Terraform"
+  }
+}
+
+# =============================================================================
+# Networking
+# =============================================================================
+
+# Create a VPC
+resource "aws_vpc" "sparta_vpc" {
+  cidr_block           = var.vpc_cidr
+  enable_dns_hostnames = true
+  enable_dns_support   = true
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-vpc"
+  })
+}
+
+# Create public subnets across multiple AZs
+resource "aws_subnet" "sparta_public_subnets" {
+  count                   = length(var.availability_zones)
+  vpc_id                  = aws_vpc.sparta_vpc.id
+  cidr_block              = var.public_subnet_cidrs[count.index]
+  availability_zone       = var.availability_zones[count.index]
+  map_public_ip_on_launch = true # Needed for NAT Gateway and potential bastion hosts
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-public-subnet-${var.availability_zones[count.index]}"
+    Tier = "public"
+  })
+}
+
+# Create private subnets across multiple AZs
+resource "aws_subnet" "sparta_private_subnets" {
+  count             = length(var.availability_zones)
+  vpc_id            = aws_vpc.sparta_vpc.id
+  cidr_block        = var.private_subnet_cidrs[count.index]
+  availability_zone = var.availability_zones[count.index]
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-private-subnet-${var.availability_zones[count.index]}"
+    Tier = "private"
+  })
+}
+
+# Create an Internet Gateway (IGW)
+resource "aws_internet_gateway" "sparta_igw" {
+  vpc_id = aws_vpc.sparta_vpc.id
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-igw"
+  })
+}
+
+# Allocate an Elastic IP for the NAT Gateway
+resource "aws_eip" "nat_eip" {
+  domain = "vpc" # Changed from `vpc = true` for newer provider versions
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-nat-eip"
+  })
+}
+
+# Create a NAT Gateway in the first public subnet
+resource "aws_nat_gateway" "sparta_nat_gw" {
+  allocation_id = aws_eip.nat_eip.id
+  subnet_id     = aws_subnet.sparta_public_subnets[0].id # Place NAT GW in the first public subnet
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-nat-gw"
+  })
+
+  depends_on = [aws_internet_gateway.sparta_igw]
+}
+
+# Create a public route table
+resource "aws_route_table" "sparta_public_rt" {
+  vpc_id = aws_vpc.sparta_vpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.sparta_igw.id
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-public-rt"
+  })
+}
+
+# Associate public subnets with the public route table
+resource "aws_route_table_association" "sparta_public_rta" {
+  count          = length(var.availability_zones)
+  subnet_id      = aws_subnet.sparta_public_subnets[count.index].id
+  route_table_id = aws_route_table.sparta_public_rt.id
+}
+
+# Create a private route table
+resource "aws_route_table" "sparta_private_rt" {
+  vpc_id = aws_vpc.sparta_vpc.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.sparta_nat_gw.id
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-private-rt"
+  })
+}
+
+# Associate private subnets with the private route table
+resource "aws_route_table_association" "sparta_private_rta" {
+  count          = length(var.availability_zones)
+  subnet_id      = aws_subnet.sparta_private_subnets[count.index].id
+  route_table_id = aws_route_table.sparta_private_rt.id
+}
+
+
+# =============================================================================
+# Security Groups
+# =============================================================================
+
+# Security Group for the Application Load Balancer (ALB)
+resource "aws_security_group" "alb_sg" {
+  name        = "${local.resource_prefix}-alb-sg"
+  description = "Allow HTTP/HTTPS inbound traffic to ALB"
+  vpc_id      = aws_vpc.sparta_vpc.id
+
+  ingress {
+    description = "Allow HTTP from anywhere"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow HTTPS from anywhere"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-alb-sg"
+  })
+}
+
+# Security Group for the API ECS Service (Fargate)
+resource "aws_security_group" "api_service_sg" {
+  name        = "${local.resource_prefix}-api-service-sg"
+  description = "Allow inbound traffic from ALB to API service"
+  vpc_id      = aws_vpc.sparta_vpc.id
+
+  ingress {
+    description     = "Allow traffic from ALB"
+    from_port       = var.api_port # Port the container listens on (e.g., 3000)
+    to_port         = var.api_port
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb_sg.id] # Only allow traffic from the ALB SG
+  }
+
+  egress {
+    description = "Allow all outbound traffic (for NAT GW)"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-api-service-sg"
+  })
+}
+
+# =============================================================================
+# IAM Roles & Policies
+# =============================================================================
+
+# IAM Role for ECS Task Execution (used by ECS Agent to pull images, write logs)
 resource "aws_iam_role" "ecs_task_execution_role" {
-  name = "ecs_task_execution_role-${var.environment}"
+  name = "${local.resource_prefix}-ecs-task-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17",
     Statement = [{
-      Action = "sts:AssumeRole",
-      Principal = {
-        Service = "ecs-tasks.amazonaws.com",
-      },
-      Effect = "Allow",
-      Sid    = "",
+      Action    = "sts:AssumeRole",
+      Effect    = "Allow",
+      Principal = { Service = "ecs-tasks.amazonaws.com" },
     }]
   })
+  tags = local.common_tags
 }
 
 resource "aws_iam_role_policy_attachment" "ecs_task_execution_policy" {
   role       = aws_iam_role.ecs_task_execution_role.name
+  # Standard AWS managed policy for basic ECS task execution needs
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
-# Add CloudWatch logs permissions
-resource "aws_iam_role_policy" "cloudwatch_logs_policy" {
-  name = "cloudwatch-logs-policy-${var.environment}"
-  role = aws_iam_role.ecs_task_execution_role.id
+# IAM Role for API ECS Task (used by the application container)
+resource "aws_iam_role" "api_task_role" {
+  name = "${local.resource_prefix}-api-task-role"
 
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "logs:CreateLogGroup",
-          "logs:CreateLogStream",
-          "logs:PutLogEvents",
-          "logs:DescribeLogStreams"
-        ]
-        Resource = [
-          "arn:aws:logs:${var.aws_region}:*:log-group:/fargate/service/${var.environment}/sparta-discord-bot:*",
-          "arn:aws:logs:${var.aws_region}:*:log-group:/fargate/service/${var.environment}/sparta-discord-bot:*:*"
-        ]
-      }
-    ]
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action    = "sts:AssumeRole",
+      Effect    = "Allow",
+      Principal = { Service = "ecs-tasks.amazonaws.com" },
+    }]
   })
+  tags = local.common_tags
 }
 
-# Add ECR pull permissions
-resource "aws_iam_role_policy" "ecr_pull_policy" {
-  name = "ecr_pull_policy-${var.environment}"
-  role = aws_iam_role.ecs_task_execution_role.id
-
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "ecr:GetAuthorizationToken",
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:BatchGetImage"
-        ]
-        Resource = "*"
-      }
-    ]
-  })
-}
-
-# Create ECR Repository
-resource "aws_ecr_repository" "sparta_bot" {
-  name                 = "sparta-bot-${var.environment}"
-  image_tag_mutability = "MUTABLE"
-  force_delete         = true
-
-  image_scanning_configuration {
-    scan_on_push = true
-  }
-}
-
-# Build and push Docker image
-resource "null_resource" "docker_build" {
-  triggers = {
-    always_run = "${timestamp()}"  # This ensures it runs on every apply
-  }
-
-  provisioner "local-exec" {
-    command = <<EOT
-      aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.sparta_bot.repository_url}
-      cd ../
-      docker build -t ${aws_ecr_repository.sparta_bot.repository_url}:latest .
-      docker push ${aws_ecr_repository.sparta_bot.repository_url}:latest
-    EOT
-  }
-}
-
-# DynamoDB table for sessions
-resource "aws_dynamodb_table" "sparta_sessions" {
-  name           = "sparta-sessions-${var.environment}"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "sessionId"
-
-  attribute {
-    name = "sessionId"
-    type = "S"
-  }
-
-  attribute {
-    name = "discordUserId"
-    type = "S"
-  }
-
-  global_secondary_index {
-    name               = "DiscordUserIdIndex"
-    hash_key           = "discordUserId"
-    projection_type    = "ALL"
-  }
-
-  tags = {
-    Environment = var.environment
-    Project     = "sparta"
-  }
-}
-
-# IAM policy for DynamoDB access
+# IAM Policy allowing API Task Role to access DynamoDB
 resource "aws_iam_policy" "dynamodb_access_policy" {
-  name        = "dynamodb-access-policy-${var.environment}"
+  name        = "${local.resource_prefix}-dynamodb-access-policy"
   description = "Policy for accessing DynamoDB sessions table"
 
   policy = jsonencode({
-    Version = "2012-10-17"
+    Version = "2012-10-17",
     Statement = [
       {
-        Effect = "Allow"
+        Effect = "Allow",
         Action = [
           "dynamodb:GetItem",
           "dynamodb:PutItem",
@@ -159,244 +265,410 @@ resource "aws_iam_policy" "dynamodb_access_policy" {
           "dynamodb:Query",
           "dynamodb:Scan",
           "dynamodb:BatchWriteItem"
-        ]
+        ],
+        # Grant access to the table and its indexes
         Resource = [
           aws_dynamodb_table.sparta_sessions.arn,
           "${aws_dynamodb_table.sparta_sessions.arn}/index/*"
         ]
       }
+      # Add statements here if the API needs access to other AWS resources
     ]
   })
+  tags = local.common_tags
 }
 
-# Attach DynamoDB policy to task execution role
-resource "aws_iam_role_policy_attachment" "dynamodb_policy_attachment" {
-  role       = aws_iam_role.ecs_task_execution_role.name
+# Attach DynamoDB policy to the API Task Role
+resource "aws_iam_role_policy_attachment" "api_dynamodb_policy_attachment" {
+  role       = aws_iam_role.api_task_role.name
   policy_arn = aws_iam_policy.dynamodb_access_policy.arn
 }
 
-# Define task definition and service.
-resource "aws_ecs_task_definition" "sparta_discord_bot" {
-  family                   = "sparta-discord-bot-${var.environment}"
+# =============================================================================
+# Database (DynamoDB)
+# =============================================================================
+
+resource "aws_dynamodb_table" "sparta_sessions" {
+  name           = "${local.resource_prefix}-sessions"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "sessionId" # Assuming sessionId is the primary identifier
+
+  attribute {
+    name = "sessionId"
+    type = "S"
+  }
+
+  attribute {
+    name = "discordUserId" # Attribute for the GSI
+    type = "S"
+  }
+
+  # Global Secondary Index to query by Discord User ID
+  global_secondary_index {
+    name               = "DiscordUserIdIndex"
+    hash_key           = "discordUserId"
+    projection_type    = "ALL" # Include all attributes in the index
+    # PAY_PER_REQUEST billing mode applies to GSIs as well
+  }
+
+  # Enable Point-in-Time Recovery for backups
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  # Enable TTL on an attribute (e.g., 'ttl') if sessions should expire automatically
+  # ttl {
+  #   attribute_name = "ttl"
+  #   enabled        = true
+  # }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-sessions-table"
+  })
+}
+
+# =============================================================================
+# Backend Service (API - Express App)
+# =============================================================================
+
+# ECR Repository for the API Docker image
+resource "aws_ecr_repository" "sparta_api" {
+  name                 = "${local.resource_prefix}-api"
+  image_tag_mutability = "MUTABLE" # Or IMMUTABLE for better versioning control
+  force_delete         = true      # Use with caution in production
+
+  image_scanning_configuration {
+    scan_on_push = true
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-api-ecr"
+  })
+}
+
+# --- Docker Build & Push (Local Execution - Replace with CI/CD) ---
+# Note: This runs locally where Terraform is executed. Needs Docker & AWS CLI configured.
+# Requires the execution context to be the workspace root.
+resource "null_resource" "api_docker_build_push" {
+  triggers = {
+    # Trigger on changes to relevant source code or Dockerfile if possible,
+    # otherwise timestamp() forces it on every apply. For now, using timestamp.
+    always_run = timestamp()
+    # Consider adding file hashes here: filemd5("../Dockerfile"), filemd5("../packages/express/src/index.ts"), ...
+  }
+
+  provisioner "local-exec" {
+    # Assumes Terraform is run from the tooling/sparta/terraform directory
+    working_dir = "../../../" # Go up to the root directory containing the main Dockerfile
+    command = <<EOT
+      echo "Logging into ECR..."
+      aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.sparta_api.repository_url}
+      echo "Building API Docker image..."
+      # Make sure the root Dockerfile builds the express app
+      docker build -t ${aws_ecr_repository.sparta_api.repository_url}:latest -f Dockerfile .
+      echo "Pushing API Docker image to ECR..."
+      docker push ${aws_ecr_repository.sparta_api.repository_url}:latest
+      echo "Docker push complete."
+    EOT
+  }
+  depends_on = [aws_ecr_repository.sparta_api]
+}
+# --- End Docker Build & Push ---
+
+# CloudWatch Log Group for the API Service
+resource "aws_cloudwatch_log_group" "sparta_api_logs" {
+  name              = "/ecs/${local.resource_prefix}-api"
+  retention_in_days = 30 # Adjust retention as needed
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-api-logs"
+  })
+}
+
+# ECS Cluster
+resource "aws_ecs_cluster" "sparta_cluster" {
+  name = "${local.resource_prefix}-cluster"
+
+  # Enable Container Insights for monitoring
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-cluster"
+  })
+}
+
+# ECS Task Definition for the API
+resource "aws_ecs_task_definition" "sparta_api" {
+  family                   = "${local.resource_prefix}-api"
   requires_compatibilities = ["FARGATE"]
   network_mode             = "awsvpc"
-  cpu                      = "256"
-  memory                   = "512"
-  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn
+  cpu                      = var.api_cpu       # From variables
+  memory                   = var.api_memory    # From variables
+  execution_role_arn       = aws_iam_role.ecs_task_execution_role.arn # Role for ECS agent
+  task_role_arn            = aws_iam_role.api_task_role.arn           # Role for the application container
+
   container_definitions = jsonencode([
     {
-      name              = "sparta-discord-bot"
-      image             = "${aws_ecr_repository.sparta_bot.repository_url}:latest"
-      essential         = true
-      memoryReservation = 256
+      name      = "${local.resource_prefix}-api-container"
+      image     = "${aws_ecr_repository.sparta_api.repository_url}:latest" # Use the ECR image
+      essential = true
+      # Map the container port
+      portMappings = [
+        {
+          containerPort = var.api_port # e.g., 3000
+          hostPort      = var.api_port # Required for awsvpc mode with ALB
+          protocol      = "tcp"
+        }
+      ]
+      # Configure logging
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          "awslogs-group"         = "/fargate/service/${var.environment}/sparta-discord-bot"
+          "awslogs-group"         = aws_cloudwatch_log_group.sparta_api_logs.name
           "awslogs-region"        = var.aws_region
-          "awslogs-stream-prefix" = "ecs"
-          "awslogs-create-group"  = "true"
+          "awslogs-stream-prefix" = "api" # Prefix for log streams
+          "awslogs-create-group"  = "false" # Group is created above
         }
       }
+      # Pass environment variables needed by the API application
       environment = [
-        {
-          name  = "BOT_TOKEN"
-          value = var.bot_token
-        },
-        {
-          name  = "BOT_CLIENT_ID"
-          value = var.bot_client_id
-        },
-        {
-          name  = "GUILD_ID"
-          value = var.guild_id
-        },
-        {
-          name  = "ETHEREUM_HOST"
-          value = var.ethereum_host
-        },
-        {
-          name  = "MINTER_PRIVATE_KEY"
-          value = var.minter_private_key
-        },
-        {
-          name  = "WITHDRAWER_PRIVATE_KEY"
-          value = var.withdrawer_private_key
-        },
-        {
-          name  = "WITHDRAWER_ADDRESS"
-          value = var.withdrawer_address
-        },
-        {
-          name  = "STAKING_ASSET_HANDLER_ADDRESS"
-          value = var.staking_asset_handler_address
-        },
-        {
-          name  = "L1_CHAIN_ID"
-          value = var.l1_chain_id
-        },
-        {
-          name  = "FUNDER_AMOUNT"
-          value = var.funder_amount
-        },
-        {
-          name  = "FUNDER_ADDRESS_PRIVATE_KEY"
-          value = var.funder_address_private_key
-        },
-        {
-          name  = "MINIMUM_STAKE"
-          value = var.minimum_stake
-        },
-        {
-          name  = "APPROVAL_AMOUNT"
-          value = var.approval_amount
-        },
-        {
-          name  = "GOOGLE_API_KEY"
-          value = var.google_api_key
-        },
-        {
-          name  = "SPREADSHEET_ID"
-          value = var.spreadsheet_id
-        },
-        {
-          name  = "AZTEC_NODE_URL"
-          value = var.aztec_node_url
-        },
-        {
-          name  = "LOG_LEVEL"
-          value = var.log_level
-        },
-        {
-          name  = "LOG_PRETTY_PRINT"
-          value = var.log_pretty_print ? "true" : "false"
-        },
-        {
-          name  = "SESSION_TABLE_NAME"
-          value = aws_dynamodb_table.sparta_sessions.name
-        }
+        { name = "NODE_ENV", value = var.environment }, # Pass environment context
+        { name = "PORT", value = tostring(var.api_port) },
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "SESSION_TABLE_NAME", value = aws_dynamodb_table.sparta_sessions.name },
+        { name = "API_HOST", value = "0.0.0.0" }, # Make sure Express listens on 0.0.0.0 inside container
+        # --- Sensitive Variables ---
+        # Consider using AWS Secrets Manager or Parameter Store for these
+        { name = "BOT_TOKEN", value = var.bot_token },
+        { name = "BOT_CLIENT_ID", value = var.bot_client_id },
+        { name = "GUILD_ID", value = var.guild_id },
+        { name = "ETHEREUM_HOST", value = var.ethereum_host },
+        { name = "MINTER_PRIVATE_KEY", value = var.minter_private_key },
+        { name = "WITHDRAWER_PRIVATE_KEY", value = var.withdrawer_private_key },
+        { name = "WITHDRAWER_ADDRESS", value = var.withdrawer_address },
+        { name = "STAKING_ASSET_HANDLER_ADDRESS", value = var.staking_asset_handler_address },
+        { name = "L1_CHAIN_ID", value = var.l1_chain_id },
+        { name = "GOOGLE_API_KEY", value = var.google_api_key },
+        { name = "SPREADSHEET_ID", value = var.spreadsheet_id },
+        { name = "AZTEC_NODE_URL", value = var.aztec_node_url },
+        { name = "LOG_LEVEL", value = var.log_level },
+        { name = "LOG_PRETTY_PRINT", value = var.log_pretty_print ? "true" : "false" },
+        # Add the public URL for constructing verification links
+        { name = "PUBLIC_FRONTEND_URL", value = var.api_domain_name != "" ? "http://${var.api_domain_name}" : "http://${aws_lb.sparta_alb.dns_name}" }
       ]
+      # secrets = [ # Example using Secrets Manager
+      #   { name = "BOT_TOKEN", valueFrom = "<ARN of Secrets Manager secret for BOT_TOKEN>" }
+      # ]
     }
   ])
 
-  depends_on = [null_resource.docker_build]
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-api-task-def"
+  })
+
+  # Ensure image is pushed before task definition is created/updated
+  depends_on = [null_resource.api_docker_build_push]
 }
 
-resource "aws_ecs_service" "sparta_discord_bot" {
-  name                               = "sparta-discord-bot-${var.environment}"
-  cluster                            = aws_ecs_cluster.sparta_cluster.id
-  launch_type                        = "FARGATE"
-  desired_count                      = 1  # Run one task per AZ
-  deployment_maximum_percent         = 200
-  deployment_minimum_healthy_percent = 100
-  platform_version                   = "1.4.0"
-  
-  task_definition = aws_ecs_task_definition.sparta_discord_bot.arn
+# Application Load Balancer (ALB) for the API
+resource "aws_lb" "sparta_alb" {
+  name               = "${local.resource_prefix}-alb"
+  internal           = false
+  load_balancer_type = "application"
+  security_groups    = [aws_security_group.alb_sg.id]
+  subnets            = aws_subnet.sparta_public_subnets[*].id # Place ALB in public subnets
 
-  network_configuration {
-    subnets          = aws_subnet.sparta_public_subnets[*].id
-    security_groups  = [aws_security_group.sparta_sg.id]
-    assign_public_ip = true
+  enable_deletion_protection = false # Set to true for production
+
+  # access_logs {
+  #   bucket  = aws_s3_bucket.lb_logs.id # Store ALB access logs in S3
+  #   prefix  = "${local.resource_prefix}-alb-logs"
+  #   enabled = true
+  # }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-alb"
+  })
+}
+
+# ALB Target Group for the API ECS Service
+resource "aws_lb_target_group" "api_tg" {
+  name        = "${local.resource_prefix}-api-tg"
+  port        = var.api_port # Port the container listens on
+  protocol    = "HTTP"       # Traffic from ALB to container is HTTP
+  vpc_id      = aws_vpc.sparta_vpc.id
+  target_type = "ip" # Required for Fargate
+
+  health_check {
+    enabled             = true
+    # **IMPORTANT**: Ensure your API has a /health endpoint returning 200 OK
+    # If not, change this path or disable the health check (not recommended)
+    path                = "/health"
+    protocol            = "HTTP"
+    port                = "traffic-port" # Check the container port
+    matcher             = "200"          # Expect HTTP 200 status code
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
   }
 
+  # Stickiness (optional)
+  # stickiness {
+  #   type            = "lb_cookie"
+  #   cookie_duration = 86400 # 1 day
+  #   enabled         = true
+  # }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-api-tg"
+  })
+}
+
+# ALB Listener for HTTP (Port 80) - Forwards to API Target Group
+resource "aws_lb_listener" "http" {
+  load_balancer_arn = aws_lb.sparta_alb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  # Default action: Forward HTTP traffic directly to the API target group
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.api_tg.arn
+  }
+}
+
+# ECS Service for the API
+resource "aws_ecs_service" "sparta_api" {
+  name                               = "${local.resource_prefix}-api-service"
+  cluster                            = aws_ecs_cluster.sparta_cluster.id
+  task_definition                    = aws_ecs_task_definition.sparta_api.arn
+  desired_count                      = var.api_desired_count # From variables (e.g., 2 for HA)
+  launch_type                        = "FARGATE"
+  platform_version                   = "LATEST" # Use the latest Fargate platform version
+
+  network_configuration {
+    subnets          = aws_subnet.sparta_private_subnets[*].id # Run tasks in PRIVATE subnets
+    security_groups  = [aws_security_group.api_service_sg.id] # Attach the service security group
+    assign_public_ip = false # Tasks do not need public IPs
+  }
+
+  # Register service with the ALB Target Group
+  load_balancer {
+    target_group_arn = aws_lb_target_group.api_tg.arn
+    container_name   = "${local.resource_prefix}-api-container" # Must match container name in task def
+    container_port   = var.api_port # Must match container port in task def
+  }
+
+  # depends_on = [aws_lb_listener.https] # REMOVED dependency on HTTPS listener
+  depends_on = [aws_lb_listener.http] # Depend on the HTTP listener
+
+  # Grace period for tasks to start serving traffic before old tasks are stopped
+  health_check_grace_period_seconds = 60
+
+  # Deployment settings
+  deployment_maximum_percent         = 200 # Allow double the desired count during deployments
+  deployment_minimum_healthy_percent = 50  # Keep at least 50% running during deployments
+
+  # Enable ECS Service Connect or Service Discovery if needed for internal communication
+
+  # Enable deployment circuit breaker with rollback
   deployment_circuit_breaker {
     enable   = true
     rollback = true
   }
 
-  deployment_controller {
-    type = "ECS"
-  }
-
-  depends_on = [
-    aws_iam_role_policy_attachment.ecs_task_execution_policy
-  ]
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-api-service"
+  })
 }
 
-# Logs
-resource "aws_cloudwatch_log_group" "sparta_discord_bot_logs" {
-  name              = "/fargate/service/${var.environment}/sparta-discord-bot"
-  retention_in_days = 14
+# Auto Scaling for the API ECS Service (Optional but Recommended)
+resource "aws_appautoscaling_target" "api_scaling_target" {
+  max_capacity       = 4 # Maximum number of tasks
+  min_capacity       = var.api_desired_count # Minimum number of tasks (matches desired_count initially)
+  resource_id        = "service/${aws_ecs_cluster.sparta_cluster.name}/${aws_ecs_service.sparta_api.name}"
+  scalable_dimension = "ecs:service:DesiredCount"
+  service_namespace  = "ecs"
 }
 
-resource "aws_ecs_cluster" "sparta_cluster" {
-  name = "sparta-cluster-${var.environment}"
-}
+# Scale based on CPU Utilization
+resource "aws_appautoscaling_policy" "api_scale_cpu" {
+  name               = "${local.resource_prefix}-scale-cpu"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.api_scaling_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.api_scaling_target.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.api_scaling_target.service_namespace
 
-# Create a VPC
-resource "aws_vpc" "sparta_vpc" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_hostnames = true
-  enable_dns_support   = true
-  
-  tags = {
-    Name = "sparta-vpc"
-  }
-}
-
-# Create public subnets across multiple AZs
-resource "aws_subnet" "sparta_public_subnets" {
-  count             = 1
-  vpc_id            = aws_vpc.sparta_vpc.id
-  cidr_block        = "10.0.1.0/24"
-  availability_zone = "eu-west-2a"
-  map_public_ip_on_launch = true
-  
-  tags = {
-    Name = "sparta-public-subnet-1"
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageCPUUtilization"
+    }
+    target_value       = 75.0 # Target average CPU utilization (scale out if higher)
+    scale_in_cooldown  = 300  # Cooldown period (seconds) before scaling in
+    scale_out_cooldown = 60   # Cooldown period (seconds) before scaling out again
   }
 }
 
-# Create an internet gateway
-resource "aws_internet_gateway" "sparta_igw" {
-  vpc_id = aws_vpc.sparta_vpc.id
-  tags = {
-    Name = "sparta-igw"
+# Scale based on Memory Utilization (Optional)
+resource "aws_appautoscaling_policy" "api_scale_memory" {
+  name               = "${local.resource_prefix}-scale-memory"
+  policy_type        = "TargetTrackingScaling"
+  resource_id        = aws_appautoscaling_target.api_scaling_target.resource_id
+  scalable_dimension = aws_appautoscaling_target.api_scaling_target.scalable_dimension
+  service_namespace  = aws_appautoscaling_target.api_scaling_target.service_namespace
+
+  target_tracking_scaling_policy_configuration {
+    predefined_metric_specification {
+      predefined_metric_type = "ECSServiceAverageMemoryUtilization"
+    }
+    target_value       = 75.0 # Target average Memory utilization
+    scale_in_cooldown  = 300
+    scale_out_cooldown = 60
   }
 }
 
-# Create a route table
-resource "aws_route_table" "sparta_public_rt" {
-  vpc_id = aws_vpc.sparta_vpc.id
-  route {
-    cidr_block = "0.0.0.0/0"
-    gateway_id = aws_internet_gateway.sparta_igw.id
-  }
-  tags = {
-    Name = "sparta-public-rt"
-  }
-}
+# =============================================================================
+# DNS (Optional - Requires Route 53 Hosted Zone)
+# =============================================================================
 
-# Create route table associations for all subnets
-resource "aws_route_table_association" "sparta_public_rta" {
-  count          = 1
-  subnet_id      = aws_subnet.sparta_public_subnets[0].id
-  route_table_id = aws_route_table.sparta_public_rt.id
-}
+# data "aws_route53_zone" "primary" {
+#   count = var.api_domain_name != "" || var.frontend_domain_name != "" ? 1 : 0
+#   # Assumes you have a hosted zone configured in Route 53
+#   # Example: name = "yourdomain.com." # Your domain name with trailing dot
+#   name         = "<YOUR_HOSTED_ZONE_NAME>." # Replace with your hosted zone name
+#   private_zone = false
+# }
 
-# Create a security group
-resource "aws_security_group" "sparta_sg" {
-  name        = "sparta-sg"
-  description = "Security group for Sparta Discord bot"
-  vpc_id      = aws_vpc.sparta_vpc.id
+# # Route 53 Alias record for the API (ALB)
+# resource "aws_route53_record" "api" {
+#   count = var.api_domain_name != "" ? 1 : 0
 
-  # Allow inbound HTTPS
-  ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   zone_id = data.aws_route53_zone.primary[0].zone_id
+#   name    = var.api_domain_name
+#   type    = "A"
 
-  # Allow all outbound traffic
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+#   alias {
+#     name                   = aws_lb.sparta_alb.dns_name
+#     zone_id                = aws_lb.sparta_alb.zone_id
+#     evaluate_target_health = true # Route traffic based on ALB health checks
+#   }
+# }
 
-  tags = {
-    Name = "sparta-sg"
-  }
-}
+# # Route 53 Alias record for the Frontend (CloudFront)
+# resource "aws_route53_record" "frontend" {
+#   count = var.frontend_domain_name != "" ? 1 : 0
+
+#   zone_id = data.aws_route53_zone.primary[0].zone_id
+#   name    = var.frontend_domain_name
+#   type    = "A"
+
+#   alias {
+#     name                   = aws_cloudfront_distribution.frontend_distribution.domain_name
+#     zone_id                = aws_cloudfront_distribution.frontend_distribution.hosted_zone_id
+#     evaluate_target_health = false # Cannot evaluate health for CloudFront aliases
+#   }
+# } 

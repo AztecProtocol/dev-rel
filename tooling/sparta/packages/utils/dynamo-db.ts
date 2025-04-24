@@ -28,6 +28,7 @@ export interface Session {
   createdAt: number; // Timestamp (ms) for expiration
   lastScoreTimestamp: number | null; // Timestamp when the score was last updated
   status: string; // Current status of the verification process
+  interactionToken?: string; // Added: Token for editing the original Discord interaction reply
 }
 
 export const SESSION_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes session validity
@@ -208,16 +209,19 @@ class DynamoDBService {
    * Creates a new session.
    * @param sessionId A unique ID for the session.
    * @param discordUserId The Discord user ID associated with the session.
+   * @param interactionToken The token from the original Discord interaction.
    * @returns The created session object or undefined if creation failed.
    */
   public async createSession(
     sessionId: string,
-    discordUserId: string
+    discordUserId: string,
+    interactionToken: string
   ): Promise<Session | undefined> {
     try {
       logger.info({ 
         sessionId, 
         discordUserId, 
+        interactionToken,
         isLocal: this.isLocal, 
         tableName: this.tableName,
         endpoint: this.isLocal ? process.env.DYNAMODB_LOCAL_ENDPOINT : "AWS DynamoDB" 
@@ -243,6 +247,7 @@ class DynamoDBService {
         createdAt: Date.now(),
         lastScoreTimestamp: null,
         status: "pending", // Initial status
+        interactionToken,
       };
       
       logger.debug({ sessionId, session: newSession }, "Preparing to send PutCommand");

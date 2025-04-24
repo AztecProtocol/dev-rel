@@ -16,6 +16,9 @@ import {
 } from "@sparta/utils/const.js";
 // Import necessary types from discord.js
 import type { Guild, Role, GuildMember } from 'discord.js';
+// Import REST and Routes for editing interactions
+import { REST } from '@discordjs/rest';
+import { Routes } from 'discord-api-types/v10';
 
 /**
  * Discord service class for role management and user operations
@@ -264,6 +267,37 @@ export class DiscordService {
 			// Type the caught error
 			const errorMessage = error instanceof Error ? error.message : String(error);
 			logger.error({ error: errorMessage }, "Error assigning role");
+			return false;
+		}
+	}
+
+	/**
+	 * Edits the original interaction reply message.
+	 * 
+	 * @param interactionToken The token of the original interaction.
+	 * @param content The new content for the message (can include embeds, components).
+	 * @returns {Promise<boolean>} True if the edit was successful, false otherwise.
+	 */
+	public async editInteractionReply(interactionToken: string, content: any): Promise<boolean> {
+		const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN!); // Ensure BOT_TOKEN is set
+		const clientId = process.env.BOT_CLIENT_ID;
+
+		if (!clientId) {
+			logger.error("BOT_CLIENT_ID environment variable is not set. Cannot edit interaction reply.");
+			return false;
+		}
+
+		try {
+			logger.info({ interactionToken }, "Attempting to edit interaction reply.");
+			await rest.patch(
+				Routes.webhookMessage(clientId, interactionToken),
+				{ body: content } // content should be an object like { embeds: [], components: [] }
+			);
+			logger.info({ interactionToken }, "Successfully edited interaction reply.");
+			return true;
+		} catch (error: any) {
+			logger.error({ error: error.message, interactionToken }, "Failed to edit interaction reply");
+			// Common errors: Unknown interaction (token expired/invalid), Missing Permissions
 			return false;
 		}
 	}

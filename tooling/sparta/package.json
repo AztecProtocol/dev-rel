@@ -15,6 +15,7 @@
     "typescript": "^5.8.3"
   },
   "scripts": {
+    "build:webapp": "bun --elide-lines=0 --filter='@sparta/webapp' run build",
     "dev:webapp": "bun --elide-lines=0 --filter='@sparta/webapp' run dev",
     "dev:api": "bun --elide-lines=0 --filter='@sparta/api' run dev"
   },

@@ -22,6 +22,7 @@ interface VerificationStepProps {
 	buttonDisabled?: boolean;
 	isLoading?: boolean;
 	result?: VerificationResult; // Keep original result prop
+	completedContent?: React.ReactNode; // Added prop for custom completed content
 	// details?: ReactNode; // Comment out details as it wasn't in original props
 }
 
@@ -36,6 +37,7 @@ const VerificationStep: React.FC<VerificationStepProps> = ({
 	buttonDisabled = false,
 	isLoading = false,
 	result, // Keep original result prop
+	completedContent, // Added prop for custom completed content
 	// details, // Comment out details
 }) => {
 	const stepClass = `step ${isActive ? "active" : ""} ${
@@ -45,13 +47,23 @@ const VerificationStep: React.FC<VerificationStepProps> = ({
 	return (
 		<div className={stepClass}>
 			<h3>{title}</h3>
-			<p>{description}</p>
 
-			{showButton && (
-				<button onClick={onButtonClick} disabled={buttonDisabled}>
-					{isLoading && <span className="spinner"></span>}
-					{buttonText}
-				</button>
+			{/* Conditionally render completed content or original description/button */} 
+			{isCompleted && completedContent ? (
+				<div className="step-completed-content">{completedContent}</div>
+			) : (
+				<>
+					<p>{description}</p>
+					{showButton && (
+						<button onClick={onButtonClick} disabled={buttonDisabled || isLoading} >
+							{isLoading ? (
+								<><span className="spinner"></span> Signing...</>
+							) : (
+								buttonText
+							)}
+						</button>
+					)}
+				</>
 			)}
 
 			{result && (

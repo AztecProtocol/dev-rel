@@ -49,7 +49,8 @@ export async function handleVerifyCommand(
 
 		// Call the Express API to create a session
 		const response = await API.post(`/create-session`, {
-			userId
+			userId,
+			interactionToken: interaction.token
 		});
 
 		if (!response.data.success) {

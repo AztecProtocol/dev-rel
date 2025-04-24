@@ -56,3 +56,12 @@ output "cloudwatch_log_group" {
   description = "Name of the CloudWatch log group"
   value       = aws_cloudwatch_log_group.sparta_discord_bot_logs.name
 }
+
+output "alb_zone_id" {
+  description = "Zone ID of the Application Load Balancer (for Route53 Alias records)"
+  value       = aws_lb.sparta_alb.zone_id
+}
+
+# output "alb_listener_arn" { ... } # REMOVED - No HTTPS listener
+
+# --- Frontend Outputs Removed ---

@@ -143,3 +143,16 @@ variable "log_pretty_print" {
   type        = bool
   default     = true
 }
+
+variable "private_subnet_cidrs" {
+  description = "List of CIDR blocks for private subnets (must match number of AZs)"
+  type        = list(string)
+  default     = ["10.10.101.0/24", "10.10.102.0/24"]
+}
+
+# variable "acm_certificate_arn" { ... } # REMOVED - Not needed for HTTP-only setup
+
+variable "api_domain_name" {
+  description = "Domain name for the API"
+  type        = string
+}
