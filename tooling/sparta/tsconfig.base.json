@@ -1,0 +1,46 @@
+{
+  "compilerOptions": {
+    /* Base Options */
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "target": "ESNext", // Target modern ECMAScript features
+    "verbatimModuleSyntax": true, // Recommended for Node.js ESM
+    "allowJs": true, // Allow JavaScript files to be compiled
+    "resolveJsonModule": true, // Include modules imported with .json extension
+    "moduleDetection": "force", // Treat files without imports/exports as modules
+    "isolatedModules": true, // Ensure files can be safely transpiled without relying on other imports
+
+    /* Strictness */
+    "strict": true, // Enable all strict type-checking options
+    "noUncheckedIndexedAccess": true, // Add 'undefined' to index signatures
+    "noImplicitAny": true, // Raise error on expressions and declarations with an implied 'any' type.
+    "strictNullChecks": true, // Enable strict null checks
+    "noImplicitThis": true, // Raise error on 'this' expressions with an implied 'any' type.
+    "useUnknownInCatchVariables": true, // Type catch clause variables as 'unknown' instead of 'any'
+
+    /* Module Resolution */
+    "module": "ESNext", // Specify module code generation
+    "moduleResolution": "Bundler", // Use bundler-like module resolution (aligns with Vite/modern tooling)
+    "baseUrl": ".", // Base directory to resolve non-relative module names
+    "paths": { // Define path aliases for workspace packages
+      "@sparta/utils/*": ["./packages/utils/*"],
+      "@sparta/express/*": ["./packages/express/src/*"], // Point directly to src
+      "@sparta/vite/*": ["./packages/vite/src/*"] // Point directly to src
+    },
+
+    /* Linting */
+    "noUnusedLocals": true, // Report errors on unused local variables
+    "noUnusedParameters": true, // Report errors on unused parameters
+    "noFallthroughCasesInSwitch": true, // Report errors for fallthrough cases in switch statement
+    "noImplicitReturns": true, // Report error when not all code paths in function return a value
+
+    /* Output */
+    "noEmit": true, // Do not emit output files (used for type checking)
+    "declaration": true, // Generate corresponding '.d.ts' file.
+    "declarationMap": true, // Generate a sourcemap for each corresponding '.d.ts' file.
+    "sourceMap": true, // Generate corresponding '.map' file.
+    "composite": true, // Enable project compilation (required for project references)
+    "incremental": true // Enable incremental compilation
+  },
+  "exclude": ["node_modules", "**/dist", "**/build"] // Exclude build outputs and node_modules
+} 

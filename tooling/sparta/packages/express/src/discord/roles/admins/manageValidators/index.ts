@@ -6,7 +6,7 @@ import {
 } from "discord.js";
 import { getCommittee } from "./getCommittee.js";
 import { getValidators } from "./getValidators.js";
-import { fund } from "./fund.js";
+// import { fund } from "./fund.js"; // Unused
 import { AdminSubcommands } from "@sparta/utils";
 
 export default {
@@ -38,16 +38,17 @@ export default {
 			const subcommand = interaction.options.getSubcommand();
 			switch (subcommand) {
 				case AdminSubcommands.Committee:
-					await getCommittee(interaction);
-					break;
+					return getCommittee(interaction);
 				case AdminSubcommands.Validators:
-					await getValidators(interaction);
-					break;
+					return getValidators(interaction);
+				// case AdminSubcommands.Fund:
+				//   return fund(interaction);
 				default:
-					await interaction.editReply({
-						content: `Invalid subcommand: ${subcommand}`,
+					await interaction.reply({
+						content: "Unknown admin validator subcommand.",
+						ephemeral: true,
 					});
-					return "Invalid subcommand";
+					return;
 			}
 		} catch (error) {
 			await interaction.editReply({

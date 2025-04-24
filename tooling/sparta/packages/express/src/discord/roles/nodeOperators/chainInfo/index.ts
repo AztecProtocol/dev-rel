@@ -1,13 +1,15 @@
 import {
 	SlashCommandBuilder,
 	ChatInputCommandInteraction,
-	MessageFlags,
+	// EmbedBuilder, // Unused
+	// MessageFlags, // Already commented out
 } from "discord.js";
 import {
 	NodeOperatorSubcommandGroups,
 	NodeOperatorSubcommands,
 } from "@sparta/utils";
 import { get } from "./get.js";
+import { logger } from "@sparta/utils";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -31,13 +33,15 @@ export default {
 					});
 					return "Invalid subcommand";
 			}
+			// Add explicit return after successful command execution
+			return;
 		} catch (error) {
+			logger.error("Failed to fetch chain info:", error);
+			// Cannot make editReply ephemeral, only initial reply
 			await interaction.editReply({
-				content: `Failed with error: ${error}`,
+				content: "Something went wrong while fetching chain info.",
 			});
-			return `Failed with error: ${
-				error instanceof Error && error.message
-			}`;
+			return; // Keep explicit return
 		}
 	},
 };

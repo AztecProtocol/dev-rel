@@ -1,16 +1,14 @@
 import { ChatInputCommandInteraction } from "discord.js";
-import { validateAddress } from "@sparta/utils";
-import { createWalletClient, http, parseEther, Hex } from "viem"; // Import viem utils
+import { validateAddressFromInteraction } from "@sparta/utils/inputValidator.js";
+import { createWalletClient, http, parseEther } from "viem"; // Import viem utils
+import type { Hex } from "viem"; // Explicitly import Hex as type
 import { privateKeyToAccount } from "viem/accounts"; // Import account utils
 import { ethereumChain } from "@sparta/utils/ethereum"; // Import chain config
 import { logger } from "@sparta/utils"; // Import logger
 
-export const fund = async (interaction: ChatInputCommandInteraction) => {
-	const address = validateAddress(interaction);
-	if (typeof address !== "string") {
-		await interaction.editReply({ content: `Invalid address provided.` });
-		return `Invalid address`;
-	}
+export async function fundValidators(interaction: ChatInputCommandInteraction) {
+	const address = validateAddressFromInteraction(interaction);
+	if (!address) return;
 
 	try {
 		logger.info({ address }, "Attempting to fund address via admin command");

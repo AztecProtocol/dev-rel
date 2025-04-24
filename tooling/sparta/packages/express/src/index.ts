@@ -2,8 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import passportRoutes from './routes/passport-routes.js';
 import { swaggerSpec, swaggerUi } from './swagger.js';
-import { dynamoDB } from "@sparta/utils";
-import DiscordService from './discord/services/discord-service.js';
+// import { dynamoDB } from "@sparta/utils"; // Unused
 import { discord } from './discord/clients/discord.js';
 import { logger } from '@sparta/utils';
 
@@ -19,7 +18,7 @@ const allowedOrigins = [
 ];
 
 // Debug middleware to log all requests
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
   console.log(`${new Date().toISOString()} | ${req.method} ${req.url} | Origin: ${req.headers.origin || 'No origin'}`);
   next();
 });
@@ -55,7 +54,7 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
 }));
 
 // Serve the Swagger spec as JSON
-app.get('/api-docs.json', (req, res) => {
+app.get('/api-docs.json', (_req, res) => {
   res.setHeader('Content-Type', 'application/json');
   res.send(swaggerSpec);
 });
@@ -64,7 +63,7 @@ app.get('/api-docs.json', (req, res) => {
 app.use('/api', passportRoutes);
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 

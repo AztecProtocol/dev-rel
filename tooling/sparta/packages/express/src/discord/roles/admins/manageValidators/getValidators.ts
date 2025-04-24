@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction } from "discord.js";
-import { paginate } from "@sparta/utils";
+import { paginate } from "@sparta/utils/paginate.js";
 import { ADDRESSES_PER_PAGE } from "@sparta/utils";
 import { ChainInfoService } from "../../../services/chaininfo-service.js";
 

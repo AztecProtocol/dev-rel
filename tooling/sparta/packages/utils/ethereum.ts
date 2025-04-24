@@ -5,23 +5,23 @@
  */
 
 import {
+	type Chain,
+	type Hex,
+	// type PublicClient, // Unused
+	// type TransactionReceipt, // Unused
+	// type WalletClient, // Unused
 	createPublicClient,
-	createWalletClient,
-	encodeDeployData,
 	getContract,
-	getCreate2Address,
 	http,
+	// parseEther, // Unused
+	encodeDeployData,
+	getCreate2Address,
 	padHex,
-	toHex,
-	TransactionReceipt,
-	WalletClient,
 } from "viem";
 
-import { privateKeyToAccount } from "viem/accounts";
-import type { Hex, Chain } from "viem"; // Import Chain type
-import { RollupAbi, ForwarderAbi, StakingAssetHandlerAbi } from "./abis/index.ts"; // Explicitly import from index.ts
-import { ForwarderBytecode } from "./bytecode/ForwarderBytecode.js"; // Import directly from forwarder.ts
-import { logger } from "./logger.ts"; // Use relative path
+import { RollupAbi, ForwarderAbi, StakingAssetHandlerAbi } from "./abis";
+import { ForwarderBytecode } from "./bytecode/ForwarderBytecode.js";
+import { logger } from "./logger";
 
 export const DEPLOYER_ADDRESS: Hex =
 	"0x4e59b44847b379578588920cA78FbF26c0B4956C";

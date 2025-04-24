@@ -1,42 +1,39 @@
 import React, { useEffect, useState } from "react";
 import VerificationStep from "./VerificationStep.jsx";
-import { useAppKitAccount, useDisconnect, useAppKit } from "@reown/appkit/react";
-import { useAccount } from 'wagmi'
+import {
+	useAppKit,
+	useAppKitAccount,
+	// useDisconnect, // Unused
+} from "@reown/appkit/react";
+import { useAccount } from 'wagmi';
 import { useSignMessage } from 'wagmi'
 import axios from 'axios';
+import { VERIFICATION_MESSAGE, type SessionData } from "@sparta/utils";
 
 // Standard verification message - must match backend constant
-const VERIFICATION_MESSAGE = "Verify wallet ownership for Aztec Discord";
+// const VERIFICATION_MESSAGE = "Verify wallet ownership for Aztec Discord";
 
-interface VerificationResult {
-	success?: boolean;
-	inProgress?: boolean;
-	message: string;
-	score?: number;
-	minimumScore?: number;
-	details?: string;
-}
-
-interface SessionData {
-	sessionId: string;
-	walletConnected: boolean;
-	walletAddress: string | null;
-	verified: boolean;
-	status: string;
-	score: number | null;
-	lastScoreTimestamp: number | null;
-}
+// interface SessionData {
+// 	sessionId: string;
+// 	walletConnected: boolean;
+// 	walletAddress: string | null;
+// 	verified: boolean;
+// 	status: string;
+// 	score: number | null;
+// 	lastScoreTimestamp: number | null;
+// }
 
 const PassportVerificationApp: React.FC = () => {
 	// State variables
+	// const [isLoading, setIsLoading] = useState(false);
+	// const [error, setError] = useState<string | null>(null);
 	const [sessionId, setSessionId] = useState<string | null>(null);
 	const [sessionData, setSessionData] = useState<SessionData | null>(null);
-	const [verificationResult, setVerificationResult] =
-		useState<VerificationResult | null>(null);
+	// const [verificationResult, _setVerificationResult] = useState<VerificationResult | null>(null); // State unused
 
 	const { isConnected } = useAppKitAccount();
-	const { disconnect } = useDisconnect();
-	const { open, close } = useAppKit();
+	// const { disconnect } = useDisconnect(); // Unused
+	const { open /*, close */ } = useAppKit(); // close unused
 	const { address } = useAccount();
 	const { data: signature, signMessage } = useSignMessage();
 
@@ -125,7 +122,6 @@ const PassportVerificationApp: React.FC = () => {
 
 				<div className="steps">
 					<VerificationStep
-						number={1}
 						title="Connect Wallet"
 						description="Connect your Ethereum wallet to begin the verification process."
 						isActive={!isConnected || !address}
@@ -137,7 +133,6 @@ const PassportVerificationApp: React.FC = () => {
 					/>
 
 					<VerificationStep
-						number={2}
 						title="Sign Message"
 						description="Sign a message to verify your wallet ownership and complete the verification."
 						isActive={isConnected && !!address}

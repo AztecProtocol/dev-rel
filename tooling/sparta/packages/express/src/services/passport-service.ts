@@ -5,7 +5,7 @@
  */
 
 import axios from "axios";
-import { logger, dynamoDB } from "@sparta/utils";
+import { logger /*, dynamoDB */ } from "@sparta/utils";
 import { MINIMUM_SCORE, HIGH_SCORE_THRESHOLD } from "@sparta/utils/const.js";
 /**
  * Configuration for the Passport service

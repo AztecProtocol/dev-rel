@@ -54,7 +54,7 @@ export const STATUS_VERIFICATION_ERROR = 'verification_error'; // Generic error 
 export const STATUS_SESSION_EXPIRED = 'expired';
 export const STATUS_SESSION_USED = 'used'; // Session successfully used for verification/status check
 
+// Verification Message
+export const VERIFICATION_MESSAGE = "Verify wallet ownership for Aztec Discord";
+
 // Removed old status constants related to background queue
-// export const PENDING_ROLE_STATUS = 'pending_role_assignment'; 
-// export const ROLE_ASSIGNED_STATUS = 'verified_role_assigned';
-// export const ROLE_FAILED_STATUS = 'verified_role_failed'; 

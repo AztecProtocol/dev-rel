@@ -4,15 +4,26 @@
  * @module sparta/express/routes/passport-routes
  */
 
-import express, { type Request, type Response, NextFunction } from "express";
+import express, { type Request, type Response, type NextFunction } from "express";
 import { PassportService } from "../services/passport-service.js";
 import { logger, dynamoDB } from "@sparta/utils/index.js";
 import { randomUUID } from "crypto";
-import { recoverMessageAddress } from "viem";
-import { DeleteCommand } from "@aws-sdk/lib-dynamodb";
-import { Session } from "@sparta/utils/dynamo-db"; // Corrected Session import
+import { recoverMessageAddress, type Hex } from "viem";
+// import { DeleteCommand } from "@aws-sdk/lib-dynamodb"; // Unused
+import type { Session } from "@sparta/utils/dynamo-db";
 import DiscordService from "../discord/services/discord-service.js"; // Import DiscordService
-import { MINIMUM_SCORE, HIGH_SCORE_THRESHOLD, STATUS_SCORE_RETRIEVED, STATUS_VERIFIED_COMPLETE, STATUS_VERIFICATION_FAILED_SCORE, STATUS_VERIFICATION_ERROR, STATUS_SESSION_USED, STATUS_WALLET_CONNECTED, STATUS_SIGNATURE_RECEIVED } from "@sparta/utils/const.js"; // Import status constants
+import {
+	MINIMUM_SCORE,
+	HIGH_SCORE_THRESHOLD,
+	STATUS_SCORE_RETRIEVED,
+	STATUS_VERIFIED_COMPLETE,
+	STATUS_VERIFICATION_FAILED_SCORE,
+	STATUS_VERIFICATION_ERROR,
+	// STATUS_SESSION_USED, // Unused
+	// STATUS_WALLET_CONNECTED, // Unused
+	STATUS_SIGNATURE_RECEIVED,
+	VERIFICATION_MESSAGE, // Import shared constant
+} from "@sparta/utils/const.js"; // Import status constants
 
 const WEBAPP_URL = `${process.env.WEBAPP_HOST}:${process.env.WEBAPP_PORT}` || `http://localhost:5173`;
 // Augment Express Request type to include session property
@@ -28,9 +39,104 @@ const router = express.Router();
 const passportService = PassportService.getInstance();
 const discordService = DiscordService.getInstance(); // Get instance
 
+// --- Helper Functions for /verify --- 
+
+/**
+ * Recovers address from signature and updates session.
+ * Throws error if recovery fails.
+ */
+async function _handleSignatureRecovery(sessionId: string, signature: Hex): Promise<Hex> {
+	try {
+		const recoveredAddress = await recoverMessageAddress({
+			message: VERIFICATION_MESSAGE,
+			signature: signature,
+		});
+
+		await dynamoDB.updateSession(sessionId, {
+			walletAddress: recoveredAddress,
+			signature: signature,
+			status: STATUS_SIGNATURE_RECEIVED,
+		});
+		logger.info({ sessionId, address: recoveredAddress }, "Signature received and wallet address recovered.");
+		return recoveredAddress;
+	} catch (error: any) {
+		logger.error({ error: error.message, sessionId }, "Error recovering address from signature.");
+		// Rethrow or handle more specifically if needed
+		throw new Error("Failed to verify signature."); 
+	}
+}
+
+interface ScoringResult {
+	score: number;
+	verified: boolean;
+	lastScoreTimestamp: number;
+}
+/**
+ * Gets passport score, updates session, and determines verification status.
+ * Throws error if scoring fails.
+ */
+async function _handleScoring(sessionId: string, address: Hex): Promise<ScoringResult> {
+	const scoreResponse = await passportService.getScore(address);
+
+	if (!scoreResponse) {
+		logger.error({ sessionId, address }, "Failed to retrieve passport score.");
+		await dynamoDB.updateSession(sessionId, { status: STATUS_VERIFICATION_ERROR });
+		throw new Error("Failed to retrieve passport score.");
+	}
+
+	// Basic validation/parsing (consider more robust parsing if needed)
+	const score = parseFloat(scoreResponse.score); 
+	if (isNaN(score)) {
+		logger.error({ sessionId, address, scoreResponse }, "Invalid score format received.");
+		await dynamoDB.updateSession(sessionId, { status: STATUS_VERIFICATION_ERROR });
+		throw new Error("Invalid score format received from passport service.");
+	}
+
+	const lastScoreTimestamp = scoreResponse.last_score_timestamp
+		? new Date(scoreResponse.last_score_timestamp).getTime()
+		: Date.now();
+
+	const verified = score >= MINIMUM_SCORE;
+
+	await dynamoDB.updateSession(sessionId, {
+		score,
+		lastScoreTimestamp,
+		verified,
+		status: STATUS_SCORE_RETRIEVED,
+	});
+
+	logger.info(
+		{ sessionId, address, score, verified },
+		"Passport score retrieved."
+	);
+	return { score, verified, lastScoreTimestamp };
+}
+
+/**
+ * Attempts to assign Discord roles based on score.
+ * Returns true if successful, false otherwise (logs errors).
+ */
+async function _handleRoleAssignment(sessionId: string, discordUserId: string, score: number): Promise<boolean> {
+	logger.info({ sessionId, userId: discordUserId, score }, "Attempting immediate role assignment...");
+	try {
+		const success = await discordService.assignRole(discordUserId, score);
+		if (success) {
+			logger.info({ sessionId, userId: discordUserId, score }, "Role assignment successful.");
+		} else {
+			logger.error({ sessionId, userId: discordUserId, score }, "Role assignment failed (discordService returned false).");
+		}
+		return success;
+	} catch (error: any) {
+		logger.error({ error: error.message, sessionId, userId: discordUserId }, "Error during role assignment.");
+		return false;
+	}
+}
+
+// --- Route Definitions --- 
+
 // Standard verification message for wallet signature
 // This is just for wallet ownership verification, not for the Passport API (v2 doesn't need a signed message)
-const VERIFICATION_MESSAGE = "Verify wallet ownership for Aztec Discord";
+// const VERIFICATION_MESSAGE = "Verify wallet ownership for Aztec Discord"; // Remove local definition
 
 // Removed duplicate CORS middleware - it's already applied at the app level
 router.use(express.json());
@@ -70,6 +176,7 @@ const validateSession = async (req: Request, res: Response, next: NextFunction) 
 		// Also attach the sessionId
 		req.session.id = sessionId as string;
 		next();
+		return; // Add explicit return after calling next()
 	} catch (error: any) {
 		logger.error(
 			{ error: error.message, path: req.path },
@@ -234,7 +341,7 @@ router.post("/create-session", async (req: Request, res: Response) => {
 router.post("/verify", validateSession, async (req: Request, res: Response) => {
 	try {
 		const { signature } = req.body;
-		const sessionId = req.session!.id as string; // Get sessionId from validated session
+		const sessionId = req.session!.id as string; 
 		const session = req.session!;
 
 		if (!signature) {
@@ -244,81 +351,30 @@ router.post("/verify", validateSession, async (req: Request, res: Response) => {
 			});
 		}
 
-		// Verify the signature to get the wallet address
-		const recoveredAddress = await recoverMessageAddress({
-			message: VERIFICATION_MESSAGE,
-			signature: signature,
-		});
+        // Step 1: Handle signature recovery and initial update
+        const recoveredAddress = await _handleSignatureRecovery(sessionId, signature as Hex);
+        logger.debug({ sessionId, recoveredAddress }, "Address recovered from signature");
 
-		// Update session with wallet address and signature
-		await dynamoDB.updateSession(sessionId, {
-			walletAddress: recoveredAddress,
-			signature: signature,
-			status: STATUS_SIGNATURE_RECEIVED, // Mark signature as received
-		});
+        // Step 2: Handle scoring and update session
+        const { score, verified } = await _handleScoring(sessionId, recoveredAddress);
+        logger.info({ sessionId, score, verified }, "Score fetched");
 
-		logger.info({ sessionId, address: recoveredAddress }, "Signature received and wallet address recovered.");
-
-		// Get the Passport score
-		const scoreResponse = await passportService.getScore(recoveredAddress);
-
-		if (!scoreResponse) {
-			logger.error({ sessionId, address: recoveredAddress }, "Failed to retrieve passport score.");
-			await dynamoDB.updateSession(sessionId, { status: STATUS_VERIFICATION_ERROR });
-			return res.status(500).json({
-				success: false,
-				error: "Failed to retrieve passport score.",
-				sessionStatus: STATUS_VERIFICATION_ERROR
-			});
-		}
-
-		// Parse score and timestamp
-		const score = parseFloat(scoreResponse.score);
-		const lastScoreTimestamp = scoreResponse.last_score_timestamp
-			? new Date(scoreResponse.last_score_timestamp).getTime()
-			: Date.now();
-
-		// Check if score meets minimum threshold
-		const verified = score >= MINIMUM_SCORE;
-
-		// Update session with score details
-		await dynamoDB.updateSession(sessionId, {
-			score,
-			lastScoreTimestamp,
-			verified,
-			status: STATUS_SCORE_RETRIEVED, // Mark score as retrieved
-		});
-
-		logger.info(
-			{ sessionId, address: recoveredAddress, score, verified },
-			"Passport score retrieved."
-		);
-
+        // Step 3: Attempt role assignment if verified
 		let roleAssignedSuccess = false;
-		let finalStatus = verified ? STATUS_VERIFIED_COMPLETE : STATUS_VERIFICATION_FAILED_SCORE;
 		let message = verified ? "Verification successful." : "Verification score did not meet the minimum threshold.";
 
 		if (verified) {
-			logger.info({ sessionId, userId: session.discordUserId, score }, "Attempting immediate role assignment...");
-			try {
-				roleAssignedSuccess = await discordService.assignRole(session.discordUserId, score);
-				if (roleAssignedSuccess) {
-					logger.info({ sessionId, userId: session.discordUserId, score }, "Role assignment successful.");
-					message += " Roles assigned successfully.";
-				} else {
-					logger.error({ sessionId, userId: session.discordUserId, score }, "Role assignment failed.");
-					message += " Could not assign Discord roles. Please contact an admin.";
-					// Keep finalStatus as VERIFIED_COMPLETE, but roleAssigned will be false
-				}
-			} catch (error: any) {
-				logger.error({ error: error.message, sessionId, userId: session.discordUserId }, "Error during role assignment.");
-				roleAssignedSuccess = false;
-				message += " An error occurred during role assignment. Please contact an admin.";
-				// Keep finalStatus as VERIFIED_COMPLETE, but roleAssigned will be false
-			}
+            roleAssignedSuccess = await _handleRoleAssignment(sessionId, session.discordUserId, score);
+            if (roleAssignedSuccess) {
+                message += " Roles assigned successfully.";
+            } else {
+                message += " Could not assign Discord roles. Please contact an admin.";
+                // Decide if role assignment failure should be treated as a bigger error (e.g., return 500 or specific error code?)
+            }
 		}
 
-		// Final session update
+        // Step 4: Final session status update
+		const finalStatus = verified ? STATUS_VERIFIED_COMPLETE : STATUS_VERIFICATION_FAILED_SCORE;
 		await dynamoDB.updateSession(sessionId, {
 			roleAssigned: roleAssignedSuccess,
 			status: finalStatus,
@@ -326,7 +382,7 @@ router.post("/verify", validateSession, async (req: Request, res: Response) => {
 
 		logger.info({ sessionId, status: finalStatus, roleAssigned: roleAssignedSuccess }, "Verification process complete.");
 
-		// Return the final result
+        // Step 5: Return final result to client
 		return res.status(200).json({
 			success: true,
 			verified: verified,
@@ -338,11 +394,22 @@ router.post("/verify", validateSession, async (req: Request, res: Response) => {
 		});
 
 	} catch (error: any) {
-		logger.error({ error: error.message, path: req.path, sessionId: req.session?.id }, "Error in /verify route");
-		await dynamoDB.updateSession(req.session!.id as string, { status: STATUS_VERIFICATION_ERROR });
+        // Handle errors thrown from helper functions or initial validation
+        const sessionIdentifier = req.session?.id || req.query.sessionId || req.body.sessionId || 'unknown';
+		logger.error({ error: error.message, path: req.path, sessionId: sessionIdentifier }, "Error in /verify route");
+        
+        // Update status to generic error only if session ID is known
+        if (req.session?.id) {
+            try {
+                await dynamoDB.updateSession(req.session.id, { status: STATUS_VERIFICATION_ERROR });
+            } catch (updateError: any) {
+                logger.error({ error: updateError.message, sessionId: req.session.id }, "Failed to update session status during error handling.");
+            }
+        }
+
 		return res.status(500).json({
 			success: false,
-			error: "Server error during verification",
+			error: error.message || "Server error during verification", // Use error message from thrown error
 			sessionStatus: STATUS_VERIFICATION_ERROR
 		});
 	}
@@ -372,10 +439,17 @@ router.post("/verify", validateSession, async (req: Request, res: Response) => {
  */
 router.get("/status/discord/:discordUserId", async (req: Request, res: Response) => {
 	try {
-		const discordUserId = req.params.discordUserId;
-		
-		// Find the most recent session for this user (You might need a more robust way, e.g., query by discordUserId and sort by createdAt)
-		const session = await dynamoDB.findSessionByDiscordId(discordUserId); // Assuming this method exists and finds the latest session
+		const { discordUserId } = req.query;
+
+		if (typeof discordUserId !== 'string') {
+			return res.status(400).json({ 
+				success: false, 
+				error: 'Missing or invalid discordUserId query parameter' 
+			});
+		}
+
+		// Now discordUserId is guaranteed to be a string
+		const session = await dynamoDB.findSessionByDiscordId(discordUserId); 
 		
 		if (!session) {
 			return res.status(404).json({
@@ -413,172 +487,10 @@ router.get("/status/discord/:discordUserId", async (req: Request, res: Response)
 });
 
 /**
- * Route to create a test session for development/testing
- * Creates a dummy session and redirects to the verification page
- */
-router.get("/test-session", async (req: Request, res: Response) => {
-	try {
-		// Generate a unique session ID
-		const sessionId = randomUUID();
-		
-		// Create a test user ID
-		const testUserId = `testuser${Math.floor(Math.random() * 10000)}`;
-		
-		// Create a verification session
-		const sessionCreated = await dynamoDB.createSession(sessionId, testUserId);
-		
-		if (!sessionCreated) {
-			logger.error({ testUserId }, "Failed to create test verification session.");
-			return res.status(500).json({
-				success: false,
-				error: "Failed to create test verification session. Please try again.",
-			});
-		}
-		
-		// Redirect to the verification page
-		const verificationUrl = `${process.env.WEBAPP_HOST}:${process.env.WEBAPP_PORT}/passport?session=${sessionId}`;
-		
-		// Log the creation for debugging
-		console.log(`Created test session: ${sessionId} for user ${testUserId}`);
-		console.log(`Redirecting to: ${verificationUrl}`);
-		
-		return res.redirect(verificationUrl);
-	} catch (error: any) {
-		logger.error({ error: error.message }, "Error creating test session");
-		return res.status(500).json({
-			success: false,
-			error: "Server error during test session creation",
-		});
-	}
-});
-
-/**
- * Route to manually set wallet address for a session (for troubleshooting)
- */
-router.post("/set-wallet-address", validateSession, async (req: Request, res: Response) => {
-	try {
-		const { address } = req.body;
-		
-		if (!address) {
-			return res.status(400).json({
-				success: false,
-				error: "Missing address parameter",
-			});
-		}
-		
-		console.log(`Setting wallet address: ${address} for session: ${req.session!.id}`);
-		
-		// Update the wallet address using session ID from req.session
-		const updated = await dynamoDB.updateWalletAddress(req.session!.id as string, address);
-		
-		if (!updated) {
-			return res.status(500).json({
-				success: false,
-				error: "Failed to update wallet address",
-			});
-		}
-		
-		// Return success
-		return res.status(200).json({
-			success: true,
-			sessionId: req.session!.id,
-			walletAddress: address
-		});
-	} catch (error: any) {
-		logger.error(
-			{ error: error.message, path: req.path },
-			"Error in set wallet address route"
-		);
-		
-		return res.status(500).json({
-			success: false,
-			error: "Server error during wallet address update",
-		});
-	}
-});
-
-/**
- * TEST ROUTES - For development use only
- * These routes are used for testing the verification flow
- */
-router.post("/test-create-session", async (req: Request, res: Response) => {
-	try {
-		// Generate a unique session ID
-		const sessionId = randomUUID();
-		const testUserId = "test-user-" + Math.floor(Math.random() * 10000);
-
-		// Create a verification session
-		const sessionCreated = await dynamoDB.createSession(sessionId, testUserId);
-
-		// Return the session ID to the client
-		return res.status(200).json({
-			success: true,
-			sessionId,
-			testUserId,
-		});
-	} catch (error: any) {
-		logger.error({ error: error.message }, "Error in test create session route");
-		return res.status(500).json({
-			success: false,
-			error: "Server error",
-		});
-	}
-});
-
-/**
- * Route to simulate wallet connection
- */
-router.post("/test-connect-wallet", async (req: Request, res: Response) => {
-	try {
-		const { sessionId, address } = req.body;
-		
-		if (!sessionId || !address) {
-			return res.status(400).json({
-				success: false,
-				error: "Missing sessionId or address",
-			});
-		}
-		
-		// Get the session
-		const session = await dynamoDB.getSession(sessionId as string);
-		if (!session) {
-			return res.status(404).json({
-				success: false,
-				error: "Session not found",
-			});
-		}
-		
-		// Update the session with the wallet address
-		const updated = await dynamoDB.updateWalletAddress(sessionId as string, address);
-		
-		if (!updated) {
-			return res.status(500).json({
-				success: false,
-				error: "Failed to update session",
-			});
-		}
-		
-		// Return success
-		const updatedSession = await dynamoDB.getSession(sessionId as string);
-		
-		return res.status(200).json({
-			success: true,
-			session: updatedSession,
-		});
-	} catch (error: any) {
-		logger.error({ error: error.message }, "Error in test connect wallet route");
-		return res.status(500).json({
-			success: false,
-			error: "Server error",
-		});
-	}
-});
-
-/**
  * Route to test DynamoDB connection and basic operations
  * This can be used to verify that DynamoDB is working correctly
  */
-router.get("/dynamo-health", async (req: Request, res: Response) => {
+router.get("/dynamo-health", async (_req: Request, res: Response) => { // Mark req as unused
 	try {
 		const startTime = Date.now();
 		const healthCheckId = `health-check-${Date.now()}`;
@@ -596,8 +508,8 @@ router.get("/dynamo-health", async (req: Request, res: Response) => {
 				delete: 0,
 				total: 0
 			},
-			error: null,
-			errorOperation: null,
+			error: null as string | null,
+			errorOperation: null as string | null,
 			environment: {
 				isLocal: process.env.LOCAL_DYNAMO_DB === "true",
 				tableName: process.env.SESSION_TABLE_NAME || "sparta-sessions",
@@ -633,21 +545,29 @@ router.get("/dynamo-health", async (req: Request, res: Response) => {
 			health.tableOperations.read = true;
 			logger.info(`DynamoDB Health Check - Read test session successfully`);
 
-			// 3. Test deletion (cleanup) - Commented out as deleteSession doesn't exist
-			/*
-			const deleteStart = Date.now();
-			logger.info(`DynamoDB Health Check - Deleting test session: ${healthCheckId}`);
-			const deleteResult = await dynamoDB.deleteSession(healthCheckId);
-			const deleteEnd = Date.now();
-			health.latency.delete = deleteEnd - deleteStart;
-			
-			if (!deleteResult) {
-				throw new Error("Failed to delete test session");
+			// 3. Test deletion (cleanup) - Add a call to delete if available
+			// Assuming dynamoDB might have a deleteSession method
+			if (typeof (dynamoDB as any).deleteSession === 'function') {
+				try {
+					const deleteStart = Date.now();
+					logger.info(`DynamoDB Health Check - Deleting test session: ${healthCheckId}`);
+					const deleteResult = await (dynamoDB as any).deleteSession(healthCheckId);
+					const deleteEnd = Date.now();
+					health.latency.delete = deleteEnd - deleteStart;
+					
+					if (!deleteResult) { // Check the actual result structure if needed
+						logger.warn(`DynamoDB Health Check - Delete operation did not return truthy value`);
+					}
+					health.tableOperations.delete = true; // Mark as attempted/successful
+					logger.info(`DynamoDB Health Check - Deleted test session successfully`);
+				} catch (deleteError: any) {
+					logger.error({ error: deleteError.message }, `DynamoDB Health Check - Failed to delete test session: ${healthCheckId}`);
+					health.tableOperations.delete = false; // Mark as failed
+				}
+			} else {
+				logger.warn(`DynamoDB Health Check - deleteSession method not found, skipping delete test.`);
+				health.tableOperations.delete = false; // Mark as not tested
 			}
-			health.tableOperations.delete = true;
-			logger.info(`DynamoDB Health Check - Deleted test session successfully`);
-			*/
-			health.tableOperations.delete = false; // Mark as not tested
 
 			health.dynamoConnection = true;
 			health.error = null;
@@ -660,30 +580,35 @@ router.get("/dynamo-health", async (req: Request, res: Response) => {
 			});
 		} catch (error: any) {
 			logger.error(
-				{ error: error.message },
-				"Error in DynamoDB health check"
+				{ error: error.message, operation: health.errorOperation }, // Include which operation failed
+				"Error during DynamoDB health check operation"
 			);
 
-			health.dynamoConnection = false;
+			health.dynamoConnection = false; // Potentially still connected, but an operation failed
 			health.error = error.message;
-			health.errorOperation = error.operation;
+			// Determine which operation failed based on progress
+			if (!health.tableOperations.create) health.errorOperation = 'create';
+			else if (!health.tableOperations.read) health.errorOperation = 'read';
+			else if (!health.tableOperations.delete) health.errorOperation = 'delete';
+			
 			health.latency.total = Date.now() - startTime;
 
 			return res.status(500).json({
 				success: false,
-				error: "Server error during health check",
+				error: `Server error during health check (${health.errorOperation || 'unknown'} operation)`, // More specific error
 				health,
 			});
 		}
 	} catch (error: any) {
+		// Catch errors from the outer try block (e.g., Date.now() fails? unlikely)
 		logger.error(
 			{ error: error.message },
-			"Error in DynamoDB health check"
+			"Unexpected error in DynamoDB health check route"
 		);
 
 		return res.status(500).json({
 			success: false,
-			error: "Server error during health check",
+			error: "Unexpected server error during health check",
 		});
 	}
 });

@@ -311,58 +311,6 @@ class DynamoDBService {
       return undefined;
     }
   }
-
-  /**
-   * Deletes expired sessions (should be called periodically or via CloudWatch Events)
-   */
-  public async cleanupExpiredSessions(): Promise<number> {
-    try {
-      const command = new ScanCommand({
-        TableName: this.tableName
-      });
-
-      const response = await this.client.send(command);
-
-      if (!response.Items || response.Items.length === 0) {
-        return 0;
-      }
-
-      const now = Date.now();
-      const expiredSessions = (response.Items as Session[]).filter(
-        session => now - session.createdAt > SESSION_TIMEOUT_MS
-      );
-
-      if (expiredSessions.length === 0) {
-        return 0;
-      }
-
-      // Delete expired sessions in batches
-      const batchSize = 25; // DynamoDB batch size limit
-      for (let i = 0; i < expiredSessions.length; i += batchSize) {
-        const batch = expiredSessions.slice(i, i + batchSize);
-        
-        const deleteRequests = batch.map(session => ({
-          DeleteRequest: {
-            Key: { sessionId: session.sessionId }
-          }
-        }));
-
-        const batchCommand = new BatchWriteCommand({
-          RequestItems: {
-            [this.tableName]: deleteRequests
-          }
-        });
-
-        await this.client.send(batchCommand);
-      }
-
-      logger.info(`Cleaned up ${expiredSessions.length} expired sessions from DynamoDB.`);
-      return expiredSessions.length;
-    } catch (error) {
-      logger.error({ error }, "Error cleaning up expired sessions from DynamoDB");
-      return 0;
-    }
-  }
 }
 
 // Create and export a singleton instance

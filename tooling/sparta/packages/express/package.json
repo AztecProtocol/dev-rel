@@ -14,11 +14,7 @@
         "axios": "^1.6.7",
         "@sparta/utils": "workspace:*",
         "discord.js": "^14.14.1",
-        "@aws-sdk/client-dynamodb": "^3.540.0",
-        "@aws-sdk/lib-dynamodb": "^3.540.0",
-        "uuid": "^9.0.1",
-        "viem": "^2.9.15",
-        "@aws-sdk/util-dynamodb": "^3.540.0"
+        "viem": "^2.9.15"
     },
     "devDependencies": {
         "@types/express": "^4.17.21",

@@ -7,7 +7,7 @@ import {
 	ValidatorSubcommandGroups,
 	ValidatorSubcommands,
 } from "@sparta/utils";
-import { check } from "./check.js";
+import { checkValidatorStatus } from "./check.js";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -33,7 +33,7 @@ export default {
 			const subcommand = interaction.options.getSubcommand();
 			switch (subcommand) {
 				case ValidatorSubcommands.Check:
-					await check(interaction);
+					await checkValidatorStatus(interaction);
 					return `Checked validator`;
 				default:
 					await interaction.editReply({

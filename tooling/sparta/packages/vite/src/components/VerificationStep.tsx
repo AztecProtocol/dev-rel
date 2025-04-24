@@ -1,4 +1,5 @@
-import React from "react";
+import React /*, { type ReactNode } */ from 'react'; // ReactNode unused
+// import { StepStatus } from '@reown/react-components/ProgressSteps'; // Source unknown or missing
 
 interface VerificationResult {
 	success?: boolean;
@@ -10,7 +11,7 @@ interface VerificationResult {
 }
 
 interface VerificationStepProps {
-	number: number;
+	// number: number; // Unused
 	title: string;
 	description: string;
 	isActive: boolean;
@@ -20,21 +21,22 @@ interface VerificationStepProps {
 	showButton?: boolean;
 	buttonDisabled?: boolean;
 	isLoading?: boolean;
-	result?: VerificationResult;
+	result?: VerificationResult; // Keep original result prop
+	// details?: ReactNode; // Comment out details as it wasn't in original props
 }
 
 const VerificationStep: React.FC<VerificationStepProps> = ({
-	number,
 	title,
 	description,
 	isActive,
 	isCompleted,
 	buttonText,
 	onButtonClick,
-	showButton = false,
+	showButton = true,
 	buttonDisabled = false,
 	isLoading = false,
-	result,
+	result, // Keep original result prop
+	// details, // Comment out details
 }) => {
 	const stepClass = `step ${isActive ? "active" : ""} ${
 		isCompleted ? "completed" : ""

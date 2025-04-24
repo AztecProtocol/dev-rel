@@ -43,7 +43,7 @@ const createLogger = () => {
 export const logger = createLogger();
 
 // Log HTTP requests
-export const requestLogger = (req: any, res: any, next?: () => void) => {
+export const requestLogger = (req: any, _res: any, next?: () => void) => {
 	logger.debug(
 		{
 			method: req.method,

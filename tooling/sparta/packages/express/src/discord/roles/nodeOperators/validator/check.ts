@@ -1,34 +1,44 @@
 import { ChatInputCommandInteraction } from "discord.js";
-import { validateAddress } from "@sparta/utils";
+import {
+	// validateAddressFromInteraction, // Old import
+	// getExpectedAddress, // No longer exported from main utils
+} from "@sparta/utils";
+import { validateAddressFromInteraction } from "@sparta/utils/inputValidator.js"; // Direct import
+import { getExpectedAddress } from "@sparta/utils/ethereum.js"; // Direct import for getExpectedAddress
 import { ChainInfoService } from "../../../services/chaininfo-service.js";
-import { getExpectedAddress } from "@sparta/utils";
+import { type Hex, numberToHex } from "viem";
 
-export const check = async (
+export const checkValidatorStatus = async (
 	interaction: ChatInputCommandInteraction
-): Promise<void> => {
-	const address = validateAddress(interaction);
-	if (typeof address !== "string") {
-		await interaction.editReply({
-			content: "Please provide a valid address",
-		});
-		return;
-	}
+) => {
+	const address = validateAddressFromInteraction(interaction);
+	if (!address) return;
 
-	const forwarder = getExpectedAddress(
+	await interaction.deferReply({ ephemeral: true });
+
+	const guildId = interaction.guildId as string;
+	const salt = numberToHex(BigInt(guildId), { size: 32 }) as Hex;
+
+	const { address: forwarder } = getExpectedAddress(
 		[address as `0x${string}`],
-		address as `0x${string}`
-	).address;
+		salt
+	);
 
 	const info = await ChainInfoService.getInfo();
 	const { validators, committee } = info;
 
 	let reply = "Your forwarder contract is: " + forwarder + "\n";
-	reply += `It is ${!validators.includes(address) && "not"} a validator\n`;
-	reply += `It is ${
-		!committee.includes(address) && "not"
-	} a committee member\n`;
 
-	await interaction.editReply({
-		content: reply,
-	});
+	if (validators.includes(address)) {
+		reply += "You are listed as a validator.\n";
+	} else {
+		reply += "You are not listed as a validator.\n";
+	}
+	if (committee.includes(address)) {
+		reply += "You are listed in the committee.\n";
+	} else {
+		reply += "You are not listed in the committee.\n";
+	}
+
+	await interaction.editReply(reply);
 };

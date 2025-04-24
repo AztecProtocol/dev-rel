@@ -5,7 +5,7 @@
  */
 
 import { ChainInfoService } from "./chaininfo-service.js";
-import { ValidatorService } from "./validator-service.js";
+// import { ValidatorService } from "./validator-service"; // File not found
 import { DiscordService } from "./discord-service.js";
 
 // Initialize service instances
@@ -16,13 +16,12 @@ const discordService = DiscordService.getInstance();
  *
  * - GoogleSheetService: Monitors Google Sheets and assigns roles based on scores
  * - ChainInfoService: Retrieves blockchain state information
- * - ValidatorService: Manages Ethereum validators
  * - DiscordService: Manages Discord roles and user interactions
  * - discordService: Singleton instance of DiscordService
  */
 export {
 	ChainInfoService,
-	ValidatorService,
+	// ValidatorService, // Commented out due to missing file
 	DiscordService,
 	discordService,
 };

@@ -7,8 +7,10 @@
 import {
 	Client,
 	GatewayIntentBits,
+	// Events, // Unused
 	Collection,
-	Interaction,
+	type Interaction,
+	// type ChatInputCommandInteraction, // Unused
 	MessageFlags,
 	TextChannel,
 	REST,

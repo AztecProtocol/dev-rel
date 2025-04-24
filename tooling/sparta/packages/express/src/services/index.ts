@@ -5,7 +5,7 @@
  */
 
 import { PassportService } from "./passport-service.js";
-import { DiscordService } from "./discord-service.js";
+import { DiscordService } from "../discord/services/discord-service.js";
 
 // Initialize service instances
 const passportService = PassportService.getInstance();
