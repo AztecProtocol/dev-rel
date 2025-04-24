@@ -9,12 +9,13 @@
 interface Session {
 	discordUserId: string; // Provided when session is initiated (likely by the bot)
 	walletAddress: string | null;
-	nonce: string | null;
 	signature: string | null; // Might be stored after verification attempt
 	verified: boolean;
 	roleAssigned: boolean;
 	score: number | null; // Score from passport/verification
 	createdAt: number; // Timestamp (ms) for expiration
+	lastScoreTimestamp: number | null; // Timestamp when the score was last updated
+	status: string; // Current status of the verification process
 }
 
 const sessions = new Map<string, Session>();
@@ -82,13 +83,51 @@ const updateWalletAddress = (
 };
 
 /**
- * Updates the nonce for a given session.
+ * Updates the signature for a given session.
  * @param sessionId The session ID.
- * @param nonce The nonce to store.
+ * @param signature The signature to store.
  * @returns True if successful, false otherwise.
  */
-const updateNonce = (sessionId: string, nonce: string): boolean => {
-	return updateSession(sessionId, { nonce });
+const updateSignature = (sessionId: string, signature: string): boolean => {
+	return updateSession(sessionId, { signature });
+};
+
+/**
+ * Updates the passport score for a given session.
+ * @param sessionId The session ID.
+ * @param score The score to store.
+ * @returns True if successful, false otherwise.
+ */
+const updatePassportScore = (
+	sessionId: string,
+	score: number | null
+): boolean => {
+	return updateSession(sessionId, { score });
+};
+
+/**
+ * Marks the role as assigned for a given session.
+ * @param sessionId The session ID.
+ * @returns True if successful, false otherwise.
+ */
+const markRoleAssigned = (sessionId: string): boolean => {
+	return updateSession(sessionId, { roleAssigned: true });
+};
+
+/**
+ * Updates the verification status and score for a given session.
+ * NOTE: Renamed for export.
+ * @param sessionId The session ID.
+ * @param verified The verification status.
+ * @param score The associated score (optional).
+ * @returns True if successful, false otherwise.
+ */
+const updateVerificationStatus = (
+	sessionId: string,
+	verified: boolean,
+	score: number | null = null
+): boolean => {
+	return updateSession(sessionId, { verified, score });
 };
 
 // --- Functions potentially called by Discord Bot ---
@@ -111,12 +150,13 @@ const createSession = (
 	const newSession: Session = {
 		discordUserId,
 		walletAddress: null,
-		nonce: null,
 		signature: null,
 		verified: false,
 		roleAssigned: false,
 		score: null,
 		createdAt: Date.now(),
+		lastScoreTimestamp: null,
+		status: "pending", // Initial status
 	};
 	sessions.set(sessionId, newSession);
 	// logger?.info({ sessionId, discordUserId }, "Created new verification session.");
@@ -139,20 +179,6 @@ const findSessionByDiscordId = (discordUserId: string): Session | undefined => {
 		}
 	}
 	return latestSession;
-};
-
-/**
- * Updates the signature for a given session.
- * NOTE: Not part of the default export used by the API, but might be needed internally.
- * @param sessionId The session ID.
- * @param signature The signature to store.
- * @returns True if successful, false otherwise.
- */
-export const _internal_updateSignature = (
-	sessionId: string,
-	signature: string
-): boolean => {
-	return updateSession(sessionId, { signature });
 };
 
 /**
@@ -185,66 +211,18 @@ export const _internal_updateRoleAssigned = (
 	return updateSession(sessionId, { roleAssigned });
 };
 
-/**
- * Updates the verification status and score for a given session.
- * NOTE: Renamed for export.
- * @param sessionId The session ID.
- * @param verified The verification status.
- * @param score The associated score (optional).
- * @returns True if successful, false otherwise.
- */
-const updateVerificationStatus = (
-	sessionId: string,
-	verified: boolean,
-	score: number | null = null
-): boolean => {
-	return updateSession(sessionId, { verified, score });
-};
-
 // --- Default Export (for API/Service usage) ---
-
-/**
- * Updates the signature for a given session.
- * @param sessionId The session ID.
- * @param signature The signature to store.
- * @returns True if successful, false otherwise.
- */
-const updateSignature = (sessionId: string, signature: string): boolean => {
-	return updateSession(sessionId, { signature });
-};
-
-/**
- * Updates the passport score for a given session.
- * @param sessionId The session ID.
- * @param score The score to store.
- * @returns True if successful, false otherwise.
- */
-const updatePassportScore = (
-	sessionId: string,
-	score: number | null
-): boolean => {
-	return updateSession(sessionId, { score });
-};
-
-/**
- * Marks the role as assigned for a given session.
- * @param sessionId The session ID.
- * @returns True if successful, false otherwise.
- */
-const markRoleAssigned = (sessionId: string): boolean => {
-	return updateSession(sessionId, { roleAssigned: true });
-};
 
 const inMemoryDB = {
 	createSession,
 	getSession,
 	findSessionByDiscordId,
 	updateWalletAddress,
-	updateNonce,
 	updateSignature,
 	updatePassportScore,
 	markRoleAssigned,
 	updateVerificationStatus,
+	updateSession,
 };
 
 export default inMemoryDB;

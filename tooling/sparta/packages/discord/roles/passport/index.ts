@@ -14,13 +14,17 @@ import {
 	MessageFlags,
 } from "discord.js";
 import { logger, inMemoryDB, SESSION_TIMEOUT_MS } from "@sparta/utils";
-import { passportService } from "../../services/index.js";
 import { randomUUID } from "node:crypto";
+import axios from "axios";
 
 export enum PassportSubcommands {
 	Verify = "verify",
 	Status = "status",
 }
+
+const API = axios.create({
+	baseURL: `${process.env.API_HOST}:${process.env.API_PORT}/api`,
+});
 
 /**
  * Command data for passport verification commands
@@ -49,25 +53,21 @@ export async function handleVerifyCommand(
 	try {
 		const userId = interaction.user.id;
 
-		// Generate a unique session ID
-		const sessionId = randomUUID();
+		// Call the Express API to create a session
+		const response = await API.post(`/create-session`, {
+			userId
+		});
 
-		// Create a verification session
-		const sessionCreated = inMemoryDB.createSession(sessionId, userId);
-
-		if (!sessionCreated) {
-			// Handle potential session ID collision or other creation error
-			logger.error({ userId }, "Failed to create verification session.");
+		if (!response.data.success) {
+			logger.error({ userId, error: response.data.error }, "Failed to create verification session via API.");
 			await interaction.reply({
-				content:
-					"An error occurred while creating your verification session (ID collision). Please try again.",
+				content: "An error occurred while creating your verification session. Please try again.",
 				flags: MessageFlags.Ephemeral,
 			});
 			return;
 		}
 
-		// Create a verification link
-		const verificationLink = `${process.env.VERIFICATION_URL}?session=${sessionId}`;
+		const { sessionId, verificationUrl } = response.data;
 
 		// Create an embed with instructions
 		const embed = new EmbedBuilder()
@@ -83,7 +83,7 @@ export async function handleVerifyCommand(
 				},
 				{
 					name: "Score Requirement",
-					value: `You'll need a minimum score of ${passportService.getMinimumScore()}.`,
+					value: `You'll need a minimum score.`,
 				}
 			)
 			.setFooter({
@@ -93,7 +93,7 @@ export async function handleVerifyCommand(
 		// Create a button with the verification link
 		const verifyButton = new ButtonBuilder()
 			.setLabel("Verify with Human Passport")
-			.setURL(verificationLink)
+			.setURL(verificationUrl)
 			.setStyle(ButtonStyle.Link);
 
 		const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -109,7 +109,7 @@ export async function handleVerifyCommand(
 
 		logger.info(
 			{ userId, sessionId },
-			"Created verification session for user"
+			"Created verification session for user via API"
 		);
 	} catch (error: any) {
 		logger.error(
@@ -147,42 +147,57 @@ export async function handleStatusCommand(
 			return;
 		}
 
+		// Since we don't have the session ID in the Session object, we'll need to use the Discord user ID
+		// to query the API for the status
+		const response = await API.get(`/status/discord/${userId}`);
+
+		if (!response.data.success) {
+			logger.error({ userId, error: response.data.error }, "Failed to get verification status via API.");
+			await interaction.reply({
+				content: "An error occurred while checking your verification status. Please try again.",
+				ephemeral: true,
+			});
+			return;
+		}
+
+		const statusData = response.data;
+
 		// Create an embed with the user's status
 		const embed = new EmbedBuilder()
 			.setColor(0x0099ff)
 			.setTitle("Verification Status");
 
-		if (session.verified && session.roleAssigned) {
+		if (statusData.verified && statusData.roleAssigned) {
 			embed.setDescription(
 				"✅ Your wallet has been verified successfully and you've been assigned the verified role!"
 			);
 			embed.addFields({
 				name: "Passport Score",
-				value: `${session.score}`,
+				value: `${statusData.score}`,
 			});
-		} else if (session.verified) {
+		} else if (statusData.verified) {
 			embed.setDescription(
 				"✅ Your wallet has been verified, but we couldn't assign your role. Please contact an administrator."
 			);
 			embed.addFields({
 				name: "Passport Score",
-				value: `${session.score}`,
+				value: `${statusData.score}`,
 			});
-		} else if (session.score !== undefined) {
+		} else if (statusData.score !== undefined) {
 			embed.setDescription(
 				`❌ Your verification was unsuccessful. Your score (${
-					session.score
-				}) is below the required threshold (${passportService.getMinimumScore()}).`
+					statusData.score
+				}) is below the required threshold.`
 			);
 			embed.addFields({
 				name: "What to do next",
 				value: "Try connecting more verified accounts to your Passport to increase your score and try again.",
 			});
-		} else if (session.signature) {
+		} else if (statusData.signatureReceived) {
 			embed.setDescription(
 				"⏳ Your signature has been received and your Passport is being verified. Check back in a few minutes."
 			);
-		} else if (session.walletAddress) {
+		} else if (statusData.walletConnected) {
 			embed.setDescription(
 				"⏳ Your wallet has been connected but the verification hasn't been completed. Please follow the link from your original verification message to complete the process."
 			);

@@ -11,7 +11,9 @@
     "typescript": "^5.0.0"
   },
   "scripts": {
-    "start:discord": "bun --filter='@sparta/discord' run start",
-    "build": "bun --filter='@sparta/verify' run build"
-  }
+    "dev:discord": "bun --elide-lines=0 --filter='@sparta/discord' run dev",
+    "dev:webapp": "bun --elide-lines=0 --filter='@sparta/webapp' run dev",
+    "dev:api": "bun --elide-lines=0 --filter='@sparta/api' run dev"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }

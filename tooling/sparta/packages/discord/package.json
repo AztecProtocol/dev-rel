@@ -3,10 +3,6 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "workspaces": [
-    "react-verify",
-    "api"
-  ],
   "scripts": {
     "build": "FOUNDRY_DISABLE_NIGHTLY_WARNING=true bun build index.ts --target bun --minify --outdir=dist",
     "dev": "LOG_LEVEL=debug FOUNDRY_DISABLE_NIGHTLY_WARNING=true bun run --watch index.ts",
