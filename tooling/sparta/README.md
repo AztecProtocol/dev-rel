@@ -79,22 +79,38 @@ cp .env.example .env
 4. Fill in the required environment variables in `.env`. Required variables include:
 ```
 # Discord Bot Configuration
-BOT_TOKEN=your_bot_token
-BOT_CLIENT_ID=your_client_id
-GUILD_ID=your_guild_id
+BOT_TOKEN=your_discord_bot_token
+BOT_CLIENT_ID=your_discord_client_id
+GUILD_ID=your_discord_server_id
+PASSPORT_VERIFIED_ROLE_ID=your_discord_role_id
+PASSPORT_HIGH_SCORER_ROLE_ID=your_high_scorer_role_id
+MINIMUM_SCORE=10
+HIGH_SCORE_THRESHOLD=1000
 
-# Ethereum Configuration
-ETHEREUM_HOST=http://localhost:8545
-MINTER_PRIVATE_KEY=your_private_key
-STAKING_ASSET_HANDLER_ADDRESS=your_registry_address
-WITHDRAWER_ADDRESS=address_to_withdraw_funds_to
-ETHEREUM_CHAIN_ID=1337
-ETHEREUM_VALUE=20ether
-MINIMUM_STAKE=100000000000000000000
+# Gitcoin Passport Configuration
+PASSPORT_API_KEY=your_passport_api_key
+PASSPORT_SCORER_ID=your_passport_scorer_id
 
-# Google Sheets Configuration
-GOOGLE_API_KEY=your_api_key
-SPREADSHEET_ID=your_spreadsheet_id
+# Verification Web App
+PUBLIC_FRONTEND_URL=http://localhost:5173
+VITE_PUBLIC_FRONTEND_URL=http://localhost:5173
+VITE_REOWN_PROJECT_ID=your_reown_project_id
+
+# Session Storage
+SESSION_TABLE_NAME=passport-sessions
+LOCAL_DYNAMO_DB=true
+DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000
+
+# RPC Configuration
+ETHEREUM_HOST=https://your-ethereum-rpc-url
+L1_CHAIN_ID=11155111 
+FUNDER_ADDRESS_PRIVATE_KEY=your_private_key
+FUNDER_AMOUNT=0.1
+STAKING_ASSET_HANDLER_ADDRESS=your_staking_asset_handler_address
+
+# Logging
+LOG_LEVEL=info
+LOG_PRETTY_PRINT=true
 ```
 
 5. Start the bot in development mode with hot reloading:

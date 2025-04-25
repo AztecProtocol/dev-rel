@@ -15,10 +15,11 @@
     "typescript": "^5.8.3"
   },
   "scripts": {
-    "start": "bun --filter='@sparta/api' run start",
-    "dev": "bun --elide-lines=0 --filter='@sparta/api' run dev",
-    "build:webapp": "bun --elide-lines=0 --filter='@sparta/webapp' run build",
-    "dev:webapp": "bun --elide-lines=0 --filter='@sparta/webapp' run dev"
+    "start": "bun --env-file=.env --filter='@sparta/api' run start",
+    "build:webapp": "bun --env-file=.env --elide-lines=0 --filter='@sparta/webapp' run build",
+    "dev": "bun --env-file=.env --elide-lines=0 --filter='@sparta/webapp' --filter='@sparta/api' run dev",
+    "dev:webapp": "bun --env-file=.env --elide-lines=0 --filter='@sparta/webapp' run dev",
+    "dev:api": "bun --env-file=.env --elide-lines=0 --filter='@sparta/api' run dev"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.788.0",

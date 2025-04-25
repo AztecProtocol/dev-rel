@@ -45,11 +45,17 @@ COPY . .
 
 # Declare the build argument for the Vite frontend URL
 ARG VITE_PUBLIC_FRONTEND_URL
+ARG VITE_REOWN_PROJECT_ID
+ARG VITE_MINIMUM_SCORE
 
 # Build the Vite frontend application
 # Assumes the build script exists in packages/vite/package.json
-# The ARG VITE_PUBLIC_FRONTEND_URL will be available as an environment variable here
-RUN cd packages/vite && VITE_PUBLIC_FRONTEND_URL=$VITE_PUBLIC_FRONTEND_URL bun run build
+# The ARG variables will be available as environment variables here
+RUN cd packages/vite && \
+    VITE_PUBLIC_FRONTEND_URL=$VITE_PUBLIC_FRONTEND_URL \
+    VITE_REOWN_PROJECT_ID=$VITE_REOWN_PROJECT_ID \
+    VITE_MINIMUM_SCORE=$VITE_MINIMUM_SCORE \
+    bun run build
 
 # Expose the port the Express server will listen on
 # Make sure this matches the PORT environment variable passed in Terraform (var.api_port)

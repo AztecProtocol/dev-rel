@@ -666,4 +666,110 @@ router.get("/dynamo-health", async (_req: Request, res: Response) => { // Mark r
 	}
 });
 
+// --- NEW ROUTE: Get Score ---
+/**
+ * @swagger
+ * /score:
+ *   get:
+ *     summary: Get passport score for a given address and session
+ *     description: Fetches the Gitcoin Passport score for the wallet address associated with a session ID, if the provided address matches the session's address.
+ *     tags: [Verification]
+ *     parameters:
+ *       - in: query
+ *         name: sessionId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The session ID obtained during verification initiation.
+ *       - in: query
+ *         name: address
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The wallet address connected by the user (case-insensitive comparison).
+ *     responses:
+ *       200:
+ *         description: Score retrieved successfully or verification failed due to low score.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: True if the score meets the minimum requirement, false otherwise (or if an error occurred during fetch but score was retrieved).
+ *                 score:
+ *                   type: number
+ *                   description: The user's passport score.
+ *                 status:
+ *                   type: string
+ *                   description: 'score_sufficient' if score is >= minimum, 'verification_failed_score' if score is < minimum.
+ *                 minimumScore:
+ *                    type: number
+ *                    description: The minimum score required for verification.
+ *       400:
+ *         description: Bad request (missing sessionId or address).
+ *       403:
+ *         description: Forbidden (provided address does not match session's wallet address).
+ *       404:
+ *         description: Session not found or expired.
+ *       500:
+ *         description: Server error during score fetching or processing.
+ */
+router.get("/score", validateSession, async (req: Request, res: Response) => {
+	// sessionId is validated and session attached by validateSession middleware
+	const session = req.session!; // Non-null assertion ok due to validateSession
+	const sessionId = session.id!;
+
+	const { address: providedAddress } = req.query;
+
+	if (!providedAddress || typeof providedAddress !== 'string') {
+		return res.status(400).json({ success: false, error: "Missing or invalid 'address' query parameter" });
+	}
+
+	// Use the address provided directly from the frontend query for this pre-check
+	const addressToCheck = providedAddress as Hex; 
+
+	try {
+		// Use addressToCheck (from query param) instead of session.walletAddress
+		logger.info({ sessionId, address: addressToCheck }, "Fetching score for provided address (pre-signature check)...");
+		const scoreResponse = await passportService.getScore(addressToCheck);
+		const minimumScore = parseFloat(process.env.MINIMUM_SCORE || '0');
+
+		if (!scoreResponse || typeof scoreResponse.score === 'undefined') {
+			logger.error({ sessionId, address: addressToCheck }, "Failed to retrieve passport score or score was undefined.");
+			// Don't update session status here, just report error to frontend
+			return res.status(500).json({ success: false, error: "Failed to retrieve passport score.", status: STATUS_VERIFICATION_ERROR });
+		}
+
+		const score = parseFloat(scoreResponse.score);
+		if (isNaN(score)) {
+			logger.error({ sessionId, address: addressToCheck, scoreResponse }, "Invalid score format received during score check.");
+			return res.status(500).json({ success: false, error: "Invalid score format received.", status: STATUS_VERIFICATION_ERROR });
+		}
+
+		const isSufficient = score >= minimumScore;
+		// Use a more specific status for this pre-check if needed, or stick to existing ones
+		const status = isSufficient ? 'score_sufficient' : STATUS_VERIFICATION_FAILED_SCORE; 
+
+		// No session update needed here, just returning the check result
+		logger.info({ sessionId, address: addressToCheck, score, minimumScore, isSufficient }, "Pre-signature score check completed.");
+
+		return res.status(200).json({
+			success: isSufficient, // Success means score is sufficient
+			score: score,
+			status: status,
+			minimumScore: minimumScore // Return minimum score for context
+		});
+
+	} catch (error: any) {
+		logger.error({ error: error.message, sessionId, address: addressToCheck }, "Error during GET /score processing.");
+		return res.status(500).json({
+			success: false,
+			error: "Server error during score check.",
+			status: STATUS_VERIFICATION_ERROR,
+		});
+	}
+});
+
 export default router;

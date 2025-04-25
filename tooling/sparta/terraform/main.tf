@@ -347,15 +347,14 @@ resource "aws_ecr_repository" "sparta_api" {
 
 # --- Use external data source to build, push, and get image digest ---
 data "external" "api_docker_build_push_digest" {
-  program = ["bash", "${path.module}/../scripts/build_push_get_digest.sh", var.aws_region, aws_ecr_repository.sparta_api.repository_url, "${path.module}/../", "http://${aws_lb.sparta_alb.dns_name}"] # Pass region, repo url, Dockerfile dir, and frontend URL
-
-  # Trigger a rebuild whenever relevant source files change (optional but recommended)
-  # Use filemd5() for files or filesetmd5() for directories/patterns
-  # Note: This might require adjusting the DOCKERFILE_DIR path in the script if you change working_dir here.
-  # query = {
-  #   dockerfile_hash = filemd5("${path.module}/../../Dockerfile")
-  #   src_hash        = filemd5("${path.module}/../../packages/express/src/index.ts") # Add other key source files
-  # }
+  program = ["bash", "${path.module}/../scripts/build_push_get_digest.sh", 
+    var.aws_region, 
+    aws_ecr_repository.sparta_api.repository_url, 
+    "${path.module}/../", 
+    "http://${aws_lb.sparta_alb.dns_name}",
+    var.vite_reown_project_id,
+    var.minimum_score
+  ] # Pass region, repo url, Dockerfile dir, frontend URL, and VITE variables
 
   # Ensure ECR repository exists before running the script
   depends_on = [aws_ecr_repository.sparta_api]
@@ -424,24 +423,29 @@ resource "aws_ecs_task_definition" "sparta_api" {
       environment = [
         { name = "NODE_ENV", value = var.environment }, # Pass environment context
         { name = "PORT", value = tostring(var.api_port) },
+        { name = "API_PORT", value = tostring(var.api_port) },
         { name = "AWS_REGION", value = var.aws_region },
         { name = "SESSION_TABLE_NAME", value = aws_dynamodb_table.sparta_sessions.name },
         { name = "LOCAL_DYNAMO_DB", value = "false" },
+        { name = "DYNAMODB_LOCAL_ENDPOINT", value = var.dynamodb_local_endpoint },
         { name = "API_HOST", value = "0.0.0.0" }, # Make sure Express listens on 0.0.0.0 inside container
         { name = "BOT_TOKEN", value = var.bot_token },
         { name = "BOT_CLIENT_ID", value = var.bot_client_id },
         { name = "GUILD_ID", value = var.guild_id },
+        { name = "PASSPORT_VERIFIED_ROLE_ID", value = var.passport_verified_role_id },
+        { name = "PASSPORT_HIGH_SCORER_ROLE_ID", value = var.passport_high_scorer_role_id },
+        { name = "MINIMUM_SCORE", value = tostring(var.minimum_score) },
+        { name = "HIGH_SCORE_THRESHOLD", value = tostring(var.high_score_threshold) },
+        { name = "PASSPORT_API_KEY", value = var.passport_api_key },
+        { name = "PASSPORT_SCORER_ID", value = var.passport_scorer_id },
         { name = "ETHEREUM_HOST", value = var.ethereum_host },
-        { name = "MINTER_PRIVATE_KEY", value = var.minter_private_key },
-        { name = "WITHDRAWER_PRIVATE_KEY", value = var.withdrawer_private_key },
-        { name = "WITHDRAWER_ADDRESS", value = var.withdrawer_address },
         { name = "STAKING_ASSET_HANDLER_ADDRESS", value = var.staking_asset_handler_address },
         { name = "L1_CHAIN_ID", value = var.l1_chain_id },
+        { name = "FUNDER_ADDRESS_PRIVATE_KEY", value = var.funder_address_private_key },
+        { name = "FUNDER_AMOUNT", value = var.funder_amount },
         { name = "LOG_LEVEL", value = var.log_level },
         { name = "LOG_PRETTY_PRINT", value = var.log_pretty_print ? "true" : "false" },
-        # This PUBLIC_FRONTEND_URL is for the backend if it needs to construct absolute URLs
         { name = "PUBLIC_FRONTEND_URL", value = "http://${aws_lb.sparta_alb.dns_name}" },
-        # VITE_PUBLIC_FRONTEND_URL is handled via build args now, removed from runtime env
         { name = "CORS_ALLOWED_ORIGINS", value = "http://${aws_lb.sparta_alb.dns_name}" }
       ]
       # secrets = [ # Example using Secrets Manager

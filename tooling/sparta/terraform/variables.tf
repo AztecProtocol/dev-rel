@@ -44,28 +44,47 @@ variable "guild_id" {
   type        = string
 }
 
+variable "passport_verified_role_id" {
+  description = "Discord role ID for users verified with Passport"
+  type        = string
+}
+
+variable "passport_high_scorer_role_id" {
+  description = "Discord role ID for users with high Passport scores"
+  type        = string
+}
+
+variable "minimum_score" {
+  description = "Minimum Passport score required for verification"
+  type        = number
+  default     = 10
+}
+
+variable "high_score_threshold" {
+  description = "Score threshold for high scorer role"
+  type        = number
+  default     = 1000
+}
+
+# -----------------------------------------------------------------------------
+# Gitcoin Passport Configuration
+# -----------------------------------------------------------------------------
+variable "passport_api_key" {
+  description = "API Key for Gitcoin Passport API v2"
+  type        = string
+  sensitive   = true
+}
+
+variable "passport_scorer_id" {
+  description = "Scorer ID from Gitcoin Passport"
+  type        = string
+}
+
 # -----------------------------------------------------------------------------
 # Ethereum Configuration
 # -----------------------------------------------------------------------------
 variable "ethereum_host" {
   description = "Ethereum node URL for blockchain interactions"
-  type        = string
-}
-
-variable "minter_private_key" {
-  description = "Ethereum wallet private key for minting tokens"
-  type        = string
-  sensitive   = true
-}
-
-variable "withdrawer_private_key" {
-  description = "Ethereum wallet private key for withdrawing funds"
-  type        = string
-  sensitive   = true
-}
-
-variable "withdrawer_address" {
-  description = "Ethereum wallet address for withdrawing funds"
   type        = string
 }
 
@@ -82,7 +101,7 @@ variable "l1_chain_id" {
 variable "funder_amount" {
   description = "Default ETH value for transactions"
   type        = string
-  default     = "20ether"
+  default     = "0.1"
 }
 
 variable "funder_address_private_key" {
@@ -91,9 +110,37 @@ variable "funder_address_private_key" {
   sensitive   = true
 }
 
+# -----------------------------------------------------------------------------
+# Web App Configuration
+# -----------------------------------------------------------------------------
+variable "vite_reown_project_id" {
+  description = "Project ID for Reown integration"
+  type        = string
+}
 
 # -----------------------------------------------------------------------------
-# SSH Configuration
+# DynamoDB Configuration
+# -----------------------------------------------------------------------------
+variable "session_table_name" {
+  description = "Name of the DynamoDB table for sessions"
+  type        = string
+  default     = "sparta-sessions"
+}
+
+variable "local_dynamo_db" {
+  description = "Whether to use a local DynamoDB instance"
+  type        = bool
+  default     = false
+}
+
+variable "dynamodb_local_endpoint" {
+  description = "Endpoint URL for local DynamoDB"
+  type        = string
+  default     = "http://localhost:8000"
+}
+
+# -----------------------------------------------------------------------------
+# Logging Configuration
 # -----------------------------------------------------------------------------
 variable "log_level" {
   description = "Log level for the application (trace, debug, info, warn, error, fatal)"
