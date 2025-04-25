@@ -10,7 +10,7 @@ ENV PATH="/root/.foundry/bin:${PATH}"
 # Install required dependencies
 # - curl: For downloading tools
 # - apt-utils: For better apt functionality
-RUN apt update && apt install -y curl apt-utils
+RUN apt update && apt install -y curl apt-utils git
 
 # Install Docker within the container (If needed for runtime operations, otherwise remove)
 # RUN curl -fsSL https://get.docker.com | bash
@@ -43,14 +43,18 @@ RUN bun install --frozen-lockfile
 # This includes Express, Vite, Utils, etc.
 COPY . .
 
+# Declare the build argument for the Vite frontend URL
+ARG VITE_PUBLIC_FRONTEND_URL
+
 # Build the Vite frontend application
 # Assumes the build script exists in packages/vite/package.json
-RUN cd packages/vite && bun run build
+# The ARG VITE_PUBLIC_FRONTEND_URL will be available as an environment variable here
+RUN cd packages/vite && VITE_PUBLIC_FRONTEND_URL=$VITE_PUBLIC_FRONTEND_URL bun run build
 
 # Expose the port the Express server will listen on
 # Make sure this matches the PORT environment variable passed in Terraform (var.api_port)
-EXPOSE 3000 # Defaulting to 3000, adjust if needed
+EXPOSE 3000
 
 # Start the Express API server
 # Assumes the start script exists in packages/express/package.json
-CMD ["bun", "run", "--cwd", "packages/express", "start"]
+CMD ["bun", "run", "start"]

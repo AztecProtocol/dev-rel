@@ -15,9 +15,10 @@
     "typescript": "^5.8.3"
   },
   "scripts": {
+    "start": "bun --filter='@sparta/api' run start",
+    "dev": "bun --elide-lines=0 --filter='@sparta/api' run dev",
     "build:webapp": "bun --elide-lines=0 --filter='@sparta/webapp' run build",
-    "dev:webapp": "bun --elide-lines=0 --filter='@sparta/webapp' run dev",
-    "dev:api": "bun --elide-lines=0 --filter='@sparta/api' run dev"
+    "dev:webapp": "bun --elide-lines=0 --filter='@sparta/webapp' run dev"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.788.0",

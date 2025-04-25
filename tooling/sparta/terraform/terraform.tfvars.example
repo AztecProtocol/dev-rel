@@ -14,6 +14,21 @@ aws_region = "us-west-2"
 # Deployment environment - affects resource naming and may impact configuration
 environment = "production"  # Must be 'production'
 
+# VPC CIDR block
+# vpc_cidr = "10.10.0.0/16"
+
+# Availability Zones to use
+# availability_zones = ["us-west-2a", "us-west-2b"]
+
+# Public Subnet CIDR blocks (must match number of AZs)
+# public_subnet_cidrs = ["10.10.1.0/24", "10.10.2.0/24"]
+
+# Private Subnet CIDR blocks (must match number of AZs)
+# private_subnet_cidrs = ["10.10.101.0/24", "10.10.102.0/24"]
+
+# Optional: Domain name for the API
+# api_domain_name = "api.example.com"
+
 # -----------------------------------------------------------------------------
 # Discord Bot Configuration
 # -----------------------------------------------------------------------------
@@ -46,28 +61,25 @@ ethereum_chain_id = "1337"                    # 1337 for local, 1 for mainnet
 # Default amount of ETH for transactions
 ethereum_value = "20ether"                 # Default funding amount
 
-minimum_stake = 100000000000000000000
-
 # -----------------------------------------------------------------------------
 # SSH Configuration
 # -----------------------------------------------------------------------------
 # Your public SSH key for accessing EC2 instances (content of your ~/.ssh/id_rsa.pub)
-ssh_public_key = "ssh-rsa AAAA..."  # Your public SSH key for EC2 access
 
 # -----------------------------------------------------------------------------
-# Google Sheets Configuration
+# API Service Configuration
 # -----------------------------------------------------------------------------
-# Google API key for accessing Google Sheets API
-google_api_key = "your_google_api_key"
+# Port the API container listens on
+# api_port = 3000
 
-# ID of the Google Spreadsheet to use for data source
-spreadsheet_id = "your_spreadsheet_id"
+# Desired number of API tasks
+# api_desired_count = 2
 
-# -----------------------------------------------------------------------------
-# Aztec Configuration
-# -----------------------------------------------------------------------------
-# URL of the Aztec node
-aztec_node_url = "http://localhost:8080"
+# CPU units for API task (e.g., 256 = 0.25 vCPU)
+# api_cpu = "256"
+
+# Memory (MiB) for API task
+# api_memory = "512"
 
 #=====================
 # Logging Configuration

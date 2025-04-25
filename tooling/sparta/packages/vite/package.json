@@ -3,7 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "scripts": {
-    "dev": "vite --host",
+    "dev": "vite -w build",
     "build": "tsc && vite build",
     "preview": "vite preview"
   },

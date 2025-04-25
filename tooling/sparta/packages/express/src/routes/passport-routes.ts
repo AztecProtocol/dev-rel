@@ -13,15 +13,12 @@ import { recoverMessageAddress, type Hex } from "viem";
 import type { Session } from "@sparta/utils/dynamo-db";
 import DiscordService from "../discord/services/discord-service.js"; // Import DiscordService
 import {
-	MINIMUM_SCORE,
-	HIGH_SCORE_THRESHOLD,
+	STATUS_INITIATED,
 	STATUS_SCORE_RETRIEVED,
-	STATUS_VERIFIED_COMPLETE,
-	STATUS_VERIFICATION_FAILED_SCORE,
-	STATUS_VERIFICATION_ERROR,
-	// STATUS_SESSION_USED, // Unused
-	// STATUS_WALLET_CONNECTED, // Unused
 	STATUS_SIGNATURE_RECEIVED,
+	STATUS_VERIFICATION_FAILED_SCORE,
+	STATUS_VERIFIED_COMPLETE,
+	STATUS_VERIFICATION_ERROR,
 	VERIFICATION_MESSAGE, // Import shared constant
 	PassportRoles, // Import PassportRoles enum
 } from "@sparta/utils/const.js"; // Import status constants
@@ -97,7 +94,7 @@ async function _handleScoring(sessionId: string, address: Hex): Promise<ScoringR
 		? new Date(scoreResponse.last_score_timestamp).getTime()
 		: Date.now();
 
-	const verified = score >= MINIMUM_SCORE;
+	const verified = score >= parseFloat(process.env.MINIMUM_SCORE || '0');
 
 	await dynamoDB.updateSession(sessionId, {
 		score,
@@ -397,16 +394,10 @@ router.post("/verify", validateSession, async (req: Request, res: Response) => {
 					.setColor(roleAssignedSuccess ? 0x00FF00 : 0xFFCC00) // Green for success, Yellow for partial
 					.addFields(
 						{ name: "Status", value: message },
-						{ name: "Your Score", value: score.toString() },
-						{ name: "Minimum Required", value: MINIMUM_SCORE.toString() }
+						{ name: "Score", value: score.toString() },
+						{ name: "Minimum Required", value: (process.env.MINIMUM_SCORE || '0') }
 					)
 					.setFooter({ text: "You can dismiss this message." });
-
-				if (score >= HIGH_SCORE_THRESHOLD) {
-					finalEmbed.addFields({ name: "Role Awarded", value: `Verified & High Scorer (${PassportRoles.HighScorer})` });
-				} else {
-					finalEmbed.addFields({ name: "Role Awarded", value: `Verified (${PassportRoles.Verified})` });
-				}
 
 				await discordService.editInteractionReply(session.interactionToken, { 
 					embeds: [finalEmbed],
@@ -422,7 +413,7 @@ router.post("/verify", validateSession, async (req: Request, res: Response) => {
             const failEmbed = new EmbedBuilder()
                 .setTitle("Human Passport Verification Failed")
                 .setColor(0xFF0000) // Red for failure
-                .setDescription(`Your Human Passport score of **${score}** did not meet the minimum requirement of **${MINIMUM_SCORE}**. No roles were assigned.`)
+                .setDescription(`Your Human Passport score of **${score}** did not meet the minimum requirement of **${(process.env.MINIMUM_SCORE || '0')}**. No roles were assigned.`)
                 .setFooter({ text: "You can dismiss this message." });
             
             await discordService.editInteractionReply(session.interactionToken, {
@@ -448,7 +439,10 @@ router.post("/verify", validateSession, async (req: Request, res: Response) => {
 			roleAssigned: roleAssignedSuccess,
 			address: recoveredAddress,
 			sessionStatus: finalStatus,
-			message: message
+			message: message,
+			minimumRequiredScore: parseInt(process.env.MINIMUM_SCORE || '0'),
+			highScoreThreshold: parseInt(process.env.HIGH_SCORE_THRESHOLD || '10'),
+			isHighScorer: session.score !== null && session.score >= parseInt(process.env.HIGH_SCORE_THRESHOLD || '10'),
 		});
 
 	} catch (error: any) {
@@ -526,9 +520,9 @@ router.get("/status/discord/:discordUserId", async (req: Request, res: Response)
 			roleAssigned: session.roleAssigned, // Directly reflects the outcome
 			score: session.score,
 			status: session.status, // Return the final status
-			minimumRequiredScore: MINIMUM_SCORE,
-			highScoreThreshold: HIGH_SCORE_THRESHOLD,
-			isHighScorer: session.score !== null && session.score >= HIGH_SCORE_THRESHOLD, // Check against threshold
+			minimumRequiredScore: parseInt(process.env.MINIMUM_SCORE || '0'),
+			highScoreThreshold: parseInt(process.env.HIGH_SCORE_THRESHOLD || '10'),
+			isHighScorer: session.score !== null && session.score >= parseInt(process.env.HIGH_SCORE_THRESHOLD || '10'),
 			lastChecked: new Date().toISOString()
 		});
 	} catch (error: any) {

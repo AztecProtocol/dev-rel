@@ -61,15 +61,10 @@ The API requires several environment variables to be set in `.env.local`:
 ```
 # API Server Configuration
 API_PORT=3000
-API_HOST=http://localhost
 
 # WebApp Configuration
 WEBAPP_PORT=3001
 WEBAPP_HOST=http://localhost
-
-# Discord Bot API Configuration
-DISCORD_BOT_API_PORT=3002
-DISCORD_BOT_API_HOST=http://localhost
 
 # Passport Configuration
 PASSPORT_SCORER_ID=your-passport-scorer-id

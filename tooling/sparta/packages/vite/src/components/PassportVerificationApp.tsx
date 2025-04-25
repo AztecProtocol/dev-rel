@@ -29,7 +29,8 @@ const PassportVerificationApp: React.FC = () => {
 	// const [error, setError] = useState<string | null>(null);
 	const [sessionId, setSessionId] = useState<string | null>(null);
 	const [sessionData, setSessionData] = useState<SessionData | null>(null);
-	const [isSigning, setIsSigning] = useState<boolean>(false); // Added state for signing process
+	const [isSigning, setIsSigning] = useState<boolean>(false);
+	const [verificationFailedScore, setVerificationFailedScore] = useState<boolean>(false); // State for score failure
 	// const [verificationResult, _setVerificationResult] = useState<VerificationResult | null>(null); // State unused
 
 	const { isConnected } = useAppKitAccount();
@@ -39,7 +40,7 @@ const PassportVerificationApp: React.FC = () => {
 	const { data: signature, signMessage } = useSignMessage();
 
 	// API base URL
-	const API_BASE_URL = `${import.meta.env.VITE_API_HOST}:${import.meta.env.VITE_API_PORT}/api`;
+	const API_BASE_URL = `${import.meta.env.VITE_PUBLIC_FRONTEND_URL}/api`;
 
 	// Get session ID from URL
 	useEffect(() => {
@@ -70,19 +71,6 @@ const PassportVerificationApp: React.FC = () => {
 		fetchSessionData();
 	}, [sessionId]);
 
-	// Add debug logging
-	useEffect(() => {
-		console.log("API Base URL:", API_BASE_URL);
-		console.log("Environment variables:", {
-			host: import.meta.env.VITE_API_HOST,
-			port: import.meta.env.VITE_API_PORT
-		});
-		
-		if (address) {
-			console.log("Connected wallet address:", address);
-		}
-	}, [address]);
-
 	useEffect(() => {
 		const verifySignature = async () => {
 			if (!signature || !sessionId) return;
@@ -102,7 +90,12 @@ const PassportVerificationApp: React.FC = () => {
 				// Refresh session data after verification to update UI
 				const sessionResponse = await axios.get(`${API_BASE_URL}/session/${sessionId}`);
 				if (sessionResponse.data.success) {
-					setSessionData(sessionResponse.data);
+					const newSessionData = sessionResponse.data; // Use the full response
+					setSessionData(newSessionData);
+					// Check for score failure status
+					if (newSessionData.status === 'verification_failed_score') {
+						setVerificationFailedScore(true);
+					}
 				}
 			} catch (error) {
 				console.error("Error verifying signature:", error);
@@ -115,24 +108,24 @@ const PassportVerificationApp: React.FC = () => {
 		verifySignature();
 	}, [signature, sessionId, API_BASE_URL]); // Added dependencies
 
-	// Effect to auto-close window after successful verification
+	// Effect to auto-close window after successful verification OR score failure
 	useEffect(() => {
 		let timer: NodeJS.Timeout | number | undefined;
-		if (sessionData?.verified) {
-			console.log("Verification successful, closing window in 5 seconds...");
+		if (sessionData?.verified || verificationFailedScore) { // Trigger on success OR score failure
+			const message = sessionData?.verified ? "Verification successful" : "Verification failed (score)";
+			console.log(`${message}, closing window in 5 seconds...`);
 			timer = setTimeout(() => {
 				window.close();
 			}, 5000); // 5 seconds delay
 		}
 
-		// Cleanup function to clear the timeout if the component unmounts
-		// or if verification status changes before the timeout completes
+		// Cleanup function
 		return () => {
 			if (timer) {
 				clearTimeout(timer);
 			}
 		};
-	}, [sessionData?.verified]); // Dependency array ensures this runs when verified status changes
+	}, [sessionData?.verified, verificationFailedScore]); // Add verificationFailedScore to dependencies
 
 	return (
 		<div className="container">
@@ -162,8 +155,8 @@ const PassportVerificationApp: React.FC = () => {
 						isActive={isConnected && !!address && !(sessionData?.verified ?? false)} // Active until verified
 						isCompleted={sessionData?.verified ?? false} // Completed when verified
 						buttonText={"Sign Message"}
-						showButton={isConnected && !!address} // Button shown when wallet connected
-						buttonDisabled={!address || isSigning || !!signature} 
+						showButton={isConnected && !!address && !verificationFailedScore} // Hide button on score failure
+						buttonDisabled={!address || isSigning || !!signature || verificationFailedScore} // Also disable on score failure
 						isLoading={isSigning} 
 						onButtonClick={() => {
 							setIsSigning(true); 
@@ -184,6 +177,13 @@ const PassportVerificationApp: React.FC = () => {
 								<p>You have been successfully verified. You can now close this window and return to Discord.</p>
 							</div>
 						)}
+						// Add content to display on score failure
+						failureContent={verificationFailedScore ? (
+							<div className="verification-failure">
+								<h2>✗ Verification Failed</h2>
+								<p>Your Human Passport score did not meet the minimum requirement. This window will close automatically.</p>
+							</div>
+						) : undefined}
 					/>
 				</div>
 			</div>

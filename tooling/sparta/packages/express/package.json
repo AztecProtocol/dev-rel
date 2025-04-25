@@ -5,7 +5,7 @@
     "scripts": {
         "build": "tsc",
         "start": "bun run src/index.ts",
-        "dev": "bun --watch run src/index.ts",
+        "dev": "NODE_ENV=development bun --watch run src/index.ts",
         "test": "jest"
     },
     "dependencies": {

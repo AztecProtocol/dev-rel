@@ -13,17 +13,20 @@ import {
 	ActionRowBuilder,
 	MessageFlags,
 } from "discord.js";
-import { logger, dynamoDB, SESSION_TIMEOUT_MS } from "@sparta/utils";
-// import { randomUUID } from "node:crypto"; // Unused
+import { logger } from "@sparta/utils";
 import axios from "axios";
-import { MINIMUM_SCORE, HIGH_SCORE_THRESHOLD } from "@sparta/utils/const.js";
+
 export enum PassportSubcommands {
 	Verify = "verify",
 	Status = "status",
 }
 
-const API = axios.create({
-	baseURL: `${process.env.API_HOST}:${process.env.API_PORT}/api`,
+// Create an Axios instance for API calls related to Passport
+const api = axios.create({
+	baseURL: `${process.env.PUBLIC_FRONTEND_URL}/api`, // Use PUBLIC_FRONTEND_URL
+	headers: {
+		'Content-Type': 'application/json',
+	},
 });
 
 /**
@@ -48,7 +51,7 @@ export async function handleVerifyCommand(
 		const userId = interaction.user.id;
 
 		// Call the Express API to create a session
-		const response = await API.post(`/create-session`, {
+		const response = await api.post(`/create-session`, {
 			userId,
 			interactionToken: interaction.token
 		});
@@ -77,8 +80,8 @@ export async function handleVerifyCommand(
 					value: "Human Passport is a sybil resistance tool that verifies you're a unique human.",
 				},
 				{
-					name: "Score Requirement",
-					value: `You'll need a score of at least ${MINIMUM_SCORE} to verify. Scores above ${HIGH_SCORE_THRESHOLD} will receive a special High Scorer role.`,
+					name: "Passport Status",
+					value: `You'll need a score of at least ${process.env.MINIMUM_SCORE || '0'} to verify.`,
 				}
 			)
 			.setFooter({

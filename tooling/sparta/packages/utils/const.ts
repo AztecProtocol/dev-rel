@@ -40,9 +40,6 @@ export enum PassportRoles {
 	HighScorer = "highscorer", // for users with scores over 10
 }
 
-export const MINIMUM_SCORE = 0;
-export const HIGH_SCORE_THRESHOLD = 10;
-
 // Session Statuses (Simplified)
 export const STATUS_INITIATED = 'initiated'; // Session created, pre-wallet connect
 export const STATUS_WALLET_CONNECTED = 'wallet_connected'; // Wallet connected, pre-signature

@@ -16,11 +16,11 @@ variable "aws_region" {
 }
 
 variable "environment" {
-  description = "Deployment environment (staging/production)"
+  description = "Deployment environment (development/production)"
   type        = string
   validation {
-    condition     = contains(["production"], var.environment)
-    error_message = "Environment must be 'production'"
+    condition     = contains(["development", "production"], var.environment)
+    error_message = "Environment must be either 'development' or 'production'"
   }
 }
 
@@ -91,47 +91,10 @@ variable "funder_address_private_key" {
   sensitive   = true
 }
 
-variable "minimum_stake" {
-  description = "Minimum stake amount for staking"
-  type        = string
-}
-
-variable "approval_amount" {
-  description = "Approval amount for staking"
-  type        = string
-}
 
 # -----------------------------------------------------------------------------
 # SSH Configuration
 # -----------------------------------------------------------------------------
-variable "ssh_public_key" {
-  description = "Public SSH key for accessing EC2 instances"
-  type        = string
-}
-
-# -----------------------------------------------------------------------------
-# Google Sheets Configuration
-# -----------------------------------------------------------------------------
-variable "google_api_key" {
-  description = "Google API key for Google Sheets access"
-  type        = string
-  sensitive   = true
-}
-
-variable "spreadsheet_id" {
-  description = "Google Spreadsheet ID for data source"
-  type        = string
-}
-
-# -----------------------------------------------------------------------------
-# Aztec Configuration
-# -----------------------------------------------------------------------------
-variable "aztec_node_url" {
-  description = "URL for the Aztec node"
-  type        = string
-  default     = ""
-}
-
 variable "log_level" {
   description = "Log level for the application (trace, debug, info, warn, error, fatal)"
   type        = string
@@ -139,9 +102,9 @@ variable "log_level" {
 }
 
 variable "log_pretty_print" {
-  description = "Enable or disable colorful, pretty-printed logs"
+  description = "Enable pretty printing for logs (recommended false for production)"
   type        = bool
-  default     = true
+  default     = false
 }
 
 variable "private_subnet_cidrs" {
@@ -152,7 +115,62 @@ variable "private_subnet_cidrs" {
 
 # variable "acm_certificate_arn" { ... } # REMOVED - Not needed for HTTP-only setup
 
-variable "api_domain_name" {
-  description = "Domain name for the API"
+# variable "api_domain_name" {
+#   description = "Domain name for the API"
+#   type        = string
+# }
+
+# -----------------------------------------------------------------------------
+# Networking Configuration
+# -----------------------------------------------------------------------------
+variable "vpc_cidr" {
+  description = "CIDR block for the VPC"
   type        = string
+  default     = "10.10.0.0/16"
 }
+
+variable "availability_zones" {
+  description = "List of Availability Zones to use for subnets"
+  type        = list(string)
+  default     = ["eu-west-2a", "eu-west-2b"] # Example for eu-west-2, adjust as needed
+}
+
+variable "public_subnet_cidrs" {
+  description = "List of CIDR blocks for public subnets (must match number of AZs)"
+  type        = list(string)
+  default     = ["10.10.1.0/24", "10.10.2.0/24"]
+}
+
+# -----------------------------------------------------------------------------
+# API Service Configuration
+# -----------------------------------------------------------------------------
+variable "api_port" {
+  description = "Port the API container listens on"
+  type        = number
+  default     = 3000
+}
+
+variable "api_desired_count" {
+  description = "Desired number of tasks for the API service"
+  type        = number
+  default     = 1 # Start with 1, can be overridden
+}
+
+variable "api_cpu" {
+  description = "CPU units to allocate for the API task (e.g., 256 = 0.25 vCPU)"
+  type        = string # Fargate uses string values for CPU/Memory
+  default     = "256"
+}
+
+variable "api_memory" {
+  description = "Memory to allocate for the API task in MiB (e.g., 512)"
+  type        = string
+  default     = "512"
+}
+
+# =============================================================================
+# Outputs (Consider adding outputs for easy access to created resources)
+# =============================================================================
+# output "vpc_id" { value = aws_vpc.sparta_vpc.id }
+# output "alb_dns_name" { value = aws_lb.sparta_alb.dns_name }
+# ... etc.

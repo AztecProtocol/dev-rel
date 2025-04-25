@@ -3,37 +3,37 @@
 # -----------------------------------------------------------------------------
 output "ecs_service_name" {
   description = "Name of the ECS service"
-  value       = aws_ecs_service.sparta_discord_bot.name
+  value       = aws_ecs_service.sparta_api.name
 }
 
 output "ecs_desired_count" {
   description = "Desired number of tasks running"
-  value       = aws_ecs_service.sparta_discord_bot.desired_count
+  value       = aws_ecs_service.sparta_api.desired_count
 }
 # ECR Repository
 output "ecr_repository_url" {
   description = "URL of the ECR repository"
-  value       = aws_ecr_repository.sparta_bot.repository_url
+  value       = aws_ecr_repository.sparta_api.repository_url
 }
 
 output "ecr_repository_name" {
   description = "Name of the ECR repository"
-  value       = aws_ecr_repository.sparta_bot.name
+  value       = aws_ecr_repository.sparta_api.name
 }
 
 output "ecr_repository_arn" {
   description = "ARN of the ECR repository" 
-  value       = aws_ecr_repository.sparta_bot.arn
+  value       = aws_ecr_repository.sparta_api.arn
 }
 
 output "ecr_repository_registry_id" {
   description = "Registry ID where the repository was created"
-  value       = aws_ecr_repository.sparta_bot.registry_id
+  value       = aws_ecr_repository.sparta_api.registry_id
 }
 
 output "ecr_image_latest_tag" {
   description = "Latest image tag in the ECR repository"
-  value       = "${aws_ecr_repository.sparta_bot.repository_url}:latest"
+  value       = "${aws_ecr_repository.sparta_api.repository_url}:latest"
 }
 
 # -----------------------------------------------------------------------------
@@ -41,12 +41,12 @@ output "ecr_image_latest_tag" {
 # -----------------------------------------------------------------------------
 output "task_definition_arn" {
   description = "ARN of the task definition"
-  value       = aws_ecs_task_definition.sparta_discord_bot.arn
+  value       = aws_ecs_task_definition.sparta_api.arn
 }
 
 output "task_definition_revision" {
   description = "Latest revision of the task definition"
-  value       = aws_ecs_task_definition.sparta_discord_bot.revision
+  value       = aws_ecs_task_definition.sparta_api.revision
 }
 
 # -----------------------------------------------------------------------------
@@ -54,7 +54,7 @@ output "task_definition_revision" {
 # -----------------------------------------------------------------------------
 output "cloudwatch_log_group" {
   description = "Name of the CloudWatch log group"
-  value       = aws_cloudwatch_log_group.sparta_discord_bot_logs.name
+  value       = aws_cloudwatch_log_group.sparta_api_logs.name
 }
 
 output "alb_zone_id" {

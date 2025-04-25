@@ -11,8 +11,8 @@ import { logger } from "@sparta/utils";
 import {
   // NodeOperatorRoles, // Unused
   PassportRoles,
-  MINIMUM_SCORE,
-  HIGH_SCORE_THRESHOLD,
+  STATUS_SESSION_EXPIRED,
+  STATUS_SESSION_USED,
 } from "@sparta/utils/const.js";
 // Import necessary types from discord.js
 import type { Guild, Role, GuildMember } from 'discord.js';
@@ -186,10 +186,10 @@ export class DiscordService {
 				const userId = arg1;
 				const score = arg2;
 
-				if (score < MINIMUM_SCORE) {
+				if (score < parseInt(process.env.MINIMUM_SCORE || '0')) {
 					logger.info(
-						{ userId, score, minimum: MINIMUM_SCORE },
-						"User score below minimum, no role assigned."
+						{ userId, score, minimum: parseInt(process.env.MINIMUM_SCORE || '0') },
+						"Score below minimum, removing verified role (if present)"
 					);
 					return true; // Indicate success as no action was needed
 				}
@@ -207,10 +207,10 @@ export class DiscordService {
 				}
 				
 				// Additionally assign High Scorer role if threshold is met
-				if (score >= HIGH_SCORE_THRESHOLD) { 
+				if (score >= parseInt(process.env.HIGH_SCORE_THRESHOLD || '10')) {
 					logger.info(
-						{ userId, score, threshold: HIGH_SCORE_THRESHOLD, roleName: PassportRoles.HighScorer },
-						"Score meets threshold, assigning high scorer role..."
+						{ userId, score, threshold: parseInt(process.env.HIGH_SCORE_THRESHOLD || '10'), roleName: PassportRoles.HighScorer },
+						"Assigning high scorer role"
 					);
 					const highScorerRoleAssigned = await this.assignRole(userId, PassportRoles.HighScorer);
 					if (!highScorerRoleAssigned) {

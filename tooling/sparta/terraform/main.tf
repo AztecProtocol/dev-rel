@@ -9,8 +9,7 @@ terraform {
 
   backend "s3" {
     bucket = "sparta-tf-state" # Ensure this bucket exists
-    key    = "sparta/terraform-${var.environment}" # Use environment in key for isolation
-    region = var.aws_region
+    # key and region will be provided via -backend-config during init
   }
 }
 
@@ -346,34 +345,22 @@ resource "aws_ecr_repository" "sparta_api" {
   })
 }
 
-# --- Docker Build & Push (Local Execution - Replace with CI/CD) ---
-# Note: This runs locally where Terraform is executed. Needs Docker & AWS CLI configured.
-# Requires the execution context to be the workspace root.
-resource "null_resource" "api_docker_build_push" {
-  triggers = {
-    # Trigger on changes to relevant source code or Dockerfile if possible,
-    # otherwise timestamp() forces it on every apply. For now, using timestamp.
-    always_run = timestamp()
-    # Consider adding file hashes here: filemd5("../Dockerfile"), filemd5("../packages/express/src/index.ts"), ...
-  }
+# --- Use external data source to build, push, and get image digest ---
+data "external" "api_docker_build_push_digest" {
+  program = ["bash", "${path.module}/../scripts/build_push_get_digest.sh", var.aws_region, aws_ecr_repository.sparta_api.repository_url, "${path.module}/../", "http://${aws_lb.sparta_alb.dns_name}"] # Pass region, repo url, Dockerfile dir, and frontend URL
 
-  provisioner "local-exec" {
-    # Assumes Terraform is run from the tooling/sparta/terraform directory
-    working_dir = "../../../" # Go up to the root directory containing the main Dockerfile
-    command = <<EOT
-      echo "Logging into ECR..."
-      aws ecr get-login-password --region ${var.aws_region} | docker login --username AWS --password-stdin ${aws_ecr_repository.sparta_api.repository_url}
-      echo "Building API Docker image..."
-      # Make sure the root Dockerfile builds the express app
-      docker build -t ${aws_ecr_repository.sparta_api.repository_url}:latest -f Dockerfile .
-      echo "Pushing API Docker image to ECR..."
-      docker push ${aws_ecr_repository.sparta_api.repository_url}:latest
-      echo "Docker push complete."
-    EOT
-  }
+  # Trigger a rebuild whenever relevant source files change (optional but recommended)
+  # Use filemd5() for files or filesetmd5() for directories/patterns
+  # Note: This might require adjusting the DOCKERFILE_DIR path in the script if you change working_dir here.
+  # query = {
+  #   dockerfile_hash = filemd5("${path.module}/../../Dockerfile")
+  #   src_hash        = filemd5("${path.module}/../../packages/express/src/index.ts") # Add other key source files
+  # }
+
+  # Ensure ECR repository exists before running the script
   depends_on = [aws_ecr_repository.sparta_api]
 }
-# --- End Docker Build & Push ---
+# --- End external data source ---
 
 # CloudWatch Log Group for the API Service
 resource "aws_cloudwatch_log_group" "sparta_api_logs" {
@@ -413,7 +400,8 @@ resource "aws_ecs_task_definition" "sparta_api" {
   container_definitions = jsonencode([
     {
       name      = "${local.resource_prefix}-api-container"
-      image     = "${aws_ecr_repository.sparta_api.repository_url}:latest" # Use the ECR image
+      # Reference the image using the digest from the external data source
+      image     = "${aws_ecr_repository.sparta_api.repository_url}@${data.external.api_docker_build_push_digest.result.image_digest}"
       essential = true
       # Map the container port
       portMappings = [
@@ -430,7 +418,6 @@ resource "aws_ecs_task_definition" "sparta_api" {
           "awslogs-group"         = aws_cloudwatch_log_group.sparta_api_logs.name
           "awslogs-region"        = var.aws_region
           "awslogs-stream-prefix" = "api" # Prefix for log streams
-          "awslogs-create-group"  = "false" # Group is created above
         }
       }
       # Pass environment variables needed by the API application
@@ -439,9 +426,8 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "PORT", value = tostring(var.api_port) },
         { name = "AWS_REGION", value = var.aws_region },
         { name = "SESSION_TABLE_NAME", value = aws_dynamodb_table.sparta_sessions.name },
+        { name = "LOCAL_DYNAMO_DB", value = "false" },
         { name = "API_HOST", value = "0.0.0.0" }, # Make sure Express listens on 0.0.0.0 inside container
-        # --- Sensitive Variables ---
-        # Consider using AWS Secrets Manager or Parameter Store for these
         { name = "BOT_TOKEN", value = var.bot_token },
         { name = "BOT_CLIENT_ID", value = var.bot_client_id },
         { name = "GUILD_ID", value = var.guild_id },
@@ -451,13 +437,12 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "WITHDRAWER_ADDRESS", value = var.withdrawer_address },
         { name = "STAKING_ASSET_HANDLER_ADDRESS", value = var.staking_asset_handler_address },
         { name = "L1_CHAIN_ID", value = var.l1_chain_id },
-        { name = "GOOGLE_API_KEY", value = var.google_api_key },
-        { name = "SPREADSHEET_ID", value = var.spreadsheet_id },
-        { name = "AZTEC_NODE_URL", value = var.aztec_node_url },
         { name = "LOG_LEVEL", value = var.log_level },
         { name = "LOG_PRETTY_PRINT", value = var.log_pretty_print ? "true" : "false" },
-        # Add the public URL for constructing verification links
-        { name = "PUBLIC_FRONTEND_URL", value = var.api_domain_name != "" ? "http://${var.api_domain_name}" : "http://${aws_lb.sparta_alb.dns_name}" }
+        # This PUBLIC_FRONTEND_URL is for the backend if it needs to construct absolute URLs
+        { name = "PUBLIC_FRONTEND_URL", value = "http://${aws_lb.sparta_alb.dns_name}" },
+        # VITE_PUBLIC_FRONTEND_URL is handled via build args now, removed from runtime env
+        { name = "CORS_ALLOWED_ORIGINS", value = "http://${aws_lb.sparta_alb.dns_name}" }
       ]
       # secrets = [ # Example using Secrets Manager
       #   { name = "BOT_TOKEN", valueFrom = "<ARN of Secrets Manager secret for BOT_TOKEN>" }
@@ -469,8 +454,8 @@ resource "aws_ecs_task_definition" "sparta_api" {
     Name = "${local.resource_prefix}-api-task-def"
   })
 
-  # Ensure image is pushed before task definition is created/updated
-  depends_on = [null_resource.api_docker_build_push]
+  # Task definition implicitly depends on the external data source now because it uses its result.
+  # depends_on = [data.external.api_docker_build_push_digest] # Optional explicit dependency
 }
 
 # Application Load Balancer (ALB) for the API
@@ -671,4 +656,33 @@ resource "aws_appautoscaling_policy" "api_scale_memory" {
 #     zone_id                = aws_cloudfront_distribution.frontend_distribution.hosted_zone_id
 #     evaluate_target_health = false # Cannot evaluate health for CloudFront aliases
 #   }
-# } 
+# }
+
+# =============================================================================
+# Outputs
+# =============================================================================
+
+output "api_ecr_repository_url" {
+  description = "The URL of the ECR repository for the API image"
+  value       = aws_ecr_repository.sparta_api.repository_url
+}
+
+output "api_load_balancer_dns" {
+  description = "The DNS name of the Application Load Balancer for the API"
+  value       = aws_lb.sparta_alb.dns_name
+}
+
+output "api_service_name" {
+  description = "The name of the ECS service for the API"
+  value       = aws_ecs_service.sparta_api.name
+}
+
+output "ecs_cluster_name" {
+  description = "The name of the ECS cluster"
+  value       = aws_ecs_cluster.sparta_cluster.name
+}
+
+output "sessions_table_name" {
+  description = "The name of the DynamoDB table for sessions"
+  value       = aws_dynamodb_table.sparta_sessions.name
+} 

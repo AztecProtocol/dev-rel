@@ -17,48 +17,53 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// Enhanced CORS configuration
-const allowedOrigins = [
-  // Allow the ALB DNS name or custom domain for the frontend
-  // We don't know the exact ALB DNS name here, so configure broadly or update post-deployment
-  // For now, allowing localhost for local dev and potentially any origin if needed
-  // process.env.WEBAPP_HOST && process.env.WEBAPP_PORT ? `${process.env.WEBAPP_HOST}:${process.env.WEBAPP_PORT}` : undefined,
-  'http://localhost:3000', // Keep for local dev
-  'http://192.168.100.52:3000'
-].filter(Boolean) as string[]; // Filter out undefined values
+// --- CORS Configuration --- START
+let allowedOrigins: string[] = [];
+const corsAllowedOriginsEnv = process.env.CORS_ALLOWED_ORIGINS;
+const nodeEnv = process.env.NODE_ENV;
 
-// If deploying, consider allowing the actual deployed frontend origin
-// You might need to configure this based on the ALB DNS name after deployment
-// or use a more permissive setting if needed temporarily.
-const isProduction = process.env.NODE_ENV === 'production';
+if (corsAllowedOriginsEnv) {
+  // Use origins from environment variable if provided
+  allowedOrigins = corsAllowedOriginsEnv.split(',').map(origin => origin.trim());
+} else if (nodeEnv === 'development') {
+  // Default origins for local development if variable is not set
+  allowedOrigins = [
+    'http://localhost:3000', // Allow Express itself if serving frontend
+    'http://localhost:5173'  // Default Vite dev port
+  ];
+} // In non-development environments, if CORS_ALLOWED_ORIGINS is not set, allowedOrigins remains empty (most restrictive)
+
+logger.info({ nodeEnv, corsAllowedOriginsEnv, resolvedOrigins: allowedOrigins }, "Initializing CORS");
+
+const corsOptions = {
+  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
+    // Allow requests with no origin (like mobile apps, curl, server-to-server)
+    if (!origin) {
+      logger.debug("CORS: Allowing request with no origin");
+      return callback(null, true);
+    }
+    // Check if the origin is in the allowed list
+    if (allowedOrigins.includes(origin)) {
+      logger.debug({ origin }, "CORS: Allowing request from origin");
+      callback(null, true);
+    } else {
+      logger.warn({ origin, allowedOrigins }, "CORS: Blocking request from disallowed origin");
+      callback(new Error(`Origin ${origin} not allowed by CORS`), false);
+    }
+  },
+  methods: ['GET', 'POST', 'OPTIONS'], // Specify allowed methods
+  allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed headers
+  credentials: true, // Allow cookies/authorization headers
+  optionsSuccessStatus: 204 // Return 204 for preflight requests
+};
+
+// --- CORS Configuration --- END
 
 // Debug middleware to log all requests
 app.use((req, _res, next) => {
   console.log(`${new Date().toISOString()} | ${req.method} ${req.url} | Origin: ${req.headers.origin || 'No origin'}`);
   next();
 });
-
-const corsOptions = {
-  origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
-    // Allow requests with no origin (like mobile apps, curl, etc.)
-    if (!origin) {
-      console.log(`Allowing request with no origin`);
-      return callback(null, true);
-    }
-    // In production, be stricter. Allow known origins or configure properly.
-    // For now, let's allow localhost for dev and potentially others if needed (adjust logic here)
-    if (allowedOrigins.includes(origin) || !isProduction /* Allow any in non-prod for simplicity */) {
-      console.log(`Allowing request from origin: ${origin}`);
-      callback(null, true);
-    } else {
-      console.log(`Blocking request from disallowed origin: ${origin}`);
-      callback(new Error(`Origin ${origin} not allowed by CORS`), false);
-    }
-  },
-  methods: ['GET', 'POST', 'OPTIONS'],
-  credentials: true,
-  optionsSuccessStatus: 204
-};
 
 // Middleware
 app.use(cors(corsOptions));
