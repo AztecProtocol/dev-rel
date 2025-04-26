@@ -1,4 +1,4 @@
-export const ADDRESSES_PER_PAGE = 20;
+// Removed ADDRESSES_PER_PAGE constant as it's no longer used
 
 export enum AdminSubcommandGroups {
 	Admin = "admin",
@@ -6,8 +6,6 @@ export enum AdminSubcommandGroups {
 
 export enum AdminSubcommands {
 	Get = "get",
-	Committee = "committee",
-	Validators = "validators",
 	Remove = "remove",
 	Fund = "fund",
 }

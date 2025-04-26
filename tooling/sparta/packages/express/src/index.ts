@@ -29,7 +29,8 @@ if (corsAllowedOriginsEnv) {
   // Default origins for local development if variable is not set
   allowedOrigins = [
     'http://localhost:3000', // Allow Express itself if serving frontend
-    'http://localhost:5173'  // Default Vite dev port
+    'http://localhost:5173', // Default Vite dev port
+    'http://192.168.100.52:3000' // Allow local IP address
   ];
 } // In non-development environments, if CORS_ALLOWED_ORIGINS is not set, allowedOrigins remains empty (most restrictive)
 

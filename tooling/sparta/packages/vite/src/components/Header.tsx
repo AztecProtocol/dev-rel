@@ -1,42 +1,25 @@
-import { useAppKitAccount, useDisconnect } from '@reown/appkit/react';
-import React from 'react';
+import React, { useState } from 'react';
+import { StyledConnectButton } from './button';
+import { Link } from 'react-router-dom';
 
-interface HeaderProps {
-  connectedAddress?: string;
-  resetForm?: () => void;
-}
-
-const Header: React.FC<HeaderProps> = ({ resetForm }) => {
-  const { isConnected, address } = useAppKitAccount();
-  const { disconnect } = useDisconnect();
-
-  if (!isConnected) {
-    resetForm?.();
-    return null;
-  }
+function Header() {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   return (
-    <div className="hidden sm:block sticky top-0 z-50 w-full bg-black/20 backdrop-blur-md border-b border-black">
-      <div className="w-full h-[96px]">
-        <div className="max-w-[1440px] h-full mx-auto">
-          <div className="flex items-center justify-end gap-4 sm:gap-8 h-full px-4 sm:px-16">
-            <div className="text-right">
-              <span className="text-sm sm:text-base font-medium text-white">Connected to: </span>
-              <span className="text-sm sm:text-base font-light text-white break-all sm:break-normal">
-                {address}
-              </span>
-            </div>
-            <button
-              onClick={() => disconnect()}
-              className="shrink-0 px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-sm sm:text-base font-medium text-white bg-[#4A3671] hover:bg-[#553f82] transition-colors"
-            >
-              Disconnect
-            </button>
-          </div>
+    <>
+      {/* Desktop Header - Hidden on mobile */}
+      <header className="fixed top-0 left-0 right-0 p-4 z-50 hidden md:block">
+        <div className="container mx-auto flex justify-between items-center">
+          <StyledConnectButton />
         </div>
-      </div>
-    </div>
-  );
-};
+      </header>
 
-export default Header;
+      {/* Mobile Hamburger Button - Shown only on mobile */}
+      <header className="fixed top-0 left-0 right-0 p-4 z-50 flex md:hidden justify-end">
+         <StyledConnectButton />
+      </header>
+    </>
+  );
+}
+
+export default Header; 

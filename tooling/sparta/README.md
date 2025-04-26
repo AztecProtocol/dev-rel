@@ -327,3 +327,85 @@ When deploying to AWS, the Terraform configuration will:
 1. Create the DynamoDB table
 2. Set up appropriate IAM permissions
 3. Configure the application to use the AWS DynamoDB service
+
+# Sparta Rollup Tools
+
+This repository contains tools for interacting with the Sparta Rollup, including a subgraph for The Graph and scripts for querying committee membership.
+
+## Subgraph
+
+The subgraph indexes committee membership data from the Sparta Rollup contract. It tracks:
+
+- Epochs and their timing
+- Committee membership for each epoch
+- Validators joining and leaving
+
+### Deployment Instructions
+
+1. Install dependencies:
+   ```
+   yarn install
+   ```
+
+2. Initialize the subgraph:
+   ```
+   cd subgraph
+   graph init --product hosted-service --from-example your-username/sparta-rollup
+   ```
+
+3. Authenticate with The Graph:
+   ```
+   graph auth --product hosted-service <your-access-token>
+   ```
+
+4. Deploy the subgraph:
+   ```
+   yarn deploy-subgraph
+   ```
+
+5. Update the `GRAPH_API_URL` in the .env file with your deployed subgraph URL.
+
+## Committee Membership Query Tool
+
+The `queryAttester.ts` script allows you to check if an address is a committee member in epochs active within a specified time window.
+
+### Usage
+
+```bash
+# Check committee membership for the last 2 hours (default)
+node scripts/queryAttester.js 0xYourAddress
+
+# Check committee membership for a specific time window (e.g., 6 hours)
+node scripts/queryAttester.js 0xYourAddress 6
+```
+
+### Output
+
+The script outputs:
+1. Console logs showing which epochs were checked and the membership status
+2. A JSON file containing detailed results, including:
+   - Epoch numbers
+   - Timestamps
+   - Committee membership status
+   - Full committee list for each epoch
+
+## Environment Variables
+
+Create a `.env` file in the `tooling/sparta` directory with:
+
+```
+GRAPH_API_URL=https://api.thegraph.com/subgraphs/name/your-username/sparta-rollup
+```
+
+## How It Works
+
+1. The subgraph indexes data from the Sparta Rollup contract on Sepolia
+2. It stores information about epochs and committee members in an organized format
+3. The query script uses The Graph API to retrieve this data efficiently
+4. Results are processed and presented in a user-friendly format
+
+## Requirements
+
+- Node.js 16+
+- Yarn or npm
+- The Graph CLI (for subgraph deployment)
