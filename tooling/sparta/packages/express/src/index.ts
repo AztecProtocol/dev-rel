@@ -1,16 +1,47 @@
 import express from 'express';
 import cors from 'cors';
-import passportRoutes from './routes/passport-routes.js';
+import humanPassportRoutes from './routes/human.js';
+import userRoutes from './routes/users.js';
 import { swaggerSpec, swaggerUi } from './swagger.js';
 // import { dynamoDB } from "@sparta/utils"; // Unused
-import { discord } from './discord/clients/discord.js';
+import { discord } from './domain/discord/clients/discord.js';
 import { logger } from '@sparta/utils';
 import path from 'path'; // Import path module
 import { fileURLToPath } from 'url'; // Import fileURLToPath for ES modules
+import { initializeUserRepository } from './db/userRepository.js';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+
+const execAsync = promisify(exec);
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Initialize the User repository
+initializeUserRepository();
+
+// Function to generate OpenAPI TypeScript bindings
+async function generateOpenAPITypes(apiDocsUrl: string): Promise<void> {
+  try {
+    const viteApiDir = path.join(__dirname, '..', '..', '..', 'packages', 'vite', 'src', 'api');
+    const clientFilePath = path.join(viteApiDir, 'client.d.ts');
+    
+    logger.info(`Generating OpenAPI TypeScript bindings from ${apiDocsUrl} to ${clientFilePath}`);
+    
+    // Use npx to run the openapi-client-axios-typegen command
+    const command = `npx openapi-client-axios-typegen ${apiDocsUrl} > ${clientFilePath}`;
+    const { stdout, stderr } = await execAsync(command);
+    
+    if (stderr) {
+      logger.error(`Error generating OpenAPI TypeScript bindings: ${stderr}`);
+    } else {
+      logger.info(`Successfully generated OpenAPI TypeScript bindings: ${stdout}`);
+    }
+  } catch (error: unknown) {
+    logger.error(`Failed to generate OpenAPI TypeScript bindings: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
 
 // Define constants for session status (assuming these exist elsewhere or should be defined)
 // const PENDING_ROLE_STATUS = 'pending_role_assignment'; // Removed local definition
@@ -95,7 +126,8 @@ app.get('/api-docs.json', (_req, res) => {
 });
 
 // API Routes
-app.use('/api', passportRoutes);
+app.use('/api/human', humanPassportRoutes);
+app.use('/api/users', userRoutes);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
@@ -127,15 +159,18 @@ app.listen(process.env.API_PORT as unknown as number, '0.0.0.0', async () => {
   console.log(`Allowing CORS for: ${allowedOrigins.join(', ')}`);
   console.log(`API Documentation available at: http://localhost:${process.env.API_PORT}/api-docs`);
 
+  // Generate TypeScript typings from the OpenAPI spec
+  const apiDocsUrl = `http://localhost:${process.env.API_PORT}/api-docs.json`;
+  // Wait a bit for the server to fully initialize before generating types
+  setTimeout(() => {
+    generateOpenAPITypes(apiDocsUrl);
+  }, 2000);
+
   // Start Discord Bot and then the background processor
   try {
     // Wait for the client to be ready (login happens in Discord.new)
     discord.getClient().once('ready', async () => {
       logger.info("Discord bot client is ready.");
-      // Removed background processor startup
-      // await processPendingRoleAssignments(); // Run once immediately on startup
-      // setInterval(processPendingRoleAssignments, 60 * 1000);
-      // logger.info("Started periodic check for pending role assignments (every 60 seconds).");
     });
     // Log that we are waiting for the ready event
     logger.info("Waiting for Discord bot client to signal ready...");
@@ -146,14 +181,3 @@ app.listen(process.env.API_PORT as unknown as number, '0.0.0.0', async () => {
     // process.exit(1); 
   }
 });
-
-// Function to handle Discord interactions - Removed
-// async function handleInteraction(interaction: Interaction<CacheType>) { ... }
-
-// Handler for /passport verify command - Removed
-// async function handlePassportVerify(interaction: CommandInteraction) { ... }
-
-// Removed background processing function
-// async function processPendingRoleAssignments() { ... }
-
- 

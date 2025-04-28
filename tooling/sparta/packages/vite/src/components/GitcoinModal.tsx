@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAccount, useSignMessage } from 'wagmi';
-import { passportService } from '../api/services';
+import { humanService } from '../api/services';
 import { VERIFICATION_MESSAGE } from '@sparta/utils';
 
 type VerificationState = 'idle' | 'loading' | 'success' | 'failure';
@@ -9,10 +9,10 @@ type SignState = 'idle' | 'signing' | 'verifying' | 'success' | 'error' | 'cance
 interface GitcoinModalProps {
   isOpen: boolean;
   onClose: () => void;
-  sessionId?: string;
+  verificationId?: string;
 }
 
-function GitcoinModal({ isOpen, onClose, sessionId }: GitcoinModalProps) {
+function GitcoinModal({ isOpen, onClose, verificationId }: GitcoinModalProps) {
   const [state, setState] = useState<VerificationState>('idle');
   const [signState, setSignState] = useState<SignState>('idle');
   const [scoreData, setScoreData] = useState<{ score: number; minimumScore: number } | null>(null);
@@ -34,7 +34,7 @@ function GitcoinModal({ isOpen, onClose, sessionId }: GitcoinModalProps) {
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
     
-        if (signState === 'success') {
+    if (signState === 'success') {
       timeoutId = setTimeout(() => {
         window.close();
       }, 10000);
@@ -56,12 +56,12 @@ function GitcoinModal({ isOpen, onClose, sessionId }: GitcoinModalProps) {
   // Effect to call verify endpoint once signature is available
   useEffect(() => {
     const verifySignature = async () => {
-      if (signData && signState === 'signing' && sessionId) {
+      if (signData && signState === 'signing' && verificationId) {
         try {
           setSignState('verifying');
           
           // Call the verify endpoint with the signature
-          const response = await passportService.verifySignature(signData, sessionId);
+          const response = await humanService.verifySignature(signData, verificationId);
           
           if (response.success) {
             setSignState('success');
@@ -79,11 +79,11 @@ function GitcoinModal({ isOpen, onClose, sessionId }: GitcoinModalProps) {
     };
     
     verifySignature();
-  }, [signData, signState, sessionId]);
+  }, [signData, signState, verificationId]);
 
   const handleVerify = async () => {
-    if (!address || !sessionId) {
-      console.error("Missing required parameters: address or sessionId");
+    if (!address || !verificationId) {
+      console.error("Missing required parameters: address or verificationId");
       setState('failure');
       return;
     }
@@ -92,7 +92,7 @@ function GitcoinModal({ isOpen, onClose, sessionId }: GitcoinModalProps) {
     
     try {
       // Use the API service to get the passport score
-      const response = await passportService.getScore(address, sessionId);
+      const response = await humanService.getScore(address, verificationId);
       
       // Store score data for display
       setScoreData({
@@ -111,8 +111,8 @@ function GitcoinModal({ isOpen, onClose, sessionId }: GitcoinModalProps) {
   };
 
   const handleSign = async () => {
-    if (!address || !sessionId) {
-      console.error("Missing required parameters: address or sessionId");
+    if (!address || !verificationId) {
+      console.error("Missing required parameters: address or verificationId");
       return;
     }
     
@@ -173,7 +173,7 @@ function GitcoinModal({ isOpen, onClose, sessionId }: GitcoinModalProps) {
         )}
 
         {/* Conditional Button Rendering */} 
-        <div className="h-12 flex gap-4"> {/* Changed to flex with gap */}
+        <div className="h-12 flex gap-4">
           {/* Back button - always present */}
           <button
             onClick={onClose}
@@ -188,7 +188,7 @@ function GitcoinModal({ isOpen, onClose, sessionId }: GitcoinModalProps) {
               <button
                 onClick={handleVerify}
                 className={`${buttonBaseClass} bg-blue-500 hover:bg-blue-600`}
-                disabled={!address || !sessionId}
+                disabled={!address || !verificationId}
               >
                 Verify
               </button>
@@ -203,45 +203,67 @@ function GitcoinModal({ isOpen, onClose, sessionId }: GitcoinModalProps) {
                 Loading...
               </div>
             )}
-
-            {(state === 'success' && (signState === 'idle' || signState === 'cancelled')) && (
+            
+            {state === 'success' && signState === 'idle' && (
               <button
                 onClick={handleSign}
-                className={`${buttonBaseClass} bg-green-600 hover:bg-green-700`}
+                className={`${buttonBaseClass} bg-green-500 hover:bg-green-600`}
               >
-                Sign
+                Sign Message
               </button>
             )}
             
-            {(signState === 'signing' || signState === 'verifying') && (
-              <button
-                disabled
-                className={`${buttonBaseClass} bg-green-600 flex justify-center items-center`}
-              >
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            {signState === 'signing' && (
+              <div className="flex justify-center items-center bg-gray-200 text-gray-700 px-6 py-3 rounded w-full text-lg">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                {signState === 'signing' ? 'Signing...' : 'Verifying...'}
+                Waiting for signature...
+              </div>
+            )}
+            
+            {signState === 'verifying' && (
+              <div className="flex justify-center items-center bg-gray-200 text-gray-700 px-6 py-3 rounded w-full text-lg">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Verifying signature...
+              </div>
+            )}
+            
+            {state === 'failure' && (
+              <button
+                onClick={handleImproveScore}
+                className={`${buttonBaseClass} bg-blue-500 hover:bg-blue-600`}
+              >
+                Improve Score
+              </button>
+            )}
+            
+            {signState === 'cancelled' && (
+              <button
+                onClick={handleSign}
+                className={`${buttonBaseClass} bg-yellow-500 hover:bg-yellow-600`}
+              >
+                Try Again
               </button>
             )}
             
             {signState === 'error' && (
               <button
-                onClick={onClose}
-                className={`${buttonBaseClass} bg-red-600 hover:bg-red-700`}
+                onClick={handleSign}
+                className={`${buttonBaseClass} bg-red-500 hover:bg-red-600`}
               >
-                Back
+                Try Again
               </button>
             )}
-
-            {state === 'failure' && signState === 'idle' && (
-              <button
-                onClick={handleImproveScore}
-                className={`${buttonBaseClass} bg-red-600 hover:bg-red-700`}
-              >
-                Improve Score
-              </button>
+            
+            {signState === 'success' && (
+              <div className="flex justify-center items-center bg-green-100 text-green-700 px-6 py-3 rounded w-full text-lg">
+                ✓ Verification Complete
+              </div>
             )}
           </div>
         </div>

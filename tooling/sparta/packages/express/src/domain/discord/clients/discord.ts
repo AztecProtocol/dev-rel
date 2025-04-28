@@ -18,7 +18,7 @@ import {
 } from "discord.js";
 import nodeOperatorCommands from "../roles/nodeOperators/index.js";
 import adminsCommands from "../roles/admins/index.js";
-import passportCommands from "../roles/passport/index.js";
+import humansCommands from "../roles/humans/index.js";
 import { logger } from "@sparta/utils";
 
 // Extended Discord client interface with commands collection
@@ -151,7 +151,7 @@ export class Discord {
 			const commandsData = Object.values({
 				...nodeOperatorCommands,
 				...adminsCommands,
-				...passportCommands,
+				...humansCommands,
 			}).map((command) => command.data.toJSON());
 
 			try {
@@ -173,7 +173,7 @@ export class Discord {
 				for (const command of Object.values({
 					...nodeOperatorCommands,
 					...adminsCommands,
-					...passportCommands,
+					...humansCommands,
 				})) {
 					client.commands.set(command.data.name, command);
 					logger.debug(`Registered command: ${command.data.name}`);

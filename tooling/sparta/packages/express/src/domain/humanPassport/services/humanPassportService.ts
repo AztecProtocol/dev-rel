@@ -6,7 +6,6 @@
 
 import axios from "axios";
 import { logger /*, dynamoDB */ } from "@sparta/utils";
-import { PassportRoles, STATUS_SESSION_EXPIRED, STATUS_SESSION_USED, VERIFICATION_MESSAGE } from "@sparta/utils/const.js";
 /**
  * Configuration for the Passport service
  */

@@ -52,3 +52,55 @@ export default tseslint.config({
   },
 })
 ```
+
+## OpenAPI Client
+
+This project uses [openapi-client-axios](https://github.com/openapistack/openapi-client-axios) to interact with the API.
+
+### API Specification
+
+The OpenAPI specification is defined in `src/api/openapi.ts`. It describes the available API endpoints, request parameters, and response types.
+
+### Generating TypeScript Definitions
+
+To generate TypeScript definitions for the API client:
+
+```bash
+npm run generate-api-types
+```
+
+This will create a `client.d.ts` file in the `src/api` directory which provides type definitions for the API client.
+
+### Using the API Client
+
+Import the API client in your components:
+
+```typescript
+import { getClient } from '../api/axios';
+
+// In an async function
+async function fetchData() {
+  try {
+    const client = await getClient();
+    
+    // Use operation methods directly
+    const scoreResponse = await client.getScore({ address: '0x123...' });
+    console.log(scoreResponse.data);
+    
+    // Verify a signature
+    const verifyResponse = await client.verifySignature(null, { 
+      sessionId: 'session-id', 
+      signature: 'signature' 
+    });
+    console.log(verifyResponse.data);
+    
+    // Get a session
+    const sessionResponse = await client.getSession({ sessionId: 'session-id' });
+    console.log(sessionResponse.data);
+  } catch (error) {
+    console.error('API error:', error);
+  }
+}
+```
+
+The client provides type-safe methods corresponding to the operationIds defined in the OpenAPI specification.

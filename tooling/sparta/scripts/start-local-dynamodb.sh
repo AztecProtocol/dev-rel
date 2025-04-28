@@ -17,24 +17,37 @@ else
   echo "DynamoDB local started on port 8000"
 fi
 
-# Create the sessions table with the required schema
-echo "Creating sparta-sessions table..."
+# Create the users table with the required schema
+echo "Creating users table..."
 aws dynamodb create-table \
-  --table-name sparta-sessions \
+  --table-name users \
   --attribute-definitions \
-    AttributeName=sessionId,AttributeType=S \
     AttributeName=discordUserId,AttributeType=S \
-  --key-schema AttributeName=sessionId,KeyType=HASH \
-  --global-secondary-indexes \
-    "IndexName=DiscordUserIdIndex,KeySchema=[{AttributeName=discordUserId,KeyType=HASH}],Projection={ProjectionType=ALL}" \
-  --billing-mode PAY_PER_REQUEST \
+    AttributeName=walletAddress,AttributeType=S \
+    AttributeName=verificationId,AttributeType=S \
+  --key-schema AttributeName=discordUserId,KeyType=HASH \
+  --global-secondary-indexes '[
+    {
+      "IndexName": "walletAddress-index",
+      "KeySchema": [{"AttributeName": "walletAddress", "KeyType": "HASH"}],
+      "Projection": {"ProjectionType": "INCLUDE", "NonKeyAttributes": ["discordUserId", "discordUsername"]},
+      "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5}
+    },
+    {
+      "IndexName": "verificationId-index",
+      "KeySchema": [{"AttributeName": "verificationId", "KeyType": "HASH"}],
+      "Projection": {"ProjectionType": "ALL"},
+      "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5}
+    }
+  ]' \
+  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
   --endpoint-url http://localhost:8000
 
 # Check if table creation was successful
 if [ $? -eq 0 ]; then
-  echo "Table sparta-sessions created successfully"
+  echo "Table users created successfully"
 else
-  echo "Table sparta-sessions may already exist, trying to use existing table"
+  echo "Table users may already exist, trying to use existing table"
 fi
 
 # List tables to confirm
@@ -42,4 +55,4 @@ echo "Available tables in local DynamoDB:"
 aws dynamodb list-tables --endpoint-url http://localhost:8000
 
 echo "DynamoDB local setup complete. You can now run your application with:"
-echo "IS_LOCAL=true DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000 SESSION_TABLE_NAME=sparta-sessions npm run dev" 
+echo "IS_LOCAL=true DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000 USER_TABLE_NAME=users npm run dev" 

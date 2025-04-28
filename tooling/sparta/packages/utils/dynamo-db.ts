@@ -39,7 +39,7 @@ class DynamoDBService {
   private isLocal: boolean;
 
   constructor() {
-    this.tableName = process.env.SESSION_TABLE_NAME || "sparta-sessions";
+    this.tableName = "users";
     this.isLocal = process.env.LOCAL_DYNAMO_DB === "true";
     
     // Create the DynamoDB client

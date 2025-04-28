@@ -26,28 +26,18 @@ export enum ValidatorSubcommands {
 	Check = "check",
 }
 
-export enum NodeOperatorRoles {
-	Guardian = "Guardian", // lowest level, requires minimum score of 0
-	Defender = "Defender", // mid level, requires over 5
-	HighScorer = "High Scorer", // for users with scores over 10
-	Sentinel = "Sentinel", // set manually, but can be removed by this service
-}
-
 export enum PassportRoles {
 	Verified = "Verified+", // Base role for verification
 	HighScorer = "highscorer", // for users with scores over 10
 }
 
-// Session Statuses (Simplified)
-export const STATUS_INITIATED = 'initiated'; // Session created, pre-wallet connect
-export const STATUS_WALLET_CONNECTED = 'wallet_connected'; // Wallet connected, pre-signature
-export const STATUS_SIGNATURE_RECEIVED = 'signature_received'; // Signature received, pre-score check
-export const STATUS_SCORE_RETRIEVED = 'score_retrieved'; // Score checked, pre-role assignment (if verified)
-export const STATUS_VERIFIED_COMPLETE = 'verified_complete'; // Verified and role assignment attempt finished (check roleAssigned flag)
-export const STATUS_VERIFICATION_FAILED_SCORE = 'verification_failed_score'; // Score below threshold
-export const STATUS_VERIFICATION_ERROR = 'verification_error'; // Generic error during process
-export const STATUS_SESSION_EXPIRED = 'expired';
-export const STATUS_SESSION_USED = 'used'; // Session successfully used for verification/status check
+export const VERIFICATION_STATUS = {
+	PENDING: 'pending',
+	SIGNATURE_RECEIVED: 'signature_received',
+	VERIFICATION_FAILED: 'verification_failed',
+	VERIFICATION_COMPLETE: 'verification_complete',
+	ERROR: 'error'
+};
 
 // Verification Message
 export const VERIFICATION_MESSAGE = "Verify wallet ownership for Aztec Discord";

@@ -425,7 +425,6 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "PORT", value = tostring(var.api_port) },
         { name = "API_PORT", value = tostring(var.api_port) },
         { name = "AWS_REGION", value = var.aws_region },
-        { name = "SESSION_TABLE_NAME", value = aws_dynamodb_table.sparta_sessions.name },
         { name = "LOCAL_DYNAMO_DB", value = "false" },
         { name = "DYNAMODB_LOCAL_ENDPOINT", value = var.dynamodb_local_endpoint },
         { name = "API_HOST", value = "0.0.0.0" }, # Make sure Express listens on 0.0.0.0 inside container

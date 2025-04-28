@@ -121,11 +121,6 @@ variable "vite_reown_project_id" {
 # -----------------------------------------------------------------------------
 # DynamoDB Configuration
 # -----------------------------------------------------------------------------
-variable "session_table_name" {
-  description = "Name of the DynamoDB table for sessions"
-  type        = string
-  default     = "sparta-sessions"
-}
 
 variable "local_dynamo_db" {
   description = "Whether to use a local DynamoDB instance"

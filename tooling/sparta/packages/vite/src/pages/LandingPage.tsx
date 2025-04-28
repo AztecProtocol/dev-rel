@@ -5,10 +5,10 @@ import GitcoinModal from '../components/GitcoinModal';
 import { StyledConnectButton, Button } from '../components/button';
 
 interface LandingPageProps {
-  sessionId?: string;
+  verificationId?: string;
 }
 
-function LandingPage({ sessionId }: LandingPageProps) {
+function LandingPage({ verificationId }: LandingPageProps) {
   const [verificationMethod, setVerificationMethod] = useState<string | null>(null);
   const { address } = useAccount();
 
@@ -45,7 +45,7 @@ function LandingPage({ sessionId }: LandingPageProps) {
         <GitcoinModal 
           isOpen={true} 
           onClose={() => setVerificationMethod(null)}
-          sessionId={sessionId}
+          verificationId={verificationId}
         />
       )}
     </div>

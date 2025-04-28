@@ -10,9 +10,7 @@ import { logger } from "@sparta/utils";
 // Import constants from the central utils package
 import {
   // NodeOperatorRoles, // Unused
-  PassportRoles,
-  STATUS_SESSION_EXPIRED,
-  STATUS_SESSION_USED,
+  PassportRoles
 } from "@sparta/utils/const.js";
 // Import necessary types from discord.js
 import type { Guild, Role, GuildMember } from 'discord.js';

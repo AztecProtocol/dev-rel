@@ -5,12 +5,12 @@ import LandingPage from './pages/LandingPage.tsx';
 import PowPage from './pages/PowPage.tsx';
 import React from 'react';
 
-// Route wrapper that captures the sessionId from query params
+// Route wrapper that captures the verificationId from query params
 const HomeRoute = () => {
   const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get('sessionId');
+  const verificationId = searchParams.get('verificationId');
   
-  return <LandingPage sessionId={sessionId || undefined} />;
+  return <LandingPage verificationId={verificationId || undefined} />;
 };
 
 function App() {
@@ -23,7 +23,7 @@ function App() {
         <main className="flex-grow container mx-auto px-4 py-12 flex items-center justify-center">
           <div className="w-full">
             <Routes>
-              {/* Root route with query parameter for sessionId */}
+              {/* Root route with query parameter for verificationId */}
               <Route path="/" element={<HomeRoute />} />
               
               {/* Other routes */}

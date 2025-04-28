@@ -1,39 +1,24 @@
-import api from './axios';
+import { getClient } from './axios';
+import type { Components } from './client';
 
-// Type definitions for API responses
-interface ScoreResponse {
-  success: boolean;
-  score: number;
-  status: string;
-  minimumScore: number;
-}
+// Using types from the generated client.d.ts
+type ScoreResponse = Components.Schemas.ScoreResponse;
+type VerifyResponse = Components.Schemas.VerifyResponse;
+type VerificationStatusResponse = Components.Schemas.VerificationStatusResponse;
 
-interface VerifyResponse {
-  success: boolean;
-  verified: boolean;
-  score: number;
-  roleAssigned: boolean;
-  address: string;
-  sessionStatus: string;
-  message: string;
-  minimumRequiredScore: number;
-  highScoreThreshold: number;
-  isHighScorer: boolean;
-}
-
-// Passport API services
-export const passportService = {
+// Human API services
+export const humanService = {
   /**
    * Get the Gitcoin Passport score for a wallet address
    * @param address The wallet address to check
-   * @param sessionId The session ID
+   * @param verificationId The verification ID
    * @returns Promise with the score response
    */
-  getScore: async (address: string, sessionId?: string): Promise<ScoreResponse> => {
+  getScore: async (address: string, verificationId: string): Promise<ScoreResponse> => {
     try {
-      const { data } = await api.get<ScoreResponse>('/score', {
-        params: { address, sessionId }
-      });
+      const client = await getClient();
+      // Using the actual operationId from the OpenAPI spec
+      const { data } = await client.getScore({ address, verificationId });
       return data;
     } catch (error) {
       console.error('Error getting score:', error);
@@ -44,15 +29,14 @@ export const passportService = {
   /**
    * Verify a wallet signature for Gitcoin Passport
    * @param signature The wallet signature
-   * @param sessionId The session ID
+   * @param verificationId The verification ID
    * @returns Promise with the verification response
    */
-  verifySignature: async (signature: string, sessionId: string): Promise<VerifyResponse> => {
+  verifySignature: async (signature: string, verificationId: string): Promise<VerifyResponse> => {
     try {
-      const { data } = await api.post<VerifyResponse>('/verify', {
-        sessionId,
-        signature
-      });
+      const client = await getClient();
+      // Using the correct parameters format
+      const { data } = await client.verifySignature({ verificationId }, { signature, verificationId });
       return data;
     } catch (error) {
       console.error('Error verifying signature:', error);
@@ -61,17 +45,21 @@ export const passportService = {
   },
 
   /**
-   * Get session status
-   * @param sessionId The session ID
-   * @returns Promise with the session status
+   * Get status for a Discord user
+   * @param discordUserId The Discord user ID
+   * @returns Promise with the status response
    */
-  getSession: async (sessionId: string) => {
+  getStatus: async (discordUserId: string): Promise<VerificationStatusResponse> => {
     try {
-      const { data } = await api.get(`/session/${sessionId}`);
+      const client = await getClient();
+      const { data } = await client.getStatus({ discordUserId });
       return data;
     } catch (error) {
-      console.error('Error getting session:', error);
+      console.error('Error getting verification status:', error);
       throw error;
     }
   }
-}; 
+};
+
+// Export the legacy name for backward compatibility
+export const passportService = humanService; 

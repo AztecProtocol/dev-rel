@@ -1,49 +1,64 @@
-import axios from 'axios';
+import OpenAPIClientAxios from 'openapi-client-axios';
+import { openApiDocument } from './openapi';
+import type { Client as HumanAPIClient } from './client';
 
-// Create a custom axios instance with default configuration
-const api = axios.create({
-  baseURL: `${import.meta.env.VITE_PUBLIC_FRONTEND_URL}/api` || '',
-  timeout: 10000,
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
+
+// Create an OpenAPIClientAxios instance with our spec
+const api = new OpenAPIClientAxios({
+  definition: openApiDocument,
+  axiosConfigDefaults: {
+    timeout: 10000,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    }
   }
 });
 
-// Request interceptor
-api.interceptors.request.use(
-  (config) => {
-    // You can modify request config here (add auth tokens, etc.)
-    return config;
-  },
-  (error) => {
-    return Promise.reject(error);
-  }
-);
+// Store the initialized client
+let client: HumanAPIClient | null = null;
 
-// Response interceptor
-api.interceptors.response.use(
-  (response) => {
-    // You can transform successful responses here
-    return response;
-  },
-  (error) => {
-    // Handle common error cases
-    if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      console.error('API Error Response:', error.response.status, error.response.data);
-    } else if (error.request) {
-      // The request was made but no response was received
-      console.error('API Error Request:', error.request);
-    } else {
-      // Something happened in setting up the request that triggered an Error
-      console.error('API Error:', error.message);
+// Initialize the client
+export const getClient = async (): Promise<HumanAPIClient> => {
+  if (!client) {
+    try {
+      const apiClient = await api.init<HumanAPIClient>();
+      
+      // Add interceptors
+      apiClient.interceptors.request.use(
+        (config: any) => {
+          // You can modify request config here (add auth tokens, etc.)
+          return config;
+        },
+        (error: any) => {
+          return Promise.reject(error);
+        }
+      );
+      
+      apiClient.interceptors.response.use(
+        (response: any) => {
+          // You can transform successful responses here
+          return response;
+        },
+        (error: any) => {
+          // Handle common error cases
+          if (error.response) {
+            console.error('API Error Response:', error.response.status, error.response.data);
+          } else if (error.request) {
+            console.error('API Error Request:', error.request);
+          } else {
+            console.error('API Error:', error.message);
+          }
+          return Promise.reject(error);
+        }
+      );
+      
+      console.log('OpenAPI client initialized successfully');
+      client = apiClient;
+    } catch (error) {
+      throw error;
     }
-
-    return Promise.reject(error);
   }
-);
-
-// Export the api instance
-export default api; 
+  
+  return client as HumanAPIClient;
+};
