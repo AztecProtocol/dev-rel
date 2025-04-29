@@ -7,7 +7,7 @@ const apiInstance = new OpenAPIClientAxios({
 	definition: spec as OpenAPIV3.Document,
 	// validate: false, // Invalid option, removed
 	axiosConfigDefaults: {
-		baseURL: "http://localhost:3000", // Keep baseURL
+		baseURL: process.env.VITE_APP_API_URL,
 		timeout: 10_000,
 		headers: {
 			"Content-Type": "application/json",
