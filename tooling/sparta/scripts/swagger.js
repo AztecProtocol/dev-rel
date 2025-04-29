@@ -2,6 +2,9 @@
 import swaggerJSDoc from "swagger-jsdoc";
 import fs from "fs";
 import path from "path";
+import dotenv from "dotenv";
+
+dotenv.config();
 
 // swaggerOptions.js
 export const swaggerDefinition = {
@@ -11,7 +14,12 @@ export const swaggerDefinition = {
 		version: "1.0.0",
 		description: "…",
 	},
-	servers: [{ url: "http://localhost:3000", description: "Local dev" }],
+	servers: [
+		{
+			url: `${process.env.VITE_APP_API_URL}`,
+			description: "Sparta API",
+		},
+	],
 	components: {
 		/* schemas & securitySchemes */
 	},
@@ -23,6 +31,8 @@ export const options = {
 };
 
 const spec = swaggerJSDoc(options);
+
+console.log(spec);
 fs.writeFileSync(
 	path.resolve("packages/vite/src/api-docs.json"),
 	JSON.stringify(spec, null, 2)
