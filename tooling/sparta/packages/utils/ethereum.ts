@@ -70,25 +70,30 @@ export function getExpectedAddress(args: [`0x${string}`], salt: Hex) {
 export class Ethereum {
 	constructor(
 		private publicClient: ReturnType<typeof createPublicClient>,
-		private rollup: any,
+		private rollup: any
 	) {}
 
 	static new = async () => {
 		try {
 			logger.info("Initializing Ethereum client");
 			const rpcUrl = process.env.ETHEREUM_HOST as string;
-			
+
+			if (!rpcUrl) {
+				throw new Error(
+					"ETHEREUM_HOST environment variable is not set or not loaded yet."
+				);
+			}
+
 			const publicClient = createPublicClient({
 				chain: ethereumChain,
 				transport: http(rpcUrl),
 			});
 
-
 			const stakingAssetHandler = getContract({
 				address: process.env
 					.STAKING_ASSET_HANDLER_ADDRESS as `0x${string}`,
 				abi: StakingAssetHandlerAbi,
-				client: publicClient
+				client: publicClient,
 			});
 
 			const rollupAddress = await stakingAssetHandler.read.getRollup();
@@ -99,10 +104,7 @@ export class Ethereum {
 				client: publicClient,
 			});
 
-			return new Ethereum(
-				publicClient,
-				rollup
-			);
+			return new Ethereum(publicClient, rollup);
 		} catch (error) {
 			logger.error({ error }, "Error initializing Ethereum client");
 			throw error;
@@ -116,9 +118,32 @@ export class Ethereum {
 	getRollup = () => {
 		return this.rollup;
 	};
-
 }
 
-export const ethereum = await Ethereum.new();
+// --- Lazy Initialization ---
+let ethereumInstance: Ethereum | null = null;
 
-export { ethereumChain }; // Export chain config for validator-service 
+/**
+ * Gets the singleton instance of the Ethereum client, initializing it on first call.
+ */
+export async function getEthereumInstance(): Promise<Ethereum> {
+	if (!ethereumInstance) {
+		logger.info(
+			"First call to getEthereumInstance, initializing Ethereum singleton..."
+		);
+		try {
+			ethereumInstance = await Ethereum.new();
+			logger.info("Ethereum singleton initialized successfully.");
+		} catch (error) {
+			logger.error(
+				{ error },
+				"Failed to initialize Ethereum singleton in getEthereumInstance"
+			);
+			// Re-throw the error to propagate it to the caller
+			throw error;
+		}
+	}
+	return ethereumInstance;
+}
+
+export { ethereumChain }; // Export chain config for validator-service

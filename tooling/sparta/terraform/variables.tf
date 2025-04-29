@@ -49,10 +49,6 @@ variable "passport_verified_role_id" {
   type        = string
 }
 
-variable "passport_high_scorer_role_id" {
-  description = "Discord role ID for users with high Passport scores"
-  type        = string
-}
 
 variable "minimum_score" {
   description = "Minimum Passport score required for verification"
@@ -60,11 +56,6 @@ variable "minimum_score" {
   default     = 10
 }
 
-variable "high_score_threshold" {
-  description = "Score threshold for high scorer role"
-  type        = number
-  default     = 1000
-}
 
 # -----------------------------------------------------------------------------
 # Gitcoin Passport Configuration

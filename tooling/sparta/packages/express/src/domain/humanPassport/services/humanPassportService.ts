@@ -12,7 +12,6 @@ import { logger /*, dynamoDB */ } from "@sparta/utils";
 interface PassportConfig {
 	scorerId: string;
 	minimumScore: number;
-	highScoreThreshold: number; // Threshold for high score role
 	apiKey: string;
 }
 
@@ -28,11 +27,14 @@ interface PassportScoreResponse {
 	threshold: string;
 	status?: "DONE" | "PROCESSING" | "ERROR";
 	error?: string;
-	stamps?: Record<string, {
-		score: string;
-		dedup: boolean;
-		expiration_date: string;
-	}>;
+	stamps?: Record<
+		string,
+		{
+			score: string;
+			dedup: boolean;
+			expiration_date: string;
+		}
+	>;
 }
 
 /**
@@ -50,8 +52,7 @@ export class PassportService {
 		// Load configuration from environment variables
 		this.config = {
 			scorerId: process.env.PASSPORT_SCORER_ID || "",
-			minimumScore: parseInt(process.env.MINIMUM_SCORE || '0'),
-			highScoreThreshold: parseInt(process.env.HIGH_SCORE_THRESHOLD || '10'),
+			minimumScore: parseInt(process.env.MINIMUM_SCORE || "0"),
 			apiKey: process.env.PASSPORT_API_KEY || "",
 		};
 
@@ -114,15 +115,6 @@ export class PassportService {
 	 */
 	public getMinimumScore(): number {
 		return this.config.minimumScore;
-	}
-
-	/**
-	 * Gets the high score threshold
-	 *
-	 * @returns {number} The high score threshold
-	 */
-	public getHighScoreThreshold(): number {
-		return this.config.highScoreThreshold;
 	}
 }
 

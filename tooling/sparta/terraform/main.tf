@@ -9,7 +9,8 @@ terraform {
 
   backend "s3" {
     bucket = "sparta-tf-state" # Ensure this bucket exists
-    # key and region will be provided via -backend-config during init
+    region = "eu-west-2"
+    key    = "production/terraform.tfstate"
   }
 }
 
@@ -432,9 +433,7 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "BOT_CLIENT_ID", value = var.bot_client_id },
         { name = "GUILD_ID", value = var.guild_id },
         { name = "PASSPORT_VERIFIED_ROLE_ID", value = var.passport_verified_role_id },
-        { name = "PASSPORT_HIGH_SCORER_ROLE_ID", value = var.passport_high_scorer_role_id },
         { name = "MINIMUM_SCORE", value = tostring(var.minimum_score) },
-        { name = "HIGH_SCORE_THRESHOLD", value = tostring(var.high_score_threshold) },
         { name = "PASSPORT_API_KEY", value = var.passport_api_key },
         { name = "PASSPORT_SCORER_ID", value = var.passport_scorer_id },
         { name = "ETHEREUM_HOST", value = var.ethereum_host },
@@ -444,7 +443,7 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "FUNDER_AMOUNT", value = var.funder_amount },
         { name = "LOG_LEVEL", value = var.log_level },
         { name = "LOG_PRETTY_PRINT", value = var.log_pretty_print ? "true" : "false" },
-        { name = "PUBLIC_FRONTEND_URL", value = "http://${aws_lb.sparta_alb.dns_name}" },
+        { name = "VITE_APP_API_URL", value = "http://${aws_lb.sparta_alb.dns_name}" },
         { name = "CORS_ALLOWED_ORIGINS", value = "http://${aws_lb.sparta_alb.dns_name}" }
       ]
       # secrets = [ # Example using Secrets Manager

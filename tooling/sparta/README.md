@@ -83,21 +83,17 @@ BOT_TOKEN=your_discord_bot_token
 BOT_CLIENT_ID=your_discord_client_id
 GUILD_ID=your_discord_server_id
 PASSPORT_VERIFIED_ROLE_ID=your_discord_role_id
-PASSPORT_HIGH_SCORER_ROLE_ID=your_high_scorer_role_id
 MINIMUM_SCORE=10
-HIGH_SCORE_THRESHOLD=1000
 
 # Gitcoin Passport Configuration
 PASSPORT_API_KEY=your_passport_api_key
 PASSPORT_SCORER_ID=your_passport_scorer_id
 
 # Verification Web App
-PUBLIC_FRONTEND_URL=http://localhost:5173
-VITE_PUBLIC_FRONTEND_URL=http://localhost:5173
+VITE_APP_API_URL=http://localhost:3000
 VITE_REOWN_PROJECT_ID=your_reown_project_id
 
 # Session Storage
-SESSION_TABLE_NAME=passport-sessions
 LOCAL_DYNAMO_DB=true
 DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000
 
@@ -317,7 +313,6 @@ For local development, you can use DynamoDB Local, which is provided by AWS as a
 
 The following environment variables are used to configure the DynamoDB connection:
 
-- `SESSION_TABLE_NAME`: The name of the DynamoDB table to use (default: "sparta-sessions")
 - `IS_LOCAL`: Set to "true" when using DynamoDB Local (default: "false")
 - `DYNAMODB_LOCAL_ENDPOINT`: The endpoint URL for DynamoDB Local (default: "http://localhost:8000")
 

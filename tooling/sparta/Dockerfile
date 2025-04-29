@@ -26,7 +26,7 @@ RUN foundryup
 WORKDIR /app
 
 # Copy the root package.json and lockfile
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 
 # Copy package.json files from workspaces to ensure dependencies are captured
 # Create the packages directory first
@@ -44,7 +44,7 @@ RUN bun install --frozen-lockfile
 COPY . .
 
 # Declare the build argument for the Vite frontend URL
-ARG VITE_PUBLIC_FRONTEND_URL
+ARG VITE_APP_API_URL
 ARG VITE_REOWN_PROJECT_ID
 ARG VITE_MINIMUM_SCORE
 
@@ -52,7 +52,7 @@ ARG VITE_MINIMUM_SCORE
 # Assumes the build script exists in packages/vite/package.json
 # The ARG variables will be available as environment variables here
 RUN cd packages/vite && \
-    VITE_PUBLIC_FRONTEND_URL=$VITE_PUBLIC_FRONTEND_URL \
+    VITE_APP_API_URL=$VITE_APP_API_URL \
     VITE_REOWN_PROJECT_ID=$VITE_REOWN_PROJECT_ID \
     VITE_MINIMUM_SCORE=$VITE_MINIMUM_SCORE \
     bun run build

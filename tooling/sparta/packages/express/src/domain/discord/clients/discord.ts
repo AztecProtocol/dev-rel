@@ -143,10 +143,13 @@ export class Discord {
 		);
 
 		try {
-			logger.info({
-				clientId: process.env.BOT_CLIENT_ID,
-				guildId: process.env.GUILD_ID
-			}, "Started refreshing application (/) commands");
+			logger.info(
+				{
+					clientId: process.env.BOT_CLIENT_ID,
+					guildId: process.env.GUILD_ID,
+				},
+				"Started refreshing application (/) commands"
+			);
 
 			const commandsData = Object.values({
 				...nodeOperatorCommands,
@@ -165,10 +168,13 @@ export class Discord {
 					}
 				);
 
-				logger.debug({ 
-					commandCount: commandsData.length,
-					responseStatus: response ? 'success' : 'unknown'
-				}, "Command registration response");
+				logger.debug(
+					{
+						commandCount: commandsData.length,
+						responseStatus: response ? "success" : "unknown",
+					},
+					"Command registration response"
+				);
 
 				for (const command of Object.values({
 					...nodeOperatorCommands,
@@ -182,33 +188,45 @@ export class Discord {
 				logger.info("Successfully reloaded application (/) commands");
 			} catch (putError: any) {
 				// More detailed error logging for the REST call
-				logger.error({
-					error: putError,
-					code: putError.code,
-					status: putError.status,
-					message: putError.message,
-					clientId: process.env.BOT_CLIENT_ID,
-					guildId: process.env.GUILD_ID,
-					tokenPresent: !!process.env.BOT_TOKEN,
-					tokenLength: process.env.BOT_TOKEN?.length
-				}, "Error during Discord REST API call to register commands");
-				
+				logger.error(
+					{
+						error: putError,
+						code: putError.code,
+						status: putError.status,
+						message: putError.message,
+						clientId: process.env.BOT_CLIENT_ID,
+						guildId: process.env.GUILD_ID,
+						tokenPresent: !!process.env.BOT_TOKEN,
+						tokenLength: process.env.BOT_TOKEN?.length,
+					},
+					"Error during Discord REST API call to register commands"
+				);
+
 				// Check for common issues
 				if (putError.status === 403) {
-					logger.error("Permission denied (403) - The bot token may be invalid or the bot doesn't have the required permissions");
+					logger.error(
+						"Permission denied (403) - The bot token may be invalid or the bot doesn't have the required permissions"
+					);
 				}
 				if (putError.code === 50001) {
-					logger.error("Missing Access - Bot doesn't have required permissions in this guild");
+					logger.error(
+						"Missing Access - Bot doesn't have required permissions in this guild"
+					);
 				}
 				if (putError.code === 50035) {
-					logger.error("Invalid Form Body - Command structure might be invalid");
+					logger.error(
+						"Invalid Form Body - Command structure might be invalid"
+					);
 				}
 			}
 		} catch (error: any) {
-			logger.error({
-				error: error.message, 
-				stack: error.stack,
-			}, "Error deploying commands");
+			logger.error(
+				{
+					error: error.message,
+					stack: error.stack,
+				},
+				"Error deploying commands"
+			);
 		}
 	}
 
@@ -227,5 +245,28 @@ export class Discord {
 	};
 }
 
-// Create and export a shared Discord instance
-export const discord = await Discord.new();
+// --- Lazy Initialization ---
+let discordInstance: Discord | null = null;
+
+/**
+ * Gets the singleton instance of the Discord client, initializing it on first call.
+ */
+export async function getDiscordInstance(): Promise<Discord> {
+	if (!discordInstance) {
+		logger.info(
+			"First call to getDiscordInstance, initializing Discord singleton..."
+		);
+		try {
+			discordInstance = await Discord.new();
+			logger.info("Discord singleton initialized successfully.");
+		} catch (error) {
+			logger.error(
+				{ error },
+				"Failed to initialize Discord singleton in getDiscordInstance"
+			);
+			// Re-throw the error to propagate it to the caller
+			throw error;
+		}
+	}
+	return discordInstance;
+}

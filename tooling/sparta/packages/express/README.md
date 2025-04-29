@@ -76,7 +76,6 @@ AWS_ACCESS_KEY_ID=your-access-key
 AWS_SECRET_ACCESS_KEY=your-secret-key
 
 # DynamoDB Configuration
-SESSION_TABLE_NAME=sparta-sessions
 LOCAL_DYNAMO_DB=true
 DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000
 ```

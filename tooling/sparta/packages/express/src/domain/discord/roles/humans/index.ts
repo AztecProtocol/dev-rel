@@ -39,7 +39,7 @@ const passportCommandData = new SlashCommandBuilder()
 		subcommand
 			.setName(PassportSubcommands.Status)
 			.setDescription("Check your Human Passport verification status")
-	)
+	);
 
 /**
  * Handles the passport verify command
@@ -55,37 +55,42 @@ export async function handleVerifyCommand(
 
 		// Try to get Discord username
 		let discordUsername = interaction.user.username;
-		
+
 		// Check if the user already exists
 		let user = await extendedDynamoDB.getUser(userId);
-		
+
 		// If user exists, update their verification data
 		if (user) {
 			// Create or update humanPassport data
 			const humanPassport: HumanPassport = {
-				...user.humanPassport || {},
-				status: VERIFICATION_STATUS.PENDING,
+				status:
+					user.humanPassport?.status ||
+					VERIFICATION_STATUS.NOT_VERIFIED,
+				...(user.humanPassport || {}),
 				verificationId,
-				interactionToken
+				interactionToken,
 			};
-			
+
 			await extendedDynamoDB.updateUser(userId, {
 				humanPassport,
-				updatedAt: Date.now()
+				updatedAt: Date.now(),
 			});
-			
-			logger.info({ userId, verificationId }, "Updated user verification data");
+
+			logger.info(
+				{ userId, verificationId },
+				"Updated user verification data"
+			);
 		} else {
 			// Create a new user with humanPassport data
 			const timestamp = Date.now();
 			const humanPassport: HumanPassport = {
-				status: VERIFICATION_STATUS.PENDING,
+				status: VERIFICATION_STATUS.NOT_VERIFIED,
 				verificationId,
 				interactionToken,
 				lastVerificationTime: null,
-				score: null
+				score: null,
 			};
-			
+
 			const newUser: User = {
 				discordUserId: userId,
 				discordUsername,
@@ -93,21 +98,25 @@ export async function handleVerifyCommand(
 				role: null,
 				humanPassport,
 				createdAt: timestamp,
-				updatedAt: timestamp
+				updatedAt: timestamp,
 			};
-			
+
 			const created = await extendedDynamoDB.createUser(newUser);
 			if (!created) {
 				// Handle creation error
 				logger.error({ userId }, "Failed to create user.");
 				await interaction.reply({
-					content: "Failed to create your verification session. Please try again later.",
+					content:
+						"Failed to create your verification session. Please try again later.",
 					flags: MessageFlags.Ephemeral,
 				});
 				return;
 			}
-			
-			logger.info({ userId, verificationId }, "Created new user with verification data");
+
+			logger.info(
+				{ userId, verificationId },
+				"Created new user with verification data"
+			);
 		}
 
 		// Create an embed with instructions
@@ -124,7 +133,9 @@ export async function handleVerifyCommand(
 				},
 				{
 					name: "Passport Status",
-					value: `You'll need a score of at least ${process.env.MINIMUM_SCORE || '0'} to verify.`,
+					value: `You'll need a score of at least ${
+						process.env.MINIMUM_SCORE || "0"
+					} to verify.`,
 				}
 			)
 			.setFooter({
@@ -132,18 +143,19 @@ export async function handleVerifyCommand(
 			});
 
 		// Construct the verification URL
-		const publicFrontendUrl = process.env.PUBLIC_FRONTEND_URL;
+		const publicFrontendUrl = process.env.VITE_APP_API_URL;
 		if (!publicFrontendUrl) {
-			logger.error("PUBLIC_FRONTEND_URL environment variable is not set!");
+			logger.error("VITE_APP_API_URL environment variable is not set!");
 			await interaction.reply({
-				content: "Configuration error. Please contact an administrator.",
+				content:
+					"Configuration error. Please contact an administrator.",
 				flags: MessageFlags.Ephemeral,
 			});
 			return;
 		}
-		
+
 		const verificationUrl = `${publicFrontendUrl}/?verificationId=${verificationId}`;
-			
+
 		// Create a button with the verification link
 		const verifyButton = new ButtonBuilder()
 			.setLabel("Verify with Human Passport")
@@ -166,10 +178,7 @@ export async function handleVerifyCommand(
 			"Created verification session for user"
 		);
 	} catch (error: any) {
-		logger.error(
-			error,
-			"Error handling passport verify command"
-		);
+		logger.error(error, "Error handling passport verify command");
 
 		await interaction.reply({
 			content:
@@ -188,151 +197,121 @@ export async function handleStatusCommand(
 ): Promise<void> {
 	try {
 		const userId = interaction.user.id;
-		
+
 		// Get the user from the database
 		const user = await extendedDynamoDB.getUser(userId);
-		
+
 		if (!user) {
 			await interaction.reply({
-				content: "You haven't started the Human Passport verification process yet. Use `/human verify` to begin.",
+				content:
+					"You haven't started the Human Passport verification process yet. Use `/human verify` to begin.",
 				flags: MessageFlags.Ephemeral,
 			});
 			return;
 		}
-		
+
 		const humanPassport = user.humanPassport;
-		
+
 		// Build status message based on the user's verification status
 		let title = "Human Passport Status";
-		let color = 0xFFCC00; // Default yellow for in-progress
+		let color = 0xffcc00; // Default yellow for in-progress
 		let description = "";
 		let fields = [];
-		
+
 		if (!humanPassport) {
 			// User exists but no verification data
-			description = "You haven't started the Human Passport verification process yet. Use `/human verify` to begin.";
+			description =
+				"You haven't started the Human Passport verification process yet. Use `/human verify` to begin.";
 		} else {
-			const statusMap: Record<string, string> = {
-				[VERIFICATION_STATUS.PENDING]: "Pending - Waiting for you to connect your wallet",
-				[VERIFICATION_STATUS.SIGNATURE_RECEIVED]: "Processing - Verifying your passport score",
-				[VERIFICATION_STATUS.VERIFICATION_COMPLETE]: "Verified - You've successfully verified your human status",
-				[VERIFICATION_STATUS.VERIFICATION_FAILED]: "Failed - Your passport score did not meet the requirements",
-				[VERIFICATION_STATUS.ERROR]: "Error - Something went wrong during verification"
-			};
-			
-			const status = statusMap[humanPassport.status] || humanPassport.status;
-			
-			if (humanPassport.status === VERIFICATION_STATUS.VERIFICATION_COMPLETE) {
-				color = 0x00FF00; // Green for success
+			if (humanPassport.status === VERIFICATION_STATUS.VERIFIED) {
+				color = 0x00ff00; // Green for success
 				title = "Human Passport Verification Complete";
 				description = "You've successfully verified your human status.";
-				
-				fields.push({ 
-					name: "Score", 
+
+				fields.push({
+					name: "Score",
 					value: humanPassport.score?.toString() || "Unknown",
-					inline: true
+					inline: true,
 				});
-				
+
 				fields.push({
 					name: "Verified On",
-					value: humanPassport.lastVerificationTime 
-						? new Date(humanPassport.lastVerificationTime).toLocaleDateString() 
+					value: humanPassport.lastVerificationTime
+						? new Date(
+								humanPassport.lastVerificationTime
+						  ).toLocaleDateString()
 						: "Unknown",
-					inline: true
+					inline: true,
 				});
-				
+
 				if (user.walletAddress) {
 					fields.push({
 						name: "Wallet",
-						value: `${user.walletAddress.substring(0, 6)}...${user.walletAddress.substring(user.walletAddress.length - 4)}`,
-						inline: true
+						value: `${user.walletAddress.substring(
+							0,
+							6
+						)}...${user.walletAddress.substring(
+							user.walletAddress.length - 4
+						)}`,
+						inline: true,
 					});
 				}
-			} else if (humanPassport.status === VERIFICATION_STATUS.VERIFICATION_FAILED) {
-				color = 0xFF0000; // Red for failure
+			} else {
+				color = 0xff0000; // Red for failure
 				title = "Human Passport Verification Failed";
-				description = "Your passport score did not meet the requirements.";
-				
-				if (humanPassport.score !== null && humanPassport.score !== undefined) {
+				description =
+					"Your passport score did not meet the requirements.";
+
+				if (
+					humanPassport.score !== null &&
+					humanPassport.score !== undefined
+				) {
 					fields.push({
 						name: "Your Score",
 						value: humanPassport.score.toString(),
-						inline: true
+						inline: true,
 					});
 				}
-				
+
 				fields.push({
 					name: "Required Score",
 					value: process.env.MINIMUM_SCORE || "0",
-					inline: true
+					inline: true,
 				});
-				
+
 				fields.push({
-					name: "What's Next?", 
-					value: "You can try again with `/human verify` to create a new verification link."
+					name: "What's Next?",
+					value: "You can try again with `/human verify` to create a new verification link.",
 				});
-			} else if (humanPassport.status === VERIFICATION_STATUS.ERROR) {
-				color = 0xFF0000; // Red for error
-				title = "Human Passport Verification Error";
-				description = "Something went wrong during your verification process. Please try again.";
-				
-				fields.push({
-					name: "What's Next?", 
-					value: "You can try again with `/human verify` to create a new verification link."
-				});
-			} else {
-				// In progress
-				description = "Your Human Passport verification is in progress.";
-				
-				fields.push({
-					name: "Current Status",
-					value: status
-				});
-				
-				// If verification is pending or in progress, provide a new link
-				if ([VERIFICATION_STATUS.PENDING, VERIFICATION_STATUS.SIGNATURE_RECEIVED].includes(humanPassport.status as any)) {
-					if (humanPassport.verificationId) {
-						const publicFrontendUrl = process.env.PUBLIC_FRONTEND_URL;
-						if (publicFrontendUrl) {
-							fields.push({
-								name: "Continue Verification",
-								value: `[Click here to continue the verification process](${publicFrontendUrl}/?verificationId=${humanPassport.verificationId})`
-							});
-						}
-					}
-				}
 			}
 		}
-		
+
 		// Create the embed
 		const embed = new EmbedBuilder()
 			.setColor(color)
 			.setTitle(title)
 			.setDescription(description);
-			
+
 		if (fields.length > 0) {
 			embed.addFields(fields);
 		}
-		
+
 		// Add a footer with time
 		embed.setFooter({
-			text: `Status as of ${new Date().toLocaleString()}`
+			text: `Status as of ${new Date().toLocaleString()}`,
 		});
-		
+
 		// Send the status embed
 		await interaction.reply({
 			embeds: [embed],
 			flags: MessageFlags.Ephemeral,
 		});
-		
 	} catch (error: any) {
-		logger.error(
-			error,
-			"Error handling passport status command"
-		);
-		
+		logger.error(error, "Error handling passport status command");
+
 		await interaction.reply({
-			content: "An error occurred while checking your verification status. Please try again later.",
+			content:
+				"An error occurred while checking your verification status. Please try again later.",
 			flags: MessageFlags.Ephemeral,
 		});
 	}

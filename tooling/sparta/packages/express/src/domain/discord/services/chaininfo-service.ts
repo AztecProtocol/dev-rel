@@ -4,7 +4,10 @@
  * @module sparta/services/chaininfo-service
  */
 
-import { ethereum, getExpectedAddress } from "@sparta/utils/ethereum"; // Corrected import path
+import {
+	getEthereumInstance,
+	getExpectedAddress,
+} from "@sparta/utils/ethereum"; // Corrected import path
 import { logger } from "@sparta/utils";
 
 /**
@@ -68,7 +71,9 @@ export class ChainInfoService {
 	 */
 	static async getInfo(): Promise<ChainInfo> {
 		try {
-			const rollup = ethereum.getRollup();
+			// Get the ethereum instance (initializes on first call)
+			const ethInstance = await getEthereumInstance();
+			const rollup = ethInstance.getRollup();
 			const [
 				pendingNum,
 				provenNum,
@@ -88,7 +93,11 @@ export class ChainInfoService {
 				rollup.read.getCurrentSlot(),
 				rollup.read.getCurrentProposer(),
 				(async () => {
-					const block = await ethereum.getPublicClient().getBlock();
+					// Get the instance again (it's cached after first call)
+					const ethInstanceForBlock = await getEthereumInstance();
+					const block = await ethInstanceForBlock
+						.getPublicClient()
+						.getBlock();
 					return BigInt(block.timestamp + BigInt(12));
 				})(),
 			]);

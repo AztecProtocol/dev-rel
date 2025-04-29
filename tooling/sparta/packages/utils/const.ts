@@ -28,15 +28,11 @@ export enum ValidatorSubcommands {
 
 export enum PassportRoles {
 	Verified = "Verified+", // Base role for verification
-	HighScorer = "highscorer", // for users with scores over 10
 }
 
 export const VERIFICATION_STATUS = {
-	PENDING: 'pending',
-	SIGNATURE_RECEIVED: 'signature_received',
-	VERIFICATION_FAILED: 'verification_failed',
-	VERIFICATION_COMPLETE: 'verification_complete',
-	ERROR: 'error'
+	NOT_VERIFIED: "not_verified",
+	VERIFIED: "verified",
 };
 
 // Verification Message

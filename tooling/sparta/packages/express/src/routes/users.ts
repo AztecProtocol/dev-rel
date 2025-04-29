@@ -4,45 +4,115 @@
  * @module sparta/express/routes/users
  */
 
-import express, { type Request, type Response, type NextFunction } from "express";
+import express, {
+	type Request,
+	type Response,
+	type NextFunction,
+} from "express";
 import { logger } from "@sparta/utils/index.js";
 import { extendedDynamoDB } from "../db/userRepository.js";
 import { apiKeyMiddleware } from "../middlewares/auth.js";
 
 const router = express.Router();
 
-// HumanPassport interface - specific to human verification 
+// HumanPassport interface - specific to human verification
 export interface HumanPassport {
-  status: string;               // Current status of verification
-  score?: number | null;        // Passport score if verification completed
-  lastVerificationTime?: number | null; // When they last completed verification
-  verificationId?: string | null; // ID used for the verification process
-  interactionToken?: string | null; // Discord interaction token for UI updates
+	status: string; // Current status of verification
+	score?: number | null; // Passport score if verification completed
+	lastVerificationTime?: number | null; // When they last completed verification
+	verificationId?: string | null; // ID used for the verification process
+	interactionToken?: string | null; // Discord interaction token for UI updates
 }
 
 // User interface - Comprehensive model for storing users
 export interface User {
-  discordUserId: string;        // Primary identifier - Discord user ID
-  discordUsername: string;      // Discord username 
-  walletAddress?: string | null; // Ethereum address (verified through passport)
-  role?: string | null;         // User role within the system
-  humanPassport?: HumanPassport | null; // Human verification data
-  createdAt: number;            // Timestamp when user was created
-  updatedAt: number;            // Timestamp when user was last updated
+	discordUserId: string; // Primary identifier - Discord user ID
+	discordUsername: string; // Discord username
+	walletAddress?: string | null; // Ethereum address (verified through passport)
+	role?: string | null; // User role within the system
+	humanPassport?: HumanPassport | null; // Human verification data
+	createdAt: number; // Timestamp when user was created
+	updatedAt: number; // Timestamp when user was last updated
 }
 
 // Add the User type to DynamoDB utility
 declare module "@sparta/utils/dynamo-db" {
-  interface DynamoDBUtils {
-    createUser(user: User): Promise<boolean>;
-    getUser(discordUserId: string): Promise<User | null>;
-    getUserByVerificationId(verificationId: string): Promise<User | null>; // Get user by verification ID
-    getUserByWalletAddress(walletAddress: string): Promise<User | null>;
-    getAllUsers(): Promise<User[]>;
-    updateUser(discordUserId: string, updates: Partial<User>): Promise<boolean>;
-    deleteUser(discordUserId: string): Promise<boolean>;
-  }
+	interface DynamoDBUtils {
+		createUser(user: User): Promise<boolean>;
+		getUser(discordUserId: string): Promise<User | null>;
+		getUserByVerificationId(verificationId: string): Promise<User | null>; // Get user by verification ID
+		getUserByWalletAddress(walletAddress: string): Promise<User | null>;
+		getAllUsers(): Promise<User[]>;
+		updateUser(
+			discordUserId: string,
+			updates: Partial<User>
+		): Promise<boolean>;
+		deleteUser(discordUserId: string): Promise<boolean>;
+	}
 }
+
+// Define the User schema for Swagger
+/**
+ * @swagger
+ * components:
+ *   schemas:
+ *     HumanPassport:
+ *       type: object
+ *       properties:
+ *         status:
+ *           type: string
+ *           description: Current status of verification (e.g., pending_signature, verification_complete)
+ *         score:
+ *           type: number
+ *           nullable: true
+ *           description: Passport score if verification completed
+ *         lastVerificationTime:
+ *           type: number
+ *           format: int64
+ *           nullable: true
+ *           description: Timestamp (ms) when verification was last completed
+ *         verificationId:
+ *           type: string
+ *           nullable: true
+ *           description: ID used for the verification process
+ *         interactionToken:
+ *           type: string
+ *           nullable: true
+ *           description: Discord interaction token for UI updates
+ *     User:
+ *       type: object
+ *       properties:
+ *         discordUserId:
+ *           type: string
+ *           description: Discord user ID (Primary Key)
+ *         discordUsername:
+ *           type: string
+ *           description: Discord username
+ *         walletAddress:
+ *           type: string
+ *           nullable: true
+ *           description: Ethereum address (verified through passport)
+ *         role:
+ *           type: string
+ *           nullable: true
+ *           description: User role within the system
+ *         humanPassport:
+ *           $ref: '#/components/schemas/HumanPassport'
+ *           nullable: true
+ *         createdAt:
+ *           type: number
+ *           format: int64
+ *           description: Timestamp when user was created
+ *         updatedAt:
+ *           type: number
+ *           format: int64
+ *           description: Timestamp when user was last updated
+ *       required:
+ *         - discordUserId
+ *         - discordUsername
+ *         - createdAt
+ *         - updatedAt
+ */
 
 // Apply API key middleware to all user routes
 router.use(apiKeyMiddleware);
@@ -54,6 +124,7 @@ router.use(apiKeyMiddleware);
  *     summary: Get all users
  *     description: Retrieve a list of all users
  *     tags: [Users]
+ *     operationId: getAllUsers
  *     security:
  *       - ApiKeyAuth: []
  *     responses:
@@ -85,21 +156,21 @@ router.use(apiKeyMiddleware);
  *               $ref: '#/components/schemas/Error'
  */
 router.get("/", async (_req: Request, res: Response) => {
-  try {
-    const users = await extendedDynamoDB.getAllUsers();
-    
-    return res.status(200).json({
-      success: true,
-      users: users
-    });
-  } catch (error: any) {
-    logger.error({ error: error.message }, "Error retrieving all users");
-    
-    return res.status(500).json({
-      success: false,
-      error: "Server error while retrieving users"
-    });
-  }
+	try {
+		const users = await extendedDynamoDB.getAllUsers();
+
+		return res.status(200).json({
+			success: true,
+			users: users,
+		});
+	} catch (error: any) {
+		logger.error({ error: error.message }, "Error retrieving all users");
+
+		return res.status(500).json({
+			success: false,
+			error: "Server error while retrieving users",
+		});
+	}
 });
 
 /**
@@ -109,6 +180,7 @@ router.get("/", async (_req: Request, res: Response) => {
  *     summary: Get a specific user by Discord user ID
  *     description: Retrieve a user by their Discord user ID
  *     tags: [Users]
+ *     operationId: getUserByDiscordId
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -151,37 +223,40 @@ router.get("/", async (_req: Request, res: Response) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.get("/discord/:discordUserId", async (req: Request, res: Response) => {
-  try {
-    const { discordUserId } = req.params;
-    
-    if (!discordUserId) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing discordUserId parameter"
-      });
-    }
-    
-    const user = await extendedDynamoDB.getUser(discordUserId);
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found"
-      });
-    }
-    
-    return res.status(200).json({
-      success: true,
-      user: user
-    });
-  } catch (error: any) {
-    logger.error({ error: error.message, discordUserId: req.params.discordUserId }, "Error retrieving user");
-    
-    return res.status(500).json({
-      success: false,
-      error: "Server error while retrieving user"
-    });
-  }
+	try {
+		const { discordUserId } = req.params;
+
+		if (!discordUserId) {
+			return res.status(400).json({
+				success: false,
+				error: "Missing discordUserId parameter",
+			});
+		}
+
+		const user = await extendedDynamoDB.getUser(discordUserId);
+
+		if (!user) {
+			return res.status(404).json({
+				success: false,
+				error: "User not found",
+			});
+		}
+
+		return res.status(200).json({
+			success: true,
+			user: user,
+		});
+	} catch (error: any) {
+		logger.error(
+			{ error: error.message, discordUserId: req.params.discordUserId },
+			"Error retrieving user"
+		);
+
+		return res.status(500).json({
+			success: false,
+			error: "Server error while retrieving user",
+		});
+	}
 });
 
 /**
@@ -191,6 +266,7 @@ router.get("/discord/:discordUserId", async (req: Request, res: Response) => {
  *     summary: Get a user by wallet address
  *     description: Retrieve a user by their Ethereum wallet address
  *     tags: [Users]
+ *     operationId: getUserByWalletAddress
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -239,40 +315,45 @@ router.get("/discord/:discordUserId", async (req: Request, res: Response) => {
  *               $ref: '#/components/schemas/Error'
  */
 router.get("/wallet/:walletAddress", async (req: Request, res: Response) => {
-  try {
-    const { walletAddress } = req.params;
-    
-    if (!walletAddress) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing walletAddress parameter"
-      });
-    }
-    
-    // Check if this wallet is already registered to another user
-    const existingUser = await extendedDynamoDB.getUserByWalletAddress(walletAddress);
-    
-    if (!existingUser) {
-      return res.status(200).json({
-        success: true,
-        isRegistered: false,
-        message: "Wallet address is not registered to any user"
-      });
-    }
-    
-    return res.status(200).json({
-      success: true,
-      isRegistered: true,
-      user: existingUser
-    });
-  } catch (error: any) {
-    logger.error({ error: error.message, walletAddress: req.params.walletAddress }, "Error checking wallet address");
-    
-    return res.status(500).json({
-      success: false,
-      error: "Server error while checking wallet address"
-    });
-  }
+	try {
+		const { walletAddress } = req.params;
+
+		if (!walletAddress) {
+			return res.status(400).json({
+				success: false,
+				error: "Missing walletAddress parameter",
+			});
+		}
+
+		// Check if this wallet is already registered to another user
+		const existingUser = await extendedDynamoDB.getUserByWalletAddress(
+			walletAddress
+		);
+
+		if (!existingUser) {
+			return res.status(200).json({
+				success: true,
+				isRegistered: false,
+				message: "Wallet address is not registered to any user",
+			});
+		}
+
+		return res.status(200).json({
+			success: true,
+			isRegistered: true,
+			user: existingUser,
+		});
+	} catch (error: any) {
+		logger.error(
+			{ error: error.message, walletAddress: req.params.walletAddress },
+			"Error checking wallet address"
+		);
+
+		return res.status(500).json({
+			success: false,
+			error: "Server error while checking wallet address",
+		});
+	}
 });
 
 /**
@@ -282,6 +363,7 @@ router.get("/wallet/:walletAddress", async (req: Request, res: Response) => {
  *     summary: Create a new user
  *     description: Create a new user profile
  *     tags: [Users]
+ *     operationId: createUser
  *     security:
  *       - ApiKeyAuth: []
  *     requestBody:
@@ -320,73 +402,83 @@ router.get("/wallet/:walletAddress", async (req: Request, res: Response) => {
  *         description: Server error
  */
 router.post("/", async (req: Request, res: Response) => {
-  try {
-    const { discordUserId, discordUsername, walletAddress, role, humanPassport } = req.body;
-    
-    // Validate required fields
-    if (!discordUserId || !discordUsername) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing required fields: discordUserId and discordUsername are required"
-      });
-    }
-    
-    // Check if this Discord user already exists
-    const existingUser = await extendedDynamoDB.getUser(discordUserId);
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        error: "User with this Discord ID already exists",
-        existingUser
-      });
-    }
-    
-    // Check if wallet address is already in use by another user (if provided)
-    if (walletAddress) {
-      const existingWallet = await extendedDynamoDB.getUserByWalletAddress(walletAddress);
-      if (existingWallet) {
-        return res.status(400).json({
-          success: false,
-          error: "This wallet address is already registered to another Discord user",
-          existingWallet
-        });
-      }
-    }
-    
-    // Create new user
-    const timestamp = Date.now();
-    const newUser: User = {
-      discordUserId,
-      discordUsername,
-      walletAddress: walletAddress || null,
-      role: role || null,
-      humanPassport: humanPassport || null,
-      createdAt: timestamp,
-      updatedAt: timestamp
-    };
-    
-    const created = await extendedDynamoDB.createUser(newUser);
-    
-    if (!created) {
-      return res.status(500).json({
-        success: false,
-        error: "Failed to create user"
-      });
-    }
-    
-    return res.status(201).json({
-      success: true,
-      message: "User created successfully",
-      user: newUser
-    });
-  } catch (error: any) {
-    logger.error({ error: error.message, body: req.body }, "Error creating user");
-    
-    return res.status(500).json({
-      success: false,
-      error: "Server error while creating user"
-    });
-  }
+	try {
+		const {
+			discordUserId,
+			discordUsername,
+			walletAddress,
+			role,
+			humanPassport,
+		} = req.body;
+
+		// Validate required fields
+		if (!discordUserId || !discordUsername) {
+			return res.status(400).json({
+				success: false,
+				error: "Missing required fields: discordUserId and discordUsername are required",
+			});
+		}
+
+		// Check if this Discord user already exists
+		const existingUser = await extendedDynamoDB.getUser(discordUserId);
+		if (existingUser) {
+			return res.status(400).json({
+				success: false,
+				error: "User with this Discord ID already exists",
+				existingUser,
+			});
+		}
+
+		// Check if wallet address is already in use by another user (if provided)
+		if (walletAddress) {
+			const existingWallet =
+				await extendedDynamoDB.getUserByWalletAddress(walletAddress);
+			if (existingWallet) {
+				return res.status(400).json({
+					success: false,
+					error: "This wallet address is already registered to another Discord user",
+					existingWallet,
+				});
+			}
+		}
+
+		// Create new user
+		const timestamp = Date.now();
+		const newUser: User = {
+			discordUserId,
+			discordUsername,
+			walletAddress: walletAddress || null,
+			role: role || null,
+			humanPassport: humanPassport || null,
+			createdAt: timestamp,
+			updatedAt: timestamp,
+		};
+
+		const created = await extendedDynamoDB.createUser(newUser);
+
+		if (!created) {
+			return res.status(500).json({
+				success: false,
+				error: "Failed to create user",
+			});
+		}
+
+		return res.status(201).json({
+			success: true,
+			message: "User created successfully",
+			user: newUser,
+		});
+	} catch (error: any) {
+		logger.error(
+			{ error: error.message, body: req.body },
+			"Error creating user"
+		);
+
+		return res.status(500).json({
+			success: false,
+			error: "Server error while creating user",
+		});
+	}
 });
 
 /**
@@ -396,6 +488,7 @@ router.post("/", async (req: Request, res: Response) => {
  *     summary: Update a user by Discord user ID
  *     description: Update an existing user's information
  *     tags: [Users]
+ *     operationId: updateUserByDiscordId
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -437,74 +530,89 @@ router.post("/", async (req: Request, res: Response) => {
  *         description: Server error
  */
 router.put("/discord/:discordUserId", async (req: Request, res: Response) => {
-  try {
-    const { discordUserId } = req.params;
-    const updates = req.body;
-    
-    if (!discordUserId) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing discordUserId parameter"
-      });
-    }
-    
-    // Don't allow updating the discordUserId
-    if (updates.discordUserId) {
-      delete updates.discordUserId;
-    }
-    
-    // Find the user
-    const user = await extendedDynamoDB.getUser(discordUserId);
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found"
-      });
-    }
-    
-    // If trying to update the wallet address, check if it's already in use
-    if (updates.walletAddress && updates.walletAddress !== user.walletAddress) {
-      const existingWallet = await extendedDynamoDB.getUserByWalletAddress(updates.walletAddress);
-      
-      if (existingWallet && existingWallet.discordUserId !== discordUserId) {
-        return res.status(400).json({
-          success: false,
-          error: "This wallet address is already registered to another Discord user",
-          existingWallet
-        });
-      }
-    }
-    
-    // Update timestamp
-    updates.updatedAt = Date.now();
-    
-    // Update the user
-    const updated = await extendedDynamoDB.updateUser(discordUserId, updates);
-    
-    if (!updated) {
-      return res.status(500).json({
-        success: false,
-        error: "Failed to update user"
-      });
-    }
-    
-    // Get the updated user
-    const updatedUser = await extendedDynamoDB.getUser(discordUserId);
-    
-    return res.status(200).json({
-      success: true,
-      message: "User updated successfully",
-      user: updatedUser
-    });
-  } catch (error: any) {
-    logger.error({ error: error.message, discordUserId: req.params.discordUserId }, "Error updating user");
-    
-    return res.status(500).json({
-      success: false,
-      error: "Server error while updating user"
-    });
-  }
+	try {
+		const { discordUserId } = req.params;
+		const updates = req.body;
+
+		if (!discordUserId) {
+			return res.status(400).json({
+				success: false,
+				error: "Missing discordUserId parameter",
+			});
+		}
+
+		// Don't allow updating the discordUserId
+		if (updates.discordUserId) {
+			delete updates.discordUserId;
+		}
+
+		// Find the user
+		const user = await extendedDynamoDB.getUser(discordUserId);
+
+		if (!user) {
+			return res.status(404).json({
+				success: false,
+				error: "User not found",
+			});
+		}
+
+		// If trying to update the wallet address, check if it's already in use
+		if (
+			updates.walletAddress &&
+			updates.walletAddress !== user.walletAddress
+		) {
+			const existingWallet =
+				await extendedDynamoDB.getUserByWalletAddress(
+					updates.walletAddress
+				);
+
+			if (
+				existingWallet &&
+				existingWallet.discordUserId !== discordUserId
+			) {
+				return res.status(400).json({
+					success: false,
+					error: "This wallet address is already registered to another Discord user",
+					existingWallet,
+				});
+			}
+		}
+
+		// Update timestamp
+		updates.updatedAt = Date.now();
+
+		// Update the user
+		const updated = await extendedDynamoDB.updateUser(
+			discordUserId,
+			updates
+		);
+
+		if (!updated) {
+			return res.status(500).json({
+				success: false,
+				error: "Failed to update user",
+			});
+		}
+
+		// Get the updated user
+		const updatedUser = await extendedDynamoDB.getUser(discordUserId);
+
+		return res.status(200).json({
+			success: true,
+			message: "User updated successfully",
+			user: updatedUser,
+		});
+	} catch (error: any) {
+		logger.error(
+			{ error: error.message, discordUserId: req.params.discordUserId },
+			"Error updating user"
+		);
+
+		return res.status(500).json({
+			success: false,
+			error: "Server error while updating user",
+		});
+	}
 });
 
 /**
@@ -514,6 +622,7 @@ router.put("/discord/:discordUserId", async (req: Request, res: Response) => {
  *     summary: Delete a user by Discord user ID
  *     description: Delete a user by their Discord user ID
  *     tags: [Users]
+ *     operationId: deleteUserByDiscordId
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -533,50 +642,59 @@ router.put("/discord/:discordUserId", async (req: Request, res: Response) => {
  *       500:
  *         description: Server error
  */
-router.delete("/discord/:discordUserId", async (req: Request, res: Response) => {
-  try {
-    const { discordUserId } = req.params;
-    
-    if (!discordUserId) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing discordUserId parameter"
-      });
-    }
-    
-    // Check if user exists
-    const user = await extendedDynamoDB.getUser(discordUserId);
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found"
-      });
-    }
-    
-    // Delete the user
-    const deleted = await extendedDynamoDB.deleteUser(discordUserId);
-    
-    if (!deleted) {
-      return res.status(500).json({
-        success: false,
-        error: "Failed to delete user"
-      });
-    }
-    
-    return res.status(200).json({
-      success: true,
-      message: "User deleted successfully"
-    });
-  } catch (error: any) {
-    logger.error({ error: error.message, discordUserId: req.params.discordUserId }, "Error deleting user");
-    
-    return res.status(500).json({
-      success: false,
-      error: "Server error while deleting user"
-    });
-  }
-});
+router.delete(
+	"/discord/:discordUserId",
+	async (req: Request, res: Response) => {
+		try {
+			const { discordUserId } = req.params;
+
+			if (!discordUserId) {
+				return res.status(400).json({
+					success: false,
+					error: "Missing discordUserId parameter",
+				});
+			}
+
+			// Check if user exists
+			const user = await extendedDynamoDB.getUser(discordUserId);
+
+			if (!user) {
+				return res.status(404).json({
+					success: false,
+					error: "User not found",
+				});
+			}
+
+			// Delete the user
+			const deleted = await extendedDynamoDB.deleteUser(discordUserId);
+
+			if (!deleted) {
+				return res.status(500).json({
+					success: false,
+					error: "Failed to delete user",
+				});
+			}
+
+			return res.status(200).json({
+				success: true,
+				message: "User deleted successfully",
+			});
+		} catch (error: any) {
+			logger.error(
+				{
+					error: error.message,
+					discordUserId: req.params.discordUserId,
+				},
+				"Error deleting user"
+			);
+
+			return res.status(500).json({
+				success: false,
+				error: "Server error while deleting user",
+			});
+		}
+	}
+);
 
 /**
  * @swagger
@@ -585,6 +703,7 @@ router.delete("/discord/:discordUserId", async (req: Request, res: Response) => 
  *     summary: Get a user by verification ID
  *     description: Retrieve a user by their Human Passport verification ID
  *     tags: [Users]
+ *     operationId: getUserByVerificationId
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -632,38 +751,49 @@ router.delete("/discord/:discordUserId", async (req: Request, res: Response) => 
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/verification/:verificationId", async (req: Request, res: Response) => {
-  try {
-    const { verificationId } = req.params;
-    
-    if (!verificationId) {
-      return res.status(400).json({
-        success: false,
-        error: "Missing verificationId parameter"
-      });
-    }
-    
-    const user = await extendedDynamoDB.getUserByVerificationId(verificationId);
-    
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        error: "User not found with this verification ID"
-      });
-    }
-    
-    return res.status(200).json({
-      success: true,
-      user: user
-    });
-  } catch (error: any) {
-    logger.error({ error: error.message, verificationId: req.params.verificationId }, "Error retrieving user by verification ID");
-    
-    return res.status(500).json({
-      success: false,
-      error: "Server error while retrieving user"
-    });
-  }
-});
+router.get(
+	"/verification/:verificationId",
+	async (req: Request, res: Response) => {
+		try {
+			const { verificationId } = req.params;
+
+			if (!verificationId) {
+				return res.status(400).json({
+					success: false,
+					error: "Missing verificationId parameter",
+				});
+			}
+
+			const user = await extendedDynamoDB.getUserByVerificationId(
+				verificationId
+			);
+
+			if (!user) {
+				return res.status(404).json({
+					success: false,
+					error: "User not found with this verification ID",
+				});
+			}
+
+			return res.status(200).json({
+				success: true,
+				user: user,
+			});
+		} catch (error: any) {
+			logger.error(
+				{
+					error: error.message,
+					verificationId: req.params.verificationId,
+				},
+				"Error retrieving user by verification ID"
+			);
+
+			return res.status(500).json({
+				success: false,
+				error: "Server error while retrieving user",
+			});
+		}
+	}
+);
 
 export default router;
