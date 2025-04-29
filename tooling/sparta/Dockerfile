@@ -48,6 +48,15 @@ ARG VITE_APP_API_URL
 ARG VITE_REOWN_PROJECT_ID
 ARG VITE_MINIMUM_SCORE
 
+# Set runtime environment variables from build arguments
+# These will be available to the CMD process
+ENV VITE_APP_API_URL=$VITE_APP_API_URL
+ENV VITE_REOWN_PROJECT_ID=$VITE_REOWN_PROJECT_ID
+ENV VITE_MINIMUM_SCORE=$VITE_MINIMUM_SCORE
+
+# Generate Swagger docs during build
+RUN bun run swagger
+
 # Build the Vite frontend application
 # Assumes the build script exists in packages/vite/package.json
 # The ARG variables will be available as environment variables here
@@ -61,6 +70,7 @@ RUN cd packages/vite && \
 # Make sure this matches the PORT environment variable passed in Terraform (var.api_port)
 EXPOSE 3000
 
-# Start the Express API server
-# Assumes the start script exists in packages/express/package.json
-CMD ["bun", "run", "start"]
+# Start ONLY the Express API server using its own start script
+# Assumes a "start" script exists in packages/express/package.json (or the relevant API package)
+# This avoids running the root build/swagger scripts at runtime.
+CMD ["bun", "--filter", "@sparta/api", "run", "start"]

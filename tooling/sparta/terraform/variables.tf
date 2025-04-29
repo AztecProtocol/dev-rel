@@ -192,13 +192,13 @@ variable "api_desired_count" {
 variable "api_cpu" {
   description = "CPU units to allocate for the API task (e.g., 256 = 0.25 vCPU)"
   type        = string # Fargate uses string values for CPU/Memory
-  default     = "256"
+  default     = "1024"
 }
 
 variable "api_memory" {
   description = "Memory to allocate for the API task in MiB (e.g., 512)"
   type        = string
-  default     = "512"
+  default     = "2048"
 }
 
 # =============================================================================

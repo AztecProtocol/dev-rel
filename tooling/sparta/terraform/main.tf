@@ -250,7 +250,7 @@ resource "aws_iam_role" "api_task_role" {
 # IAM Policy allowing API Task Role to access DynamoDB
 resource "aws_iam_policy" "dynamodb_access_policy" {
   name        = "${local.resource_prefix}-dynamodb-access-policy"
-  description = "Policy for accessing DynamoDB sessions table"
+  description = "Policy for accessing DynamoDB users tables"
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -266,10 +266,11 @@ resource "aws_iam_policy" "dynamodb_access_policy" {
           "dynamodb:Scan",
           "dynamodb:BatchWriteItem"
         ],
-        # Grant access to the table and its indexes
+        # Grant access to both tables and their indexes
         Resource = [
-          aws_dynamodb_table.sparta_sessions.arn,
-          "${aws_dynamodb_table.sparta_sessions.arn}/index/*"
+          # Users table (referenced via Terraform resource)
+          aws_dynamodb_table.sparta_users.arn,
+          "${aws_dynamodb_table.sparta_users.arn}/index/*"
         ]
       }
       # Add statements here if the API needs access to other AWS resources
@@ -288,42 +289,51 @@ resource "aws_iam_role_policy_attachment" "api_dynamodb_policy_attachment" {
 # Database (DynamoDB)
 # =============================================================================
 
-resource "aws_dynamodb_table" "sparta_sessions" {
-  name           = "${local.resource_prefix}-sessions"
-  billing_mode   = "PAY_PER_REQUEST"
-  hash_key       = "sessionId" # Assuming sessionId is the primary identifier
+# Add the 'users' table definition
+resource "aws_dynamodb_table" "sparta_users" {
+  name           = "${local.resource_prefix}-users" # Use prefix for consistency
+  billing_mode   = "PAY_PER_REQUEST"          # Use pay-per-request like sessions table
 
+  # Define attributes used in keys/indexes
   attribute {
-    name = "sessionId"
+    name = "discordUserId"
+    type = "S"
+  }
+  attribute {
+    name = "walletAddress"
+    type = "S"
+  }
+  attribute {
+    name = "verificationId"
     type = "S"
   }
 
-  attribute {
-    name = "discordUserId" # Attribute for the GSI
-    type = "S"
-  }
+  # Define the primary hash key
+  hash_key = "discordUserId"
 
-  # Global Secondary Index to query by Discord User ID
+  # Define Global Secondary Indexes
   global_secondary_index {
-    name               = "DiscordUserIdIndex"
-    hash_key           = "discordUserId"
-    projection_type    = "ALL" # Include all attributes in the index
+    name            = "walletAddress-index"
+    hash_key        = "walletAddress"
+    projection_type = "INCLUDE"
+    non_key_attributes = ["discordUserId", "discordUsername"] # Attributes to include
     # PAY_PER_REQUEST billing mode applies to GSIs as well
   }
 
-  # Enable Point-in-Time Recovery for backups
+  global_secondary_index {
+    name            = "verificationId-index"
+    hash_key        = "verificationId"
+    projection_type = "ALL" # Project all attributes
+    # PAY_PER_REQUEST billing mode applies to GSIs as well
+  }
+
+  # Enable Point-in-Time Recovery for backups (Recommended)
   point_in_time_recovery {
     enabled = true
   }
 
-  # Enable TTL on an attribute (e.g., 'ttl') if sessions should expire automatically
-  # ttl {
-  #   attribute_name = "ttl"
-  #   enabled        = true
-  # }
-
   tags = merge(local.common_tags, {
-    Name = "${local.resource_prefix}-sessions-table"
+    Name = "${local.resource_prefix}-users-table"
   })
 }
 
@@ -684,7 +694,7 @@ output "ecs_cluster_name" {
   value       = aws_ecs_cluster.sparta_cluster.name
 }
 
-output "sessions_table_name" {
-  description = "The name of the DynamoDB table for sessions"
-  value       = aws_dynamodb_table.sparta_sessions.name
+output "users_table_name" {
+  description = "The name of the DynamoDB table for users"
+  value       = aws_dynamodb_table.sparta_users.name
 } 
