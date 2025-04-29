@@ -39,7 +39,7 @@ class DynamoDBService {
 	private isLocal: boolean;
 
 	constructor() {
-		this.tableName = "users";
+		this.tableName = process.env.USERS_TABLE_NAME || "users";
 		this.isLocal = process.env.LOCAL_DYNAMO_DB === "true";
 
 		// Create the DynamoDB client
