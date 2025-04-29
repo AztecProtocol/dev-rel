@@ -8,6 +8,7 @@
     "@types/bun": "latest",
     "@types/swagger-jsdoc": "^6.0.4",
     "@types/swagger-ui-express": "^4.1.8",
+    "http-proxy-middleware": "^3.0.5",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1"
   },
@@ -17,7 +18,7 @@
   "scripts": {
     "start": "bun --env-file=.env --filter='@sparta/api' run start",
     "build:webapp": "bun --env-file=.env --elide-lines=0 --filter='@sparta/webapp' run build",
-    "dev": "bun --env-file=.env --elide-lines=0 --filter='@sparta/webapp' --filter='@sparta/api' run dev",
+    "dev": "bun --env-file=.env --elide-lines=0 --filter='@sparta/api' run dev",
     "dev:webapp": "bun --env-file=.env --elide-lines=0 --filter='@sparta/webapp' run dev",
     "dev:api": "bun --env-file=.env --elide-lines=0 --filter='@sparta/api' run dev"
   },

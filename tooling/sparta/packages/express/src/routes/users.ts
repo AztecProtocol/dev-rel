@@ -104,7 +104,7 @@ router.get("/", async (_req: Request, res: Response) => {
 
 /**
  * @swagger
- * /api/users/{discordUserId}:
+ * /api/users/discord/{discordUserId}:
  *   get:
  *     summary: Get a specific user by Discord user ID
  *     description: Retrieve a user by their Discord user ID
@@ -150,7 +150,7 @@ router.get("/", async (_req: Request, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/:discordUserId", async (req: Request, res: Response) => {
+router.get("/discord/:discordUserId", async (req: Request, res: Response) => {
   try {
     const { discordUserId } = req.params;
     
@@ -391,9 +391,9 @@ router.post("/", async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /api/users/{discordUserId}:
+ * /api/users/discord/{discordUserId}:
  *   put:
- *     summary: Update a user
+ *     summary: Update a user by Discord user ID
  *     description: Update an existing user's information
  *     tags: [Users]
  *     security:
@@ -436,7 +436,7 @@ router.post("/", async (req: Request, res: Response) => {
  *       500:
  *         description: Server error
  */
-router.put("/:discordUserId", async (req: Request, res: Response) => {
+router.put("/discord/:discordUserId", async (req: Request, res: Response) => {
   try {
     const { discordUserId } = req.params;
     const updates = req.body;
@@ -509,9 +509,9 @@ router.put("/:discordUserId", async (req: Request, res: Response) => {
 
 /**
  * @swagger
- * /api/users/{discordUserId}:
+ * /api/users/discord/{discordUserId}:
  *   delete:
- *     summary: Delete a user
+ *     summary: Delete a user by Discord user ID
  *     description: Delete a user by their Discord user ID
  *     tags: [Users]
  *     security:
@@ -533,7 +533,7 @@ router.put("/:discordUserId", async (req: Request, res: Response) => {
  *       500:
  *         description: Server error
  */
-router.delete("/:discordUserId", async (req: Request, res: Response) => {
+router.delete("/discord/:discordUserId", async (req: Request, res: Response) => {
   try {
     const { discordUserId } = req.params;
     
@@ -574,6 +574,94 @@ router.delete("/:discordUserId", async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       error: "Server error while deleting user"
+    });
+  }
+});
+
+/**
+ * @swagger
+ * /api/users/verification/{verificationId}:
+ *   get:
+ *     summary: Get a user by verification ID
+ *     description: Retrieve a user by their Human Passport verification ID
+ *     tags: [Users]
+ *     security:
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: verificationId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Human Passport verification ID
+ *     responses:
+ *       200:
+ *         description: User profile
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   description: Success status
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       400:
+ *         description: Bad request - Missing verification ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       404:
+ *         description: User not found with this verification ID
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get("/verification/:verificationId", async (req: Request, res: Response) => {
+  try {
+    const { verificationId } = req.params;
+    
+    if (!verificationId) {
+      return res.status(400).json({
+        success: false,
+        error: "Missing verificationId parameter"
+      });
+    }
+    
+    const user = await extendedDynamoDB.getUserByVerificationId(verificationId);
+    
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        error: "User not found with this verification ID"
+      });
+    }
+    
+    return res.status(200).json({
+      success: true,
+      user: user
+    });
+  } catch (error: any) {
+    logger.error({ error: error.message, verificationId: req.params.verificationId }, "Error retrieving user by verification ID");
+    
+    return res.status(500).json({
+      success: false,
+      error: "Server error while retrieving user"
     });
   }
 });

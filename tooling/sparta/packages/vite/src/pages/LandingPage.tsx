@@ -3,15 +3,15 @@ import { useAccount, useDisconnect } from 'wagmi';
 import ProviderCard from '../components/ProviderCard';
 import GitcoinModal from '../components/GitcoinModal';
 import { StyledConnectButton, Button } from '../components/button';
+import { useSearchParams } from 'react-router-dom';
 
-interface LandingPageProps {
-  verificationId?: string;
-}
 
-function LandingPage({ verificationId }: LandingPageProps) {
+function LandingPage() {
   const [verificationMethod, setVerificationMethod] = useState<string | null>(null);
   const { address } = useAccount();
-
+  const [searchParams] = useSearchParams();
+  const verificationId = searchParams.get('verificationId');
+  
   const handleGitcoinSelect = () => {
     setVerificationMethod('gitcoin');
   };
@@ -41,7 +41,7 @@ function LandingPage({ verificationId }: LandingPageProps) {
 
       
       {/* Show GitcoinModal only when wallet is connected and verification method is gitcoin */}
-      {address && verificationMethod === 'gitcoin' && (
+      {address && verificationId && verificationMethod === 'gitcoin' && (
         <GitcoinModal 
           isOpen={true} 
           onClose={() => setVerificationMethod(null)}

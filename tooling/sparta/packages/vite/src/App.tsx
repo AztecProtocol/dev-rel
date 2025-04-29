@@ -5,13 +5,6 @@ import LandingPage from './pages/LandingPage.tsx';
 import PowPage from './pages/PowPage.tsx';
 import React from 'react';
 
-// Route wrapper that captures the verificationId from query params
-const HomeRoute = () => {
-  const [searchParams] = useSearchParams();
-  const verificationId = searchParams.get('verificationId');
-  
-  return <LandingPage verificationId={verificationId || undefined} />;
-};
 
 function App() {
   return (
@@ -24,7 +17,7 @@ function App() {
           <div className="w-full">
             <Routes>
               {/* Root route with query parameter for verificationId */}
-              <Route path="/" element={<HomeRoute />} />
+              <Route path="/" element={<LandingPage />} />
               
               {/* Other routes */}
               <Route path="/pow" element={

@@ -3,10 +3,10 @@
     "module": "index.ts",
     "type": "module",
     "scripts": {
-        "build": "tsc",
-        "start": "bun run src/index.ts",
-        "dev": "NODE_ENV=development bun --watch run src/index.ts",
-        "test": "jest"
+        "build": "bun run build:swagger && tsc",
+        "start": "bun run build:swagger && bun run src/index.ts",
+        "dev": "bun run build:swagger && NODE_ENV=development bun --watch run src/index.ts",
+        "build:swagger": "node swagger.js"
     },
     "dependencies": {
         "@sparta/utils": "workspace:*",
@@ -15,6 +15,7 @@
         "discord.js": "^14.14.1",
         "express": "^4.18.2",
         "openapi-client-axios": "^7.6.0",
+        "swagger-autogen": "^2.23.7",
         "viem": "^2.9.15"
     },
     "devDependencies": {

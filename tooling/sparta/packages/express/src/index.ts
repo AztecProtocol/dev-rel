@@ -1,18 +1,14 @@
 import express from 'express';
 import cors from 'cors';
-import humanPassportRoutes from './routes/human.js';
-import userRoutes from './routes/users.js';
-import { swaggerSpec, swaggerUi } from './swagger.js';
+import apiRoutes from './routes/api.js';
 // import { dynamoDB } from "@sparta/utils"; // Unused
 import { discord } from './domain/discord/clients/discord.js';
 import { logger } from '@sparta/utils';
 import path from 'path'; // Import path module
 import { fileURLToPath } from 'url'; // Import fileURLToPath for ES modules
 import { initializeUserRepository } from './db/userRepository.js';
-import { exec } from 'child_process';
-import { promisify } from 'util';
 
-const execAsync = promisify(exec);
+import { readFileSync } from 'fs';
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
@@ -21,51 +17,21 @@ const __dirname = path.dirname(__filename);
 // Initialize the User repository
 initializeUserRepository();
 
-// Function to generate OpenAPI TypeScript bindings
-async function generateOpenAPITypes(apiDocsUrl: string): Promise<void> {
-  try {
-    const viteApiDir = path.join(__dirname, '..', '..', '..', 'packages', 'vite', 'src', 'api');
-    const clientFilePath = path.join(viteApiDir, 'client.d.ts');
-    
-    logger.info(`Generating OpenAPI TypeScript bindings from ${apiDocsUrl} to ${clientFilePath}`);
-    
-    // Use npx to run the openapi-client-axios-typegen command
-    const command = `npx openapi-client-axios-typegen ${apiDocsUrl} > ${clientFilePath}`;
-    const { stdout, stderr } = await execAsync(command);
-    
-    if (stderr) {
-      logger.error(`Error generating OpenAPI TypeScript bindings: ${stderr}`);
-    } else {
-      logger.info(`Successfully generated OpenAPI TypeScript bindings: ${stdout}`);
-    }
-  } catch (error: unknown) {
-    logger.error(`Failed to generate OpenAPI TypeScript bindings: ${error instanceof Error ? error.message : String(error)}`);
-  }
-}
-
 // Define constants for session status (assuming these exist elsewhere or should be defined)
 // const PENDING_ROLE_STATUS = 'pending_role_assignment'; // Removed local definition
 
-const app = express();
-
-// --- CORS Configuration --- START
 let allowedOrigins: string[] = [];
-const corsAllowedOriginsEnv = process.env.CORS_ALLOWED_ORIGINS;
 const nodeEnv = process.env.NODE_ENV;
 
-if (corsAllowedOriginsEnv) {
-  // Use origins from environment variable if provided
-  allowedOrigins = corsAllowedOriginsEnv.split(',').map(origin => origin.trim());
-} else if (nodeEnv === 'development') {
-  // Default origins for local development if variable is not set
+if (nodeEnv === 'development') {
   allowedOrigins = [
     'http://localhost:3000', // Allow Express itself if serving frontend
     'http://localhost:5173', // Default Vite dev port
-    'http://192.168.100.52:3000' // Allow local IP address
+    'http://192.168.100.9:3000' // Allow local IP address
   ];
-} // In non-development environments, if CORS_ALLOWED_ORIGINS is not set, allowedOrigins remains empty (most restrictive)
+}
 
-logger.info({ nodeEnv, corsAllowedOriginsEnv, resolvedOrigins: allowedOrigins }, "Initializing CORS");
+logger.info({ nodeEnv, resolvedOrigins: allowedOrigins }, "Initializing CORS");
 
 const corsOptions = {
   origin: function (origin: string | undefined, callback: (err: Error | null, allow?: boolean) => void) {
@@ -89,7 +55,71 @@ const corsOptions = {
   optionsSuccessStatus: 204 // Return 204 for preflight requests
 };
 
-// --- CORS Configuration --- END
+const app = express();
+
+async function setupVite() {
+  const isDev = process.env.NODE_ENV === 'development'
+  if (isDev) {
+
+   const { createServer } = await import('vite')
+
+    // 1) spin up a Vite dev server in middleware mode
+    const vite = await createServer({
+      root: path.resolve(__dirname, '../../vite'),
+      server: { 
+        middlewareMode: true,
+      },
+      appType: 'custom',  // for middleware usage
+      base: "/"
+    });
+    app.use(vite.middlewares);
+
+
+    // only in dev, after mounting vite.middlewares:
+    app.use('*', async (req, res, next) => {
+      try {
+        const url = req.originalUrl.replace('/', '');
+
+        // 1) load the Vite index.html template
+        let template = readFileSync(
+          path.resolve(__dirname, '../../vite/index.html'),
+          'utf-8'
+        );
+
+        // 2) let Vite inject HMR client + transform e.g. <script type=module>…
+        template = await vite.transformIndexHtml(url, template);
+
+        // 3) load your SSR entry
+        const { render } = await vite.ssrLoadModule(
+          path.resolve(__dirname, '../../vite/src/main.tsx')
+        );
+
+        const rendered = await render(url)
+
+        const html = template
+          .replace(`<!--app-head-->`, rendered.head ?? '')
+          .replace(`<!--app-html-->`, rendered.html ?? '')
+
+        res.status(200).set({ 'Content-Type': 'text/html' }).end(html);
+      } catch (e) {
+        vite.ssrFixStacktrace(e as Error);
+        next(e);
+      }
+    });
+
+  } else {
+    // your existing static‐serve for production
+    const distDir = path.join(__dirname, '../../vite/dist');
+    app.use('/', express.static(distDir, { index: false }));
+    app.get('/*', (_req, res) => {
+      res.sendFile(path.join(distDir, 'index.html'));
+    });
+  }
+}
+
+await setupVite();
+
+
 
 // Debug middleware to log all requests
 app.use((req, _res, next) => {
@@ -99,72 +129,19 @@ app.use((req, _res, next) => {
 
 // Middleware
 app.use(cors(corsOptions));
-app.use(express.json());
-
-// Define path to static frontend files (built by Vite)
-// Assumes Dockerfile copies vite/dist to /app/public relative to this file's final location
-// Adjust the relative path if your build output or Dockerfile structure differs.
-// When built, this file might be in /app/packages/express/dist/src/, so we go up 3 levels.
-const staticFilesPath = path.join(__dirname, '..', '..', '..', 'packages', 'vite', 'dist');
-logger.info(`Serving static files from: ${staticFilesPath}`);
-
-// --- Static File Serving --- START
-// Serve static files (HTML, CSS, JS from Vite build)
-app.use(express.static(staticFilesPath));
-// --- Static File Serving --- END
-
-// Swagger documentation (keep before API routes if you want /api-docs separate)
-app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec, {
-  explorer: true,
-  customCss: '.swagger-ui .topbar { display: none }' // Hide the top bar (optional)
-}));
-
-// Serve the Swagger spec as JSON
-app.get('/api-docs.json', (_req, res) => {
-  res.setHeader('Content-Type', 'application/json');
-  res.send(swaggerSpec);
-});
-
 // API Routes
-app.use('/api/human', humanPassportRoutes);
-app.use('/api/users', userRoutes);
+app.use('/api', apiRoutes);
 
 // Health check endpoint
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-// --- SPA Catch-all Route --- START
-// This should be AFTER API routes and static serving middleware
-// It ensures that requests not matching API routes or static files
-// are served the index.html, allowing client-side routing to take over.
-app.get('*', (req, res) => {
-  // Avoid serving index.html for API-like paths just in case
-  if (req.originalUrl.startsWith('/api')) {
-    return res.status(404).send('API route not found');
-  }
-  const indexPath = path.join(staticFilesPath, 'index.html');
-  res.sendFile(indexPath, (err) => {
-    if (err) {
-      logger.error({ error: err, path: indexPath }, "Error sending index.html");
-      res.status(500).send('Error serving frontend.');
-    }
-  });
-});
-// --- SPA Catch-all Route --- END
-
 // Start server
 app.listen(process.env.API_PORT as unknown as number, '0.0.0.0', async () => {
   console.log(`Server is running on port ${process.env.API_PORT}`);
   console.log(`Allowing CORS for: ${allowedOrigins.join(', ')}`);
   console.log(`API Documentation available at: http://localhost:${process.env.API_PORT}/api-docs`);
-
-  // Generate TypeScript typings from the OpenAPI spec
-  const apiDocsUrl = `http://localhost:${process.env.API_PORT}/api-docs.json`;
-  // Wait a bit for the server to fully initialize before generating types
-  setTimeout(() => {
-    generateOpenAPITypes(apiDocsUrl);
-  }, 2000);
 
   // Start Discord Bot and then the background processor
   try {
@@ -178,6 +155,6 @@ app.listen(process.env.API_PORT as unknown as number, '0.0.0.0', async () => {
   } catch (error) {
     logger.error({ error }, "Failed to start Discord bot client.");
     // Decide if the server should exit or run without the bot
-    // process.exit(1); 
+    process.exit(1);
   }
 });

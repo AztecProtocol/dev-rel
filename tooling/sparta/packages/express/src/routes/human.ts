@@ -287,7 +287,7 @@ router.post("/verify", validateVerification, async (req: Request, res: Response)
 
 /**
  * @swagger
- * /api/human/status/{discordUserId}:
+ * /api/human/status/discord/{discordUserId}:
  *   get:
  *     summary: Check verification status by Discord user ID
  *     description: Check the human verification status of a user by their Discord ID
@@ -319,7 +319,7 @@ router.post("/verify", validateVerification, async (req: Request, res: Response)
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/status/:discordUserId", async (req: Request, res: Response) => {
+router.get("/status/discord/:discordUserId", async (req: Request, res: Response) => {
 	try {
 		const { discordUserId } = req.params;
 
@@ -375,6 +375,99 @@ router.get("/status/:discordUserId", async (req: Request, res: Response) => {
 		});
 	}
 });
+
+
+/**
+ * @swagger
+ * /api/human/status/verification/{verificationId}:
+ *   get:
+ *     summary: Check verification status by verification ID
+ *     description: Check the human verification status of a user by their verification ID
+ *     tags: [Human]
+ *     parameters:
+ *       - in: path
+ *         name: verificationId
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Verification ID
+ *     responses:
+ *       200:
+ *         description: Status returned successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/VerificationStatusResponse'
+ *       404:
+ *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       500:
+ *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ */
+router.get("/status/verification/:verificationId", async (req: Request, res: Response) => {
+	try {
+		const { verificationId } = req.params;
+
+		if (!verificationId) {
+			return res.status(400).json({ 
+				success: false, 
+				error: 'Missing verificationId parameter' 
+			});
+		}
+
+		// Get user directly
+		const user = await extendedDynamoDB.getUserByVerificationId(verificationId); 
+		
+		if (!user) {
+			return res.status(404).json({
+				success: false,
+				error: "No user record found for this verification ID.",
+			});
+		}
+		
+		const humanPassport = user.humanPassport;
+		if (!humanPassport) {
+			return res.status(404).json({
+				success: false,
+				error: "No verification record found for this verification ID.",
+			});
+		}
+		
+		// Return the status info
+		return res.status(200).json({
+			success: true,
+			verificationId: humanPassport.verificationId, // Include verification ID for reference
+			walletConnected: !!user.walletAddress,
+			verified: humanPassport.status === VERIFICATION_STATUS.VERIFICATION_COMPLETE, 
+			roleAssigned: user.role === 'verified_human', 
+			score: humanPassport.score,
+			status: humanPassport.status, // Return the current verification status
+			minimumRequiredScore: parseInt(process.env.MINIMUM_SCORE || '0'),
+			highScoreThreshold: parseInt(process.env.HIGH_SCORE_THRESHOLD || '10'),
+			isHighScorer: humanPassport.score !== null && humanPassport.score !== undefined && 
+                         humanPassport.score >= parseInt(process.env.HIGH_SCORE_THRESHOLD || '10'),
+			lastChecked: new Date().toISOString()
+		});
+	} catch (error: any) {
+		logger.error(
+			{ error: error.message, path: req.path },
+			"Error in status check by verification ID route"
+		);
+
+		return res.status(500).json({
+			success: false,
+			error: "Server error during status check",
+		});
+	}
+});
+
 
 /**
  * @swagger
