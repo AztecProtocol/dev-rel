@@ -19,19 +19,23 @@ const __dirname = path.dirname(__filename);
 // Initialize the User repository
 initializeUserRepository();
 
-// Define constants for session status (assuming these exist elsewhere or should be defined)
-// const PENDING_ROLE_STATUS = 'pending_role_assignment'; // Removed local definition
-
 let allowedOrigins: string[] = [];
+const corsAllowedOriginsEnv = process.env.CORS_ALLOWED_ORIGINS;
 const nodeEnv = process.env.NODE_ENV;
 
-if (nodeEnv === "development") {
+if (corsAllowedOriginsEnv) {
+	// Use origins from environment variable if provided
+	allowedOrigins = corsAllowedOriginsEnv
+		.split(",")
+		.map((origin) => origin.trim());
+} else if (nodeEnv === "development") {
+	// Default origins for local development if variable is not set
 	allowedOrigins = [
 		"http://localhost:3000", // Allow Express itself if serving frontend
 		"http://localhost:5173", // Default Vite dev port
-		"http://192.168.100.9:3000", // Allow local IP address
+		"http://192.168.100.52:3000", // Allow local IP address
 	];
-}
+} // In non-development environments, if CORS_ALLOWED_ORIGINS is not set, allowedOrigins remains empty (most restrictive)
 
 logger.info({ nodeEnv, resolvedOrigins: allowedOrigins }, "Initializing CORS");
 
