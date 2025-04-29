@@ -17,6 +17,8 @@
   },
   "scripts": {
     "swagger": "node scripts/swagger.js && bunx openapi-client-axios-typegen packages/vite/src/api-docs.json > packages/vite/src/api/generated.d.ts",
+    "start": "bun run swagger && bun run build && NODE_ENV='production' bun --filter='@sparta/api' run start",
+    "build": "bun --filter='@sparta/webapp' run build",
     "dev": "NODE_ENV='development' bun --env-file=.env --elide-lines=0 --filter='@sparta/api' --filter='@sparta/webapp' run dev",
     "dev:webapp": "bun --env-file=.env --elide-lines=0 --filter='@sparta/webapp' run dev",
     "dev:api": "bun --env-file=.env --elide-lines=0 --filter='@sparta/api' run dev"
