@@ -454,7 +454,8 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "LOG_LEVEL", value = var.log_level },
         { name = "LOG_PRETTY_PRINT", value = var.log_pretty_print ? "true" : "false" },
         { name = "VITE_APP_API_URL", value = "http://${aws_lb.sparta_alb.dns_name}" },
-        { name = "CORS_ALLOWED_ORIGINS", value = "http://${aws_lb.sparta_alb.dns_name}" }
+        { name = "CORS_ALLOWED_ORIGINS", value = "http://${aws_lb.sparta_alb.dns_name}" },
+        { name = "USERS_TABLE_NAME", value = aws_dynamodb_table.sparta_users.name }
       ]
       # secrets = [ # Example using Secrets Manager
       #   { name = "BOT_TOKEN", valueFrom = "<ARN of Secrets Manager secret for BOT_TOKEN>" }
