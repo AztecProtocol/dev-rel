@@ -71,4 +71,4 @@ EXPOSE 3000
 # Start ONLY the Express API server using its own start script
 # Assumes a "start" script exists in packages/express/package.json (or the relevant API package)
 # This avoids running the root build/swagger scripts at runtime.
-CMD ["bun", "--filter", "@sparta/api", "run", "start"]
+CMD ["bun", "--filter=@sparta/api", "run", "start"]
