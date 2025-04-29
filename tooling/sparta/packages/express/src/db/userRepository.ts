@@ -4,7 +4,6 @@
  * @module sparta/express/db/userRepository
  */
 
-import dynamoDB from "@sparta/utils/dynamo-db.js";
 import { logger } from "@sparta/utils/logger.js";
 import {
 	GetCommand,
@@ -15,6 +14,7 @@ import {
 	ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
 import type { User } from "../routes/users.js";
+import DynamoDBService from "@sparta/utils/dynamo-db.js";
 
 // Type for extended DynamoDB with user methods
 interface ExtendedDynamoDB {
@@ -29,7 +29,11 @@ interface ExtendedDynamoDB {
 }
 
 // Get the dynamoDB instance with our extended type
+const dynamoDB = new DynamoDBService(process.env.USERS_TABLE_NAME || "users");
+
 const extendedDynamoDB = dynamoDB as unknown as ExtendedDynamoDB;
+
+logger.info("dynamoDB config", dynamoDB.getClient().config);
 
 // Extend the DynamoDB service with user operations
 export function extendDynamoDBWithUserMethods(): void {
@@ -125,7 +129,7 @@ export function extendDynamoDBWithUserMethods(): void {
 	extendedDynamoDB.getAllUsers = async (): Promise<User[]> => {
 		try {
 			const command = new ScanCommand({
-				TableName: process.env.USERS_TABLE_NAME || "users",
+				TableName: process.env.USERS_TABLE_NAME,
 			});
 
 			const response = await dynamoDB.getClient().send(command);
@@ -180,7 +184,7 @@ export function extendDynamoDBWithUserMethods(): void {
 			}
 
 			const command = new PutCommand({
-				TableName: process.env.USERS_TABLE_NAME || "users",
+				TableName: process.env.USERS_TABLE_NAME,
 				Item: dynamoUser,
 				ConditionExpression: "attribute_not_exists(discordUserId)",
 			});
@@ -284,7 +288,7 @@ export function extendDynamoDBWithUserMethods(): void {
 			}
 
 			const command = new UpdateCommand({
-				TableName: process.env.USERS_TABLE_NAME || "users",
+				TableName: process.env.USERS_TABLE_NAME,
 				Key: { discordUserId },
 				UpdateExpression: updateExpression,
 				ExpressionAttributeNames: expressionAttributeNames,
@@ -309,7 +313,7 @@ export function extendDynamoDBWithUserMethods(): void {
 	): Promise<boolean> => {
 		try {
 			const command = new DeleteCommand({
-				TableName: process.env.USERS_TABLE_NAME || "users",
+				TableName: process.env.USERS_TABLE_NAME,
 				Key: { discordUserId },
 			});
 

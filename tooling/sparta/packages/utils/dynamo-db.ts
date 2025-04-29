@@ -38,8 +38,8 @@ class DynamoDBService {
 	private tableName: string;
 	private isLocal: boolean;
 
-	constructor() {
-		this.tableName = process.env.USERS_TABLE_NAME || "users";
+	constructor(tableName: string) {
+		this.tableName = tableName;
 		this.isLocal = process.env.LOCAL_DYNAMO_DB === "true";
 
 		// Create the DynamoDB client
@@ -361,6 +361,4 @@ class DynamoDBService {
 	}
 }
 
-// Create and export a singleton instance
-const dynamoDB = new DynamoDBService();
-export default dynamoDB;
+export default DynamoDBService;
