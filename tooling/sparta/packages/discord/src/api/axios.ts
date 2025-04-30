@@ -11,6 +11,7 @@ const apiInstance = new OpenAPIClientAxios({
 		headers: {
 			"Content-Type": "application/json",
 			Accept: "application/json",
+			"x-api-key": process.env.BACKEND_API_KEY,
 		},
 	},
 });

@@ -204,9 +204,6 @@ async function _handleSignatureRecovery(
 
 router.use(express.json());
 
-// Apply API key middleware to all human routes
-router.use(apiKeyMiddleware);
-
 /**
  * @swagger
  * /api/users/human/verify:
@@ -215,8 +212,6 @@ router.use(apiKeyMiddleware);
  *     description: Verify a wallet signature and process Passport verification
  *     tags: [Users]
  *     operationId: verifySignature
- *     security:
- *       - ApiKeyAuth: []
  *     parameters:
  *       - in: query
  *         name: verificationId
@@ -247,12 +242,6 @@ router.use(apiKeyMiddleware);
  *               $ref: '#/components/schemas/VerifyResponse'
  *       400:
  *         description: Bad request - missing parameters or invalid signature
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       401:
- *         description: Unauthorized - Invalid or missing API key
  *         content:
  *           application/json:
  *             schema:
@@ -473,8 +462,6 @@ router.post(
  *     description: Fetches the Gitcoin Passport score for the wallet address associated with a verification ID
  *     tags: [Users]
  *     operationId: getScore
- *     security:
- *       - ApiKeyAuth: []
  *     parameters:
  *       - in: query
  *         name: verificationId
@@ -497,12 +484,6 @@ router.post(
  *               $ref: '#/components/schemas/ScoreResponse'
  *       400:
  *         description: Bad request (missing parameters)
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       401:
- *         description: Unauthorized - Invalid or missing API key
  *         content:
  *           application/json:
  *             schema:
