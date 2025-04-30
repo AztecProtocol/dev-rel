@@ -16,10 +16,13 @@
     "typescript": "^5.8.3"
   },
   "scripts": {
-    "swagger": "bun run scripts/swagger.js && bunx openapi-client-axios-typegen packages/vite/src/api-docs.json > packages/vite/src/api/generated.d.ts",
-    "start": "bun run swagger && bun run build && NODE_ENV='production' bun --filter='@sparta/api' run start",
+    "types": "tsc --noEmit",
+    "swagger": "bun run scripts/swagger.js",
+    "openapi": "bunx openapi-client-axios-typegen packages/utils/openapi/api-docs.json > packages/utils/openapi/types.d.ts",
+    "prep": "bun run swagger && bun run openapi",
     "build": "bun --filter='@sparta/webapp' run build",
-    "dev": "NODE_ENV='development' bun --env-file=.env --elide-lines=0 --filter='@sparta/api' --filter='@sparta/webapp' run dev",
+    "start": "bun run prep && bun run build && NODE_ENV='production' bun --filter='@sparta/api' --filter='@sparta/discord' run start",
+    "dev": "bun run prep && NODE_ENV='development' bun --env-file=.env --elide-lines=0 --filter='@sparta/api' --filter='@sparta/webapp' --filter='@sparta/discord' run dev",
     "dev:webapp": "bun --env-file=.env --elide-lines=0 --filter='@sparta/webapp' run dev",
     "dev:api": "bun --env-file=.env --elide-lines=0 --filter='@sparta/api' run dev"
   },

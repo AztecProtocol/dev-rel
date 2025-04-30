@@ -203,12 +203,9 @@ export function extendDynamoDBWithUserMethods(): void {
 		updates: Partial<User>
 	): Promise<boolean> => {
 		try {
-			// Create a clean version of the updates
-			const cleanUpdates: Record<string, any> = {};
-			const removeExpressions: string[] = [];
-
 			// Build update and remove expressions
 			const updateExpressions: string[] = [];
+			const removeExpressions: string[] = [];
 			const expressionAttributeNames: Record<string, string> = {};
 			const expressionAttributeValues: Record<string, any> = {};
 

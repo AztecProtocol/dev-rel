@@ -4,25 +4,18 @@
  * @module sparta/express/routes/human
  */
 
-import express, {
-	type Request,
-	type Response,
-	type NextFunction,
-} from "express";
-import { PassportService } from "../domain/humanPassport/services/humanPassportService.js";
-import { logger, dynamoDB } from "@sparta/utils/index.js";
-import { randomUUID } from "crypto";
+import express, { type Request, type Response } from "express";
+import { PassportService } from "../domain/humanPassport/service.js";
+import { logger } from "@sparta/utils/index.js";
 import { recoverMessageAddress, type Hex } from "viem";
-// import { DeleteCommand } from "@aws-sdk/lib-dynamodb"; // Unused
-import type { Session } from "@sparta/utils/dynamo-db";
-import type { User, HumanPassport } from "./users.js";
+import type { HumanPassport } from "./users.js";
 import {
 	VERIFICATION_MESSAGE,
 	VERIFICATION_STATUS,
 } from "@sparta/utils/const.js"; // Import status constants
 import { EmbedBuilder } from "discord.js";
-import { _handleRoleAssignment } from "../domain/discord/utils/roleAssigner.js";
-import { DiscordService } from "../domain/discord/services/discord-service.js";
+import { _handleRoleAssignment } from "@sparta/discord/src/utils/roleAssigner.js";
+import { DiscordService } from "@sparta/discord/src/services/discord-service.js";
 import {
 	initializeUserRepository,
 	extendedDynamoDB,
@@ -31,7 +24,7 @@ import { validateVerification } from "../middlewares/humanPassport.js";
 import {
 	_handleScoring,
 	_updateUserVerificationStatus,
-} from "../domain/humanPassport/utils/scorer.js";
+} from "../domain/humanPassport/utils.js";
 
 // Define shared schemas
 /**

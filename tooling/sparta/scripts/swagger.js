@@ -34,6 +34,6 @@ const spec = swaggerJSDoc(options);
 
 console.log(spec);
 fs.writeFileSync(
-	path.resolve("packages/vite/src/api-docs.json"),
+	path.resolve("packages/utils/openapi/api-docs.json"),
 	JSON.stringify(spec, null, 2)
 );

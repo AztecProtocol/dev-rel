@@ -2,15 +2,13 @@ import express from "express";
 import cors from "cors";
 import apiRoutes from "./routes/api.js";
 // import { dynamoDB } from "@sparta/utils"; // Unused
-import { getDiscordInstance } from "./domain/discord/clients/discord.js";
+import { getDiscordInstance } from "@sparta/discord/src/clients/discord.js";
 import { logger } from "@sparta/utils";
 import path from "path"; // Import path module
 import { fileURLToPath } from "url"; // Import fileURLToPath for ES modules
 import { initializeUserRepository } from "./db/userRepository.js";
 // @ts-ignore
 import { initApiServer } from "../../vite/src/api/axios";
-
-import { readFileSync } from "fs";
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);

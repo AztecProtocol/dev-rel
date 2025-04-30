@@ -13,11 +13,18 @@ import type { User } from "../routes/users.js";
  * Middleware to validate a verification token/ID
  * Used to check if a user exists and is in the verification process
  */
-export const validateVerification = async (req: Request, res: Response, next: NextFunction) => {
+export const validateVerification = async (
+	req: Request,
+	res: Response,
+	next: NextFunction
+) => {
 	try {
 		// Get verificationId from route params, query, or body
-		const verificationId = req.params.verificationId || req.query.verificationId || req.body.verificationId;
-		
+		const verificationId =
+			req.params.verificationId ||
+			req.query.verificationId ||
+			req.body.verificationId;
+
 		if (!verificationId) {
 			return res.status(400).json({
 				success: false,
@@ -27,10 +34,14 @@ export const validateVerification = async (req: Request, res: Response, next: Ne
 
 		console.log(`Validating verification with ID: ${verificationId}`);
 
-		const user = await extendedDynamoDB.getUserByVerificationId(verificationId);
-		
+		const user = await extendedDynamoDB.getUserByVerificationId(
+			verificationId
+		);
+
 		if (!user) {
-			console.log(`User with verification ID not found: ${verificationId}`);
+			console.log(
+				`User with verification ID not found: ${verificationId}`
+			);
 			return res.status(404).json({
 				success: false,
 				error: "Verification not found or expired",
@@ -39,7 +50,9 @@ export const validateVerification = async (req: Request, res: Response, next: Ne
 
 		// Check for humanPassport data
 		if (!user.humanPassport) {
-			console.log(`User found but no humanPassport data: ${verificationId}`);
+			console.log(
+				`User found but no humanPassport data: ${verificationId}`
+			);
 			return res.status(404).json({
 				success: false,
 				error: "No active verification found for this ID",
@@ -47,11 +60,12 @@ export const validateVerification = async (req: Request, res: Response, next: Ne
 		}
 
 		console.log(`Verification found: ${JSON.stringify(user)}`);
-		
+
 		// Attach user to request object for use in route handlers
 		req.user = user;
 		req.verificationId = verificationId as string;
 		next();
+		return;
 	} catch (error: any) {
 		logger.error(
 			{ error: error.message, path: req.path },
@@ -73,4 +87,4 @@ declare global {
 			verificationId?: string;
 		}
 	}
-} 
+}

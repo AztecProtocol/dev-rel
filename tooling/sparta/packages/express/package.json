@@ -9,6 +9,8 @@
     },
     "dependencies": {
         "@sparta/utils": "workspace:*",
+        "@sparta/discord": "workspace:*",
+        "@sparta/ethereum": "workspace:*",
         "axios": "^1.6.7",
         "cors": "^2.8.5",
         "discord.js": "^14.14.1",

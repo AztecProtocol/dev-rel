@@ -1,8 +1,11 @@
 import express from "express";
 import humanRoutes from "./human";
 import userRoutes from "./users";
-import apiDocs from "../../../vite/src/api-docs.json";
+import apiDocs from "@sparta/utils/openapi/api-docs.json";
 import swaggerUi from "swagger-ui-express";
+import operatorRouter from "./operators";
+import ethereumRoutes from "./ethereum";
+
 const router = express.Router();
 
 router.use(express.json());
@@ -23,5 +26,7 @@ router.use(
 
 router.use("/human", humanRoutes);
 router.use("/users", userRoutes);
+router.use("/operator", operatorRouter);
+router.use("/ethereum", ethereumRoutes);
 
 export default router;

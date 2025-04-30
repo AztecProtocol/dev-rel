@@ -2,7 +2,7 @@ import { useState, useEffect, useContext } from "react";
 import { useSignMessage } from "wagmi";
 import { VERIFICATION_MESSAGE } from "@sparta/utils";
 import { ApiContext } from "../contexts/apiContext";
-import type { Components } from "../api/generated";
+import type { Components } from "@sparta/utils/openapi/types";
 
 // Re-define state types needed within this hook
 type SignState =

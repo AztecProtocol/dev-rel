@@ -4,11 +4,7 @@
  * @module sparta/express/routes/users
  */
 
-import express, {
-	type Request,
-	type Response,
-	type NextFunction,
-} from "express";
+import express, { type Request, type Response } from "express";
 import { logger } from "@sparta/utils/index.js";
 import { extendedDynamoDB } from "../db/userRepository.js";
 import { apiKeyMiddleware } from "../middlewares/auth.js";

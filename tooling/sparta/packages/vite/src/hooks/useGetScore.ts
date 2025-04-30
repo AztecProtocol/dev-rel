@@ -1,6 +1,6 @@
 import { useState, useEffect, useContext } from "react";
 import { ApiContext } from "../contexts/apiContext";
-import type { Components } from "../api/generated";
+import type { Components } from "@sparta/utils/openapi/types";
 
 // --- Types ---
 // Assume ScoreResponse type includes user and humanPassport status

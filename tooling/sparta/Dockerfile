@@ -34,6 +34,8 @@ RUN mkdir packages
 COPY packages/express/package.json ./packages/express/
 COPY packages/vite/package.json ./packages/vite/
 COPY packages/utils/package.json ./packages/utils/
+COPY packages/discord/package.json ./packages/discord/
+COPY packages/ethereum/package.json ./packages/ethereum/
 # Add other packages if they exist and are needed
 
 # Install all dependencies for the monorepo using the lockfile
@@ -50,10 +52,10 @@ ARG VITE_MINIMUM_SCORE
 
 ENV VITE_APP_API_URL=$VITE_APP_API_URL
 ENV VITE_REOWN_PROJECT_ID=$VITE_REOWN_PROJECT_ID
-ENV VITE_MINIMUM_SCORE=$VITE_MINIMUM_SCORE
 
 # Generate Swagger docs during build
 RUN bun run swagger
+RUN bun run prep
 
 # Build the Vite frontend application
 # Assumes the build script exists in packages/vite/package.json
@@ -61,7 +63,6 @@ RUN bun run swagger
 RUN cd packages/vite && \
     VITE_APP_API_URL=$VITE_APP_API_URL \
     VITE_REOWN_PROJECT_ID=$VITE_REOWN_PROJECT_ID \
-    VITE_MINIMUM_SCORE=$VITE_MINIMUM_SCORE \
     bun run build
 
 # Expose the port the Express server will listen on
@@ -71,4 +72,4 @@ EXPOSE 3000
 # Start ONLY the Express API server using its own start script
 # Assumes a "start" script exists in packages/express/package.json (or the relevant API package)
 # This avoids running the root build/swagger scripts at runtime.
-CMD ["bun", "--filter=@sparta/api", "run", "start"]
+CMD ["bun", "--filter=@sparta/api", "--filter=@sparta/discord", "run", "start"]

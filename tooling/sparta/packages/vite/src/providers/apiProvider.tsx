@@ -1,8 +1,8 @@
-import React, { ReactNode, useState, useEffect, useRef } from "react";
+import React, { type ReactNode, useState, useEffect, useRef } from "react";
 // import { configuredClientPromise } from "../api/axios"; // Old name
 import { clientPromise } from "../api/axios"; // Use the correct promise name again
 import { ApiContext } from "../contexts/apiContext";
-import type { Client as ApiClient } from "../api/generated";
+import type { Client as ApiClient } from "@sparta/utils/openapi/types";
 
 export const ApiProvider: React.FC<{ children: ReactNode }> = ({
 	children,

@@ -1,7 +1,7 @@
 // packages/vite/src/api/axios.ts
 import { type OpenAPIV3, OpenAPIClientAxios } from "openapi-client-axios";
-import spec from "../api-docs.json";
-import { Client } from "./generated";
+import spec from "@sparta/utils/openapi/api-docs.json";
+import type { Client } from "@sparta/utils/openapi/types";
 
 const apiInstance = new OpenAPIClientAxios({
 	definition: spec as OpenAPIV3.Document,
