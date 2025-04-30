@@ -270,7 +270,10 @@ resource "aws_iam_policy" "dynamodb_access_policy" {
         Resource = [
           # Users table (referenced via Terraform resource)
           aws_dynamodb_table.sparta_users.arn,
-          "${aws_dynamodb_table.sparta_users.arn}/index/*"
+          "${aws_dynamodb_table.sparta_users.arn}/index/*",
+          # Node Operators table
+          aws_dynamodb_table.sparta_node_operators.arn,
+          "${aws_dynamodb_table.sparta_node_operators.arn}/index/*"
         ]
       }
       # Add statements here if the API needs access to other AWS resources
@@ -334,6 +337,42 @@ resource "aws_dynamodb_table" "sparta_users" {
 
   tags = merge(local.common_tags, {
     Name = "${local.resource_prefix}-users-table"
+  })
+}
+
+# Add the 'node operators' table definition
+resource "aws_dynamodb_table" "sparta_node_operators" {
+  name           = "${local.resource_prefix}-node-operators" # Use prefix for consistency
+  billing_mode   = "PAY_PER_REQUEST"                        # Use pay-per-request 
+
+  # Define attributes used in keys/indexes
+  attribute {
+    name = "discordId"
+    type = "S"
+  }
+  attribute {
+    name = "walletAddress"
+    type = "S"
+  }
+
+  # Define the primary hash key
+  hash_key = "discordId"
+
+  # Define Global Secondary Indexes
+  global_secondary_index {
+    name            = "WalletAddressIndex"
+    hash_key        = "walletAddress"
+    projection_type = "ALL" # Project all attributes
+    # PAY_PER_REQUEST billing mode applies to GSIs as well
+  }
+
+  # Enable Point-in-Time Recovery for backups (Recommended)
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-node-operators-table"
   })
 }
 
