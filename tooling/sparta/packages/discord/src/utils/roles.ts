@@ -13,30 +13,41 @@ import {
 import { isAllowedChannel, getAllowedChannelsText } from "./channels";
 
 /**
- * Admin role definitions mapping role names to their Discord IDs
+ * Moderator role definitions mapping role names to their Discord IDs
  */
-export const ADMIN_ROLES = {
+export const MODERATOR_ROLES = {
 	AZTEC_LABS_TEAM: { name: "Aztec Labs Team", id: "1144693819015700620" },
 	AZMOD: { name: "AzMod", id: "1362901049803018513" },
 	ADMIN: { name: "Admin", id: "1146246812299165817" },
 };
 
 /**
- * Checks if the user has any of the specified admin roles
- * @param member The guild member to check
- * @returns True if the user has any admin role, false otherwise
+ * User role definitions mapping role names to their Discord IDs
  */
-export function hasAdminRole(member: GuildMember): boolean {
-	const adminRoleIds = Object.values(ADMIN_ROLES).map((role) => role.id);
-	return member.roles.cache.some((role) => adminRoleIds.includes(role.id));
+export const USER_ROLES = {
+	APPRENTICE: { name: "Apprentice", id: "1366916508072148992" },
+};
+
+/**
+ * Checks if the user has any of the specified moderator roles
+ * @param member The guild member to check
+ * @returns True if the user has any moderator role, false otherwise
+ */
+export function hasModeratorRole(member: GuildMember): boolean {
+	const moderatorRoleIds = Object.values(MODERATOR_ROLES).map(
+		(role) => role.id
+	);
+	return member.roles.cache.some((role) =>
+		moderatorRoleIds.includes(role.id)
+	);
 }
 
 /**
- * Checks if the interaction user has admin permissions and is in an allowed channel
+ * Checks if the interaction user has moderator permissions and is in an allowed channel
  * @param interaction The Discord interaction
- * @returns True if the user has admin permissions and is in an allowed channel, false otherwise
+ * @returns True if the user has moderator permissions and is in an allowed channel, false otherwise
  */
-export async function checkAdminPermissions(
+export async function checkModeratorPermissions(
 	interaction: ChatInputCommandInteraction
 ): Promise<boolean> {
 	// Get the member from the interaction
@@ -61,12 +72,12 @@ export async function checkAdminPermissions(
 		return false;
 	}
 
-	// Check if the member has admin roles
-	if (!hasAdminRole(member)) {
+	// Check if the member has moderator roles
+	if (!hasModeratorRole(member)) {
 		await interaction.reply({
 			content:
-				"You don't have permission to use admin commands. This command requires one of these roles: " +
-				Object.values(ADMIN_ROLES)
+				"You don't have permission to use moderator commands. This command requires one of these roles: " +
+				Object.values(MODERATOR_ROLES)
 					.map((role) => `\`${role.name}\``)
 					.join(", "),
 			flags: MessageFlags.Ephemeral,

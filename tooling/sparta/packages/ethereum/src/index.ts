@@ -9,4 +9,5 @@ export {
 	ethereumChain,
 	getExpectedAddress,
 	DEPLOYER_ADDRESS,
+	type ChainInfo,
 } from "./ethereum";

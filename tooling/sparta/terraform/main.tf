@@ -449,13 +449,12 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "ETHEREUM_HOST", value = var.ethereum_host },
         { name = "STAKING_ASSET_HANDLER_ADDRESS", value = var.staking_asset_handler_address },
         { name = "L1_CHAIN_ID", value = var.l1_chain_id },
-        { name = "FUNDER_ADDRESS_PRIVATE_KEY", value = var.funder_address_private_key },
-        { name = "FUNDER_AMOUNT", value = var.funder_amount },
         { name = "LOG_LEVEL", value = var.log_level },
         { name = "LOG_PRETTY_PRINT", value = var.log_pretty_print ? "true" : "false" },
         { name = "VITE_APP_API_URL", value = "http://${aws_lb.sparta_alb.dns_name}" },
         { name = "CORS_ALLOWED_ORIGINS", value = "http://${aws_lb.sparta_alb.dns_name}" },
-        { name = "USERS_TABLE_NAME", value = aws_dynamodb_table.sparta_users.name }
+        { name = "USERS_TABLE_NAME", value = aws_dynamodb_table.sparta_users.name },
+        { name = "NODE_OPERATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_node_operators.name }
       ]
       # secrets = [ # Example using Secrets Manager
       #   { name = "BOT_TOKEN", valueFrom = "<ARN of Secrets Manager secret for BOT_TOKEN>" }
@@ -699,3 +698,8 @@ output "users_table_name" {
   description = "The name of the DynamoDB table for users"
   value       = aws_dynamodb_table.sparta_users.name
 } 
+
+output "node_operators_table_name" {
+  description = "The name of the DynamoDB table for node operators"
+  value       = aws_dynamodb_table.sparta_node_operators.name
+}

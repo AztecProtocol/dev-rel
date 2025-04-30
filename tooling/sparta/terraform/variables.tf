@@ -89,17 +89,6 @@ variable "l1_chain_id" {
   type        = string
 }
 
-variable "funder_amount" {
-  description = "Default ETH value for transactions"
-  type        = string
-  default     = "0.1"
-}
-
-variable "funder_address_private_key" {
-  description = "Ethereum wallet private key for funding"
-  type        = string
-  sensitive   = true
-}
 
 # -----------------------------------------------------------------------------
 # Web App Configuration

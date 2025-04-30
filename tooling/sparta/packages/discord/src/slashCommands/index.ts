@@ -6,8 +6,8 @@
 
 import humansCommands from "./humans/index";
 import operatorsCommands from "./operators/index";
-import adminsCommands from "./admins/index";
+import moderatorsCommands from "./moderators/index";
 export * from "../types";
 
 // Export roles commands
-export default { humansCommands, operatorsCommands, adminsCommands };
+export default { humansCommands, operatorsCommands, moderatorsCommands };

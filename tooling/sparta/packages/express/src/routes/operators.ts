@@ -1,11 +1,18 @@
 import express, { type Request, type Response, Router } from "express";
 import { nodeOperatorService } from "../domain/operators/service"; // Adjust path if necessary
 import { logger } from "@sparta/utils"; // Assuming logger is accessible
+import { apiKeyMiddleware } from "../middlewares/auth.js";
 
 // --- Swagger Schemas ---
 /**
  * @swagger
  * components:
+ *   securitySchemes:
+ *     ApiKeyAuth:
+ *       type: apiKey
+ *       in: header
+ *       name: x-api-key
+ *       description: API key for authenticating requests
  *   schemas:
  *     NodeOperator:
  *       type: object
@@ -59,9 +66,27 @@ import { logger } from "@sparta/utils"; // Assuming logger is accessible
  *         error:
  *           type: string
  *           description: Error message describing the issue.
+ *     OperatorResponse:
+ *       type: object
+ *       properties:
+ *         discordId:
+ *           type: string
+ *           description: The Discord user ID of the node operator.
+ *         walletAddress:
+ *           type: string
+ *           description: The Ethereum wallet address associated with the node operator.
+ *         createdAt:
+ *           type: number
+ *           description: Timestamp when operator was created
+ *         updatedAt:
+ *           type: number
+ *           description: Timestamp when operator was last updated
  */
 
 const router: Router = express.Router();
+
+// Apply API key middleware to all operator routes
+router.use(apiKeyMiddleware);
 
 // Middleware for handling async route handlers and errors
 const asyncHandler =
@@ -96,6 +121,8 @@ const asyncHandler =
  *     description: Retrieves a list of all registered node operators.
  *     tags: [NodeOperator]
  *     operationId: getAllOperators
+ *     security:
+ *       - ApiKeyAuth: []
  *     responses:
  *       200:
  *         description: A list of node operators.
@@ -105,6 +132,12 @@ const asyncHandler =
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/NodeOperator'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
  *       500:
  *         description: Internal Server Error
  *         content:
@@ -130,6 +163,8 @@ router.get(
  *     description: Retrieves a specific node operator using their Discord ID.
  *     tags: [NodeOperator]
  *     operationId: getOperatorByDiscordId
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: discordId
@@ -146,6 +181,12 @@ router.get(
  *               $ref: '#/components/schemas/NodeOperator'
  *       400:
  *         description: Bad Request - Missing discordId parameter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
  *         content:
  *           application/json:
  *             schema:
@@ -193,6 +234,8 @@ router.get(
  *     description: Retrieves a specific node operator using their wallet address.
  *     tags: [NodeOperator]
  *     operationId: getOperatorByAddress
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: address
@@ -209,6 +252,12 @@ router.get(
  *               $ref: '#/components/schemas/NodeOperator'
  *       400:
  *         description: Bad Request - Missing or invalid address parameter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
  *         content:
  *           application/json:
  *             schema:
@@ -260,6 +309,8 @@ router.get(
  *     description: Registers a new node operator with their Discord ID and wallet address.
  *     tags: [NodeOperator]
  *     operationId: createOperator
+ *     security:
+ *       - ApiKeyAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -275,6 +326,12 @@ router.get(
  *               $ref: '#/components/schemas/NodeOperator'
  *       400:
  *         description: Bad Request - Missing or invalid body parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
  *         content:
  *           application/json:
  *             schema:
@@ -326,15 +383,17 @@ router.post(
 	})
 );
 
-// DELETE /api/operator/:discordId - deletes the operator by discordId
+// DELETE /api/operator/discord/:discordId - deletes the operator by discordId
 /**
  * @swagger
- * /api/operator/{discordId}:
+ * /api/operator/discord/{discordId}:
  *   delete:
  *     summary: Delete an operator by Discord ID
  *     description: Removes a node operator registration using their Discord ID.
  *     tags: [NodeOperator]
  *     operationId: deleteOperatorByDiscordId
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: discordId
@@ -347,6 +406,12 @@ router.post(
  *         description: Operator deleted successfully (No Content).
  *       400:
  *         description: Bad Request - Missing discordId parameter
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
  *         content:
  *           application/json:
  *             schema:
@@ -373,6 +438,7 @@ router.delete(
 				.status(400)
 				.json({ error: "Missing discordId parameter" });
 		}
+		logger.info("operator");
 
 		// Check if operator exists first
 		const existingOperator =
@@ -396,15 +462,17 @@ router.delete(
 	})
 );
 
-// PUT /api/operator/:discordId - updates the operator with a new wallet
+// PUT /api/operator/discord/:discordId - updates the operator with a new wallet
 /**
  * @swagger
- * /api/operator/{discordId}:
+ * /api/operator/discord/{discordId}:
  *   put:
  *     summary: Update operator's wallet address
  *     description: Updates the wallet address for a specific node operator using their Discord ID.
  *     tags: [NodeOperator]
  *     operationId: updateOperatorWallet
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: path
  *         name: discordId
@@ -427,6 +495,12 @@ router.delete(
  *               $ref: '#/components/schemas/NodeOperator'
  *       400:
  *         description: Bad Request - Missing discordId parameter or invalid/missing walletAddress in body
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
  *         content:
  *           application/json:
  *             schema:

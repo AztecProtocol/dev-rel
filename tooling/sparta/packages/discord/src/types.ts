@@ -4,12 +4,12 @@
  * @module sparta/discord/roles/types
  */
 
-// Admin command enums
-export enum AdminSubcommandGroups {
-	Admin = "admin",
+// Moderator command enums
+export enum ModeratorSubcommandGroups {
+	Moderator = "mod",
 }
 
-export enum AdminSubcommands {
+export enum ModeratorSubcommands {
 	IsInSet = "is-in-set",
 	IsAttesting = "is-attesting",
 	Help = "help",
@@ -23,6 +23,8 @@ export enum NodeOperatorSubcommandGroups {
 export enum NodeOperatorSubcommands {
 	ChainInfo = "chain-info",
 	MyStats = "my-stats",
+	Register = "register",
+	Help = "help",
 }
 
 // Human Passport command enums

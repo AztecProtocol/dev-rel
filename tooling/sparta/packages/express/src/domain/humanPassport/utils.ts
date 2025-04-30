@@ -3,7 +3,7 @@ import { PassportService } from "./service";
 import { logger } from "@sparta/utils/logger";
 import { VERIFICATION_STATUS } from "@sparta/utils/const.js";
 import type { Hex } from "viem";
-import type { HumanPassport } from "@sparta/express/routes/users";
+import type { HumanPassport } from "@sparta/express/routes/users/users";
 
 interface ScoringResult {
 	score: number;

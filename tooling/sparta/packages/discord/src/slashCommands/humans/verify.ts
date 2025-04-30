@@ -54,7 +54,7 @@ export async function handleVerifyCommand(
 
 			if (user) {
 				// Update existing user
-				await client.updateUserByDiscordId(
+				await client.updateUser(
 					{ discordUserId: userId },
 					{
 						humanPassport: {
@@ -81,6 +81,7 @@ export async function handleVerifyCommand(
 					walletAddress: undefined,
 					role: undefined,
 					humanPassport: {
+						//@ts-ignore
 						status: VERIFICATION_STATUS.NOT_VERIFIED,
 						verificationId,
 						interactionToken,

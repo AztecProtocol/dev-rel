@@ -6,8 +6,8 @@
 
 import express, { type Request, type Response } from "express";
 import { logger } from "@sparta/utils/index.js";
-import { extendedDynamoDB } from "../db/userRepository.js";
-import { apiKeyMiddleware } from "../middlewares/auth.js";
+import { extendedDynamoDB } from "../../db/userRepository.js";
+import { apiKeyMiddleware } from "../../middlewares/auth.js";
 
 const router = express.Router();
 
@@ -51,7 +51,25 @@ declare module "@sparta/utils/dynamo-db" {
 /**
  * @swagger
  * components:
+ *   securitySchemes:
+ *     ApiKeyAuth:
+ *       type: apiKey
+ *       in: header
+ *       name: x-api-key
+ *       description: API key for authenticating requests
  *   schemas:
+ *     Error:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           example: false
+ *         error:
+ *           type: string
+ *           description: Error message describing the issue.
+ *       required:
+ *         - success
+ *         - error
  *     HumanPassport:
  *       type: object
  *       properties:
@@ -108,6 +126,30 @@ declare module "@sparta/utils/dynamo-db" {
  *         - discordUsername
  *         - createdAt
  *         - updatedAt
+ *     UserResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           description: Success status
+ *         user:
+ *           $ref: '#/components/schemas/User'
+ *       required:
+ *         - success
+ *         - user
+ *     UsersResponse:
+ *       type: object
+ *       properties:
+ *         success:
+ *           type: boolean
+ *           description: Success status
+ *         users:
+ *           type: array
+ *           items:
+ *             $ref: '#/components/schemas/User'
+ *       required:
+ *         - success
+ *         - users
  */
 
 // Apply API key middleware to all user routes
@@ -129,15 +171,7 @@ router.use(apiKeyMiddleware);
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   description: Success status
- *                 users:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/User'
+ *               $ref: '#/components/schemas/UsersResponse'
  *       401:
  *         description: Unauthorized - Invalid or missing API key
  *         content:
@@ -192,13 +226,7 @@ router.get("/", async (_req: Request, res: Response) => {
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   description: Success status
- *                 user:
- *                   $ref: '#/components/schemas/User'
+ *               $ref: '#/components/schemas/UserResponse'
  *       401:
  *         description: Unauthorized - Invalid or missing API key
  *         content:
@@ -274,31 +302,25 @@ router.get("/discord/:discordUserId", async (req: Request, res: Response) => {
  *         description: Ethereum wallet address
  *     responses:
  *       200:
- *         description: User profile or "wallet not registered" if address isn't used
+ *         description: User profile
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                   description: Success status
- *                 isRegistered:
- *                   type: boolean
- *                   description: Whether the wallet is registered
- *                 message:
- *                   type: string
- *                   description: Informational message
- *                 user:
- *                   $ref: '#/components/schemas/User'
+ *               $ref: '#/components/schemas/UserResponse'
+ *       400:
+ *         description: Bad request - Invalid wallet address format
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       401:
  *         description: Unauthorized - Invalid or missing API key
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/Error'
- *       400:
- *         description: Bad request - Missing wallet address
+ *       404:
+ *         description: User not found
  *         content:
  *           application/json:
  *             schema:
@@ -390,12 +412,36 @@ router.get("/wallet/:walletAddress", async (req: Request, res: Response) => {
  *     responses:
  *       201:
  *         description: User created successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
  *       400:
  *         description: Bad request - Missing required fields or wallet already in use
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       401:
  *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.post("/", async (req: Request, res: Response) => {
 	try {
@@ -481,10 +527,10 @@ router.post("/", async (req: Request, res: Response) => {
  * @swagger
  * /api/users/discord/{discordUserId}:
  *   put:
- *     summary: Update a user by Discord user ID
- *     description: Update an existing user's information
+ *     summary: Update a user
+ *     description: Update a user's information
  *     tags: [Users]
- *     operationId: updateUserByDiscordId
+ *     operationId: updateUser
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -516,14 +562,42 @@ router.post("/", async (req: Request, res: Response) => {
  *     responses:
  *       200:
  *         description: User updated successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
+ *                 user:
+ *                   $ref: '#/components/schemas/User'
  *       400:
- *         description: Bad request or wallet already in use
+ *         description: Bad request - Missing required fields or invalid data
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       401:
  *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       404:
  *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.put("/discord/:discordUserId", async (req: Request, res: Response) => {
 	try {
@@ -615,10 +689,10 @@ router.put("/discord/:discordUserId", async (req: Request, res: Response) => {
  * @swagger
  * /api/users/discord/{discordUserId}:
  *   delete:
- *     summary: Delete a user by Discord user ID
+ *     summary: Delete a user
  *     description: Delete a user by their Discord user ID
  *     tags: [Users]
- *     operationId: deleteUserByDiscordId
+ *     operationId: deleteUser
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -631,12 +705,34 @@ router.put("/discord/:discordUserId", async (req: Request, res: Response) => {
  *     responses:
  *       200:
  *         description: User deleted successfully
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 message:
+ *                   type: string
  *       401:
  *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       404:
  *         description: User not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  *       500:
  *         description: Server error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
  */
 router.delete(
 	"/discord/:discordUserId",

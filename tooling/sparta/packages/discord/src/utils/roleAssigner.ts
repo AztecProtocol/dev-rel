@@ -7,7 +7,48 @@ const discordService = DiscordService.getInstance(); // Get instance
  * Attempts to assign Discord roles based on score.
  * Returns true if successful, false otherwise (logs errors).
  */
-export async function _handleRoleAssignment(
+export async function _handleNodeOperatorRoleAssignment(
+	discordUserId: string,
+	roleName: string
+): Promise<boolean> {
+	logger.info(
+		{ userId: discordUserId },
+		"Attempting immediate role assignment..."
+	);
+	try {
+		// Ensure the discord service is initialized
+		await discordService.init();
+
+		const success = await discordService.assignRole(
+			discordUserId,
+			roleName
+		);
+		if (success) {
+			logger.info(
+				{ userId: discordUserId, roleName },
+				"Node operator role assignment successful."
+			);
+		} else {
+			logger.error(
+				{ userId: discordUserId, roleName },
+				"Node operator role assignment failed (discordService returned false)."
+			);
+		}
+		return success;
+	} catch (error: any) {
+		logger.error(
+			{ error: error.message, userId: discordUserId },
+			"Error during role assignment."
+		);
+		return false;
+	}
+}
+
+/**
+ * Attempts to assign Discord roles based on score.
+ * Returns true if successful, false otherwise (logs errors).
+ */
+export async function _handleUserRoleAssignment(
 	sessionId: string,
 	discordUserId: string,
 	score: number

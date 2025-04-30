@@ -3,6 +3,7 @@ import { apiDocs } from "@sparta/utils";
 import { type Client } from "@sparta/utils/openapi/types";
 
 const apiInstance = new OpenAPIClientAxios({
+	// @ts-ignore
 	definition: apiDocs,
 	axiosConfigDefaults: {
 		baseURL: process.env.API_URL || "http://localhost:3000",

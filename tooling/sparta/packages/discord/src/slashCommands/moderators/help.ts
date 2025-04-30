@@ -1,18 +1,22 @@
 /**
- * @fileoverview Admin help command handler
- * @description Handles Discord command for displaying admin command documentation
- * @module sparta/discord/roles/admins/help
+ * @fileoverview Moderator help command handler
+ * @description Handles Discord command for displaying moderator command documentation
+ * @module sparta/discord/roles/moderators/help
  */
 
 import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { logger } from "@sparta/utils";
-import { AdminSubcommands } from "../../types.js";
-import { ADMIN_ROLES, CHANNELS, getAllowedChannelsText } from "../../utils";
+import { ModeratorSubcommands } from "../../types.js";
+import {
+	MODERATOR_ROLES,
+	CHANNELS,
+	getAllowedChannelsText,
+} from "../../utils/index.js";
 
 /**
- * Display help information for all admin commands
+ * Display help information for all moderator commands
  */
-export async function showAdminHelp(
+export async function showModeratorHelp(
 	interaction: ChatInputCommandInteraction
 ): Promise<string> {
 	try {
@@ -20,22 +24,24 @@ export async function showAdminHelp(
 
 		// Create a formatted embed for the command help
 		const embed = new EmbedBuilder()
-			.setTitle("Admin Commands Help")
-			.setDescription("List of available admin commands and their usage")
+			.setTitle("Moderator Commands Help")
+			.setDescription(
+				"List of available moderator commands and their usage"
+			)
 			.setColor(0x2b65ec) // Blue color for help message
 			.addFields([
 				{
-					name: "Admin Permissions",
+					name: "Moderator Permissions",
 					value:
 						"These commands are restricted to users with the following roles:\n" +
-						Object.values(ADMIN_ROLES)
+						Object.values(MODERATOR_ROLES)
 							.map((role) => `• \`${role.name}\``)
 							.join("\n"),
 					inline: false,
 				},
 				{
 					name: "Channel Restrictions",
-					value: `Admin commands can only be used in ${getAllowedChannelsText()} ${
+					value: `Moderator commands can only be used in ${getAllowedChannelsText()} ${
 						process.env.NODE_ENV === "production"
 							? "channels"
 							: "channel"
@@ -43,17 +49,17 @@ export async function showAdminHelp(
 					inline: false,
 				},
 				{
-					name: `/admin ${AdminSubcommands.Help}`,
-					value: "Display this help message listing all admin commands",
+					name: `/mod ${ModeratorSubcommands.Help}`,
+					value: "Display this help message listing all moderator commands",
 					inline: false,
 				},
 				{
-					name: `/admin ${AdminSubcommands.IsInSet}`,
+					name: `/mod ${ModeratorSubcommands.IsInSet}`,
 					value: "Check if an address is in the current validator set\n`address` - The validator address to check (required)",
 					inline: false,
 				},
 				{
-					name: `/admin ${AdminSubcommands.IsAttesting}`,
+					name: `/mod ${ModeratorSubcommands.IsAttesting}`,
 					value: "Check if an address is actively attesting\n`address` - The validator address to check (required)",
 					inline: false,
 				},
@@ -67,11 +73,11 @@ export async function showAdminHelp(
 			embeds: [embed],
 		});
 
-		return "Admin help displayed successfully";
+		return "Moderator help displayed successfully";
 	} catch (error) {
-		logger.error("Error displaying admin help:", error);
+		logger.error("Error displaying moderator help:", error);
 		await interaction.editReply({
-			content: "Error displaying admin help information.",
+			content: "Error displaying moderator help information.",
 		});
 		throw error;
 	}

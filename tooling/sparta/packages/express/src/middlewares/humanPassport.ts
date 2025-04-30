@@ -7,7 +7,7 @@
 import { type Request, type Response, type NextFunction } from "express";
 import { logger } from "@sparta/utils/index.js";
 import { extendedDynamoDB } from "../db/userRepository.js";
-import type { User } from "../routes/users.js";
+import type { User } from "../routes/users/users.js";
 
 /**
  * Middleware to validate a verification token/ID

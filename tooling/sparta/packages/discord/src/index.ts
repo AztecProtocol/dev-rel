@@ -12,12 +12,7 @@ export { clientPromise } from "./api/axios";
 export { Discord, getDiscordInstance } from "./clients/discord";
 
 // Export services
-export {
-	DiscordService,
-	discordService,
-	ChainInfoService,
-	chainInfoService,
-} from "./services";
+export { DiscordService, discordService } from "./services";
 
 // Export utils
-export { _handleRoleAssignment } from "./utils/roleAssigner";
+export { _handleUserRoleAssignment } from "./utils/roleAssigner";

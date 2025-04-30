@@ -1,5 +1,4 @@
 import express from "express";
-import humanRoutes from "./human";
 import userRoutes from "./users";
 import apiDocs from "@sparta/utils/openapi/api-docs.json";
 import swaggerUi from "swagger-ui-express";
@@ -24,7 +23,6 @@ router.use(
 	})
 );
 
-router.use("/human", humanRoutes);
 router.use("/users", userRoutes);
 router.use("/operator", operatorRouter);
 router.use("/ethereum", ethereumRoutes);

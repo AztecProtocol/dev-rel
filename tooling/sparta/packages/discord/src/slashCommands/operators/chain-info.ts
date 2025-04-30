@@ -4,24 +4,25 @@ import {
 	MessageFlags,
 	TextChannel,
 } from "discord.js";
-import { ChainInfoService } from "../../services/l1-info-service.js";
+import { getEthereumInstance } from "@sparta/ethereum";
 import { logger } from "@sparta/utils";
 
 export const get = async (
 	interaction: ChatInputCommandInteraction
 ): Promise<string> => {
 	try {
-		// Get chaininfo service and initialize it
-		const chainInfoService = ChainInfoService.getInstance();
-		await chainInfoService.init();
+		// Get Ethereum instance
+		const ethereum = await getEthereumInstance();
 
+		// Get chain info directly
 		const {
 			pendingBlockNum,
 			provenBlockNum,
 			currentEpoch,
 			currentSlot,
 			proposerNow,
-		} = await chainInfoService.getInfo();
+		} = await ethereum.getRollupInfo();
+
 		const channel = interaction.channel as TextChannel;
 		const messages = await channel.messages.fetch({
 			limit: 15,

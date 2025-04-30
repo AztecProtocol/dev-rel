@@ -6,6 +6,8 @@ import {
 	NodeOperatorSubcommands,
 } from "../../types.js";
 import { getValidatorStats } from "./my-info.js";
+import { registerValidator } from "./register.js";
+import { showOperatorHelp } from "./help.js";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -26,6 +28,36 @@ export default {
 			subcommand
 				.setName(NodeOperatorSubcommands.ChainInfo)
 				.setDescription("Get chain information")
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName(NodeOperatorSubcommands.Register)
+				.setDescription(
+					"Register your validator or get registration instructions"
+				)
+				.addStringOption((option) =>
+					option
+						.setName("address")
+						.setDescription("Your validator address")
+						.setRequired(false)
+				)
+				.addStringOption((option) =>
+					option
+						.setName("block-number")
+						.setDescription("Block number for verification")
+						.setRequired(false)
+				)
+				.addStringOption((option) =>
+					option
+						.setName("proof")
+						.setDescription("Your sync proof")
+						.setRequired(false)
+				)
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName(NodeOperatorSubcommands.Help)
+				.setDescription("Display help information for node operators")
 		),
 	execute: async (interaction: ChatInputCommandInteraction) => {
 		try {
@@ -36,6 +68,12 @@ export default {
 					break;
 				case NodeOperatorSubcommands.ChainInfo:
 					await getChainInfo(interaction);
+					break;
+				case NodeOperatorSubcommands.Register:
+					await registerValidator(interaction);
+					break;
+				case NodeOperatorSubcommands.Help:
+					await showOperatorHelp(interaction);
 					break;
 				default:
 					await interaction.editReply({

@@ -234,7 +234,7 @@ export class DiscordService {
 
 					// Update user in API with new role info
 					try {
-						await this.apiClient.updateUserByDiscordId(
+						await this.apiClient.updateUser(
 							{ discordUserId: userId },
 							{
 								role: PassportRoles.Verified,
@@ -265,7 +265,7 @@ export class DiscordService {
 
 						// Update user in API with role removal
 						try {
-							await this.apiClient.updateUserByDiscordId(
+							await this.apiClient.updateUser(
 								{ discordUserId: userId },
 								{
 									role: undefined,
@@ -312,7 +312,7 @@ export class DiscordService {
 
 				// Update user role in API
 				try {
-					await this.apiClient.updateUserByDiscordId(
+					await this.apiClient.updateUser(
 						{ discordUserId: userId },
 						{ role: roleName }
 					);
@@ -338,7 +338,7 @@ export class DiscordService {
 
 				// Update user role in API
 				try {
-					await this.apiClient.updateUserByDiscordId(
+					await this.apiClient.updateUser(
 						{ discordUserId: member.id },
 						{ role: role.name }
 					);

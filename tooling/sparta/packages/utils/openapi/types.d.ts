@@ -116,6 +116,24 @@ declare namespace Components {
              */
             walletAddress: string;
         }
+        export interface OperatorResponse {
+            /**
+             * The Discord user ID of the node operator.
+             */
+            discordId?: string;
+            /**
+             * The Ethereum wallet address associated with the node operator.
+             */
+            walletAddress?: string;
+            /**
+             * Timestamp when operator was created
+             */
+            createdAt?: number;
+            /**
+             * Timestamp when operator was last updated
+             */
+            updatedAt?: number;
+        }
         export interface OperatorUpdateInput {
             /**
              * The new Ethereum wallet address.
@@ -229,6 +247,20 @@ declare namespace Components {
              */
             updatedAt: number; // int64
         }
+        export interface UserResponse {
+            /**
+             * Success status
+             */
+            success: boolean;
+            user: User;
+        }
+        export interface UsersResponse {
+            /**
+             * Success status
+             */
+            success: boolean;
+            users: User[];
+        }
         export interface VerificationStatusResponse {
             /**
              * example:
@@ -311,6 +343,7 @@ declare namespace Paths {
         namespace Responses {
             export type $201 = Components.Schemas.NodeOperator;
             export type $400 = Components.Schemas.OperatorError;
+            export type $401 = Components.Schemas.OperatorError;
             export type $409 = Components.Schemas.OperatorError;
             export type $500 = Components.Schemas.OperatorError;
         }
@@ -342,13 +375,17 @@ declare namespace Paths {
         }
         namespace Responses {
             export interface $201 {
+                /**
+                 * example:
+                 * true
+                 */
+                success?: boolean;
+                message?: string;
+                user?: Components.Schemas.User;
             }
-            export interface $400 {
-            }
-            export interface $401 {
-            }
-            export interface $500 {
-            }
+            export type $400 = Components.Schemas.Error;
+            export type $401 = Components.Schemas.Error;
+            export type $500 = Components.Schemas.Error;
         }
     }
     namespace DeleteOperatorByDiscordId {
@@ -362,11 +399,12 @@ declare namespace Paths {
             export interface $204 {
             }
             export type $400 = Components.Schemas.OperatorError;
+            export type $401 = Components.Schemas.OperatorError;
             export type $404 = Components.Schemas.OperatorError;
             export type $500 = Components.Schemas.OperatorError;
         }
     }
-    namespace DeleteUserByDiscordId {
+    namespace DeleteUser {
         namespace Parameters {
             export type DiscordUserId = string;
         }
@@ -375,30 +413,28 @@ declare namespace Paths {
         }
         namespace Responses {
             export interface $200 {
+                /**
+                 * example:
+                 * true
+                 */
+                success?: boolean;
+                message?: string;
             }
-            export interface $401 {
-            }
-            export interface $404 {
-            }
-            export interface $500 {
-            }
+            export type $401 = Components.Schemas.Error;
+            export type $404 = Components.Schemas.Error;
+            export type $500 = Components.Schemas.Error;
         }
     }
     namespace GetAllOperators {
         namespace Responses {
             export type $200 = Components.Schemas.NodeOperator[];
+            export type $401 = Components.Schemas.OperatorError;
             export type $500 = Components.Schemas.OperatorError;
         }
     }
     namespace GetAllUsers {
         namespace Responses {
-            export interface $200 {
-                /**
-                 * Success status
-                 */
-                success?: boolean;
-                users?: Components.Schemas.User[];
-            }
+            export type $200 = Components.Schemas.UsersResponse;
             export type $401 = Components.Schemas.Error;
             export type $500 = Components.Schemas.Error;
         }
@@ -406,12 +442,14 @@ declare namespace Paths {
     namespace GetAllValidators {
         namespace Responses {
             export type $200 = Components.Schemas.EthereumResponse;
+            export type $401 = Components.Schemas.ErrorResponse;
             export type $500 = Components.Schemas.ErrorResponse;
         }
     }
     namespace GetCurrentEpochCommittee {
         namespace Responses {
             export type $200 = Components.Schemas.EthereumResponse;
+            export type $401 = Components.Schemas.ErrorResponse;
             export type $500 = Components.Schemas.ErrorResponse;
         }
     }
@@ -425,6 +463,7 @@ declare namespace Paths {
         namespace Responses {
             export type $200 = Components.Schemas.NodeOperator;
             export type $400 = Components.Schemas.OperatorError;
+            export type $401 = Components.Schemas.OperatorError;
             export type $404 = Components.Schemas.OperatorError;
             export type $500 = Components.Schemas.OperatorError;
         }
@@ -439,6 +478,7 @@ declare namespace Paths {
         namespace Responses {
             export type $200 = Components.Schemas.NodeOperator;
             export type $400 = Components.Schemas.OperatorError;
+            export type $401 = Components.Schemas.OperatorError;
             export type $404 = Components.Schemas.OperatorError;
             export type $500 = Components.Schemas.OperatorError;
         }
@@ -446,6 +486,7 @@ declare namespace Paths {
     namespace GetRollupStatus {
         namespace Responses {
             export type $200 = Components.Schemas.RollupStatusResponse;
+            export type $401 = Components.Schemas.ErrorResponse;
             export type $500 = Components.Schemas.ErrorResponse;
         }
     }
@@ -461,32 +502,7 @@ declare namespace Paths {
         namespace Responses {
             export type $200 = Components.Schemas.ScoreResponse;
             export type $400 = Components.Schemas.Error;
-            export type $404 = Components.Schemas.Error;
-            export type $500 = Components.Schemas.Error;
-        }
-    }
-    namespace GetStatusByDiscordId {
-        namespace Parameters {
-            export type DiscordUserId = string;
-        }
-        export interface PathParameters {
-            discordUserId: Parameters.DiscordUserId;
-        }
-        namespace Responses {
-            export type $200 = Components.Schemas.VerificationStatusResponse;
-            export type $404 = Components.Schemas.Error;
-            export type $500 = Components.Schemas.Error;
-        }
-    }
-    namespace GetStatusByVerificationId {
-        namespace Parameters {
-            export type VerificationId = string;
-        }
-        export interface PathParameters {
-            verificationId: Parameters.VerificationId;
-        }
-        namespace Responses {
-            export type $200 = Components.Schemas.VerificationStatusResponse;
+            export type $401 = Components.Schemas.Error;
             export type $404 = Components.Schemas.Error;
             export type $500 = Components.Schemas.Error;
         }
@@ -499,13 +515,7 @@ declare namespace Paths {
             discordUserId: Parameters.DiscordUserId;
         }
         namespace Responses {
-            export interface $200 {
-                /**
-                 * Success status
-                 */
-                success?: boolean;
-                user?: Components.Schemas.User;
-            }
+            export type $200 = Components.Schemas.UserResponse;
             export type $401 = Components.Schemas.Error;
             export type $404 = Components.Schemas.Error;
             export type $500 = Components.Schemas.Error;
@@ -540,23 +550,10 @@ declare namespace Paths {
             walletAddress: Parameters.WalletAddress;
         }
         namespace Responses {
-            export interface $200 {
-                /**
-                 * Success status
-                 */
-                success?: boolean;
-                /**
-                 * Whether the wallet is registered
-                 */
-                isRegistered?: boolean;
-                /**
-                 * Informational message
-                 */
-                message?: string;
-                user?: Components.Schemas.User;
-            }
+            export type $200 = Components.Schemas.UserResponse;
             export type $400 = Components.Schemas.Error;
             export type $401 = Components.Schemas.Error;
+            export type $404 = Components.Schemas.Error;
             export type $500 = Components.Schemas.Error;
         }
     }
@@ -571,11 +568,12 @@ declare namespace Paths {
         namespace Responses {
             export type $200 = Components.Schemas.NodeOperator;
             export type $400 = Components.Schemas.OperatorError;
+            export type $401 = Components.Schemas.OperatorError;
             export type $404 = Components.Schemas.OperatorError;
             export type $500 = Components.Schemas.OperatorError;
         }
     }
-    namespace UpdateUserByDiscordId {
+    namespace UpdateUser {
         namespace Parameters {
             export type DiscordUserId = string;
         }
@@ -604,15 +602,18 @@ declare namespace Paths {
         }
         namespace Responses {
             export interface $200 {
+                /**
+                 * example:
+                 * true
+                 */
+                success?: boolean;
+                message?: string;
+                user?: Components.Schemas.User;
             }
-            export interface $400 {
-            }
-            export interface $401 {
-            }
-            export interface $404 {
-            }
-            export interface $500 {
-            }
+            export type $400 = Components.Schemas.Error;
+            export type $401 = Components.Schemas.Error;
+            export type $404 = Components.Schemas.Error;
+            export type $500 = Components.Schemas.Error;
         }
     }
     namespace VerifySignature {
@@ -635,6 +636,7 @@ declare namespace Paths {
         namespace Responses {
             export type $200 = Components.Schemas.VerifyResponse;
             export type $400 = Components.Schemas.Error;
+            export type $401 = Components.Schemas.Error;
             export type $404 = Components.Schemas.Error;
             export type $500 = Components.Schemas.Error;
         }
@@ -673,46 +675,6 @@ export interface OperationMethods {
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.GetRollupStatus.Responses.$200>
   /**
-   * verifySignature - Verify a wallet signature
-   * 
-   * Verify a wallet signature and process Passport verification
-   */
-  'verifySignature'(
-    parameters?: Parameters<Paths.VerifySignature.QueryParameters> | null,
-    data?: Paths.VerifySignature.RequestBody,
-    config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.VerifySignature.Responses.$200>
-  /**
-   * getStatusByDiscordId - Check verification status by Discord user ID
-   * 
-   * Check the human verification status of a user by their Discord ID
-   */
-  'getStatusByDiscordId'(
-    parameters: Parameters<Paths.GetStatusByDiscordId.PathParameters>,
-    data?: any,
-    config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.GetStatusByDiscordId.Responses.$200>
-  /**
-   * getStatusByVerificationId - Check verification status by verification ID
-   * 
-   * Check the human verification status of a user by their verification ID
-   */
-  'getStatusByVerificationId'(
-    parameters: Parameters<Paths.GetStatusByVerificationId.PathParameters>,
-    data?: any,
-    config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.GetStatusByVerificationId.Responses.$200>
-  /**
-   * getScore - Get passport score for a given address and verification
-   * 
-   * Fetches the Gitcoin Passport score for the wallet address associated with a verification ID
-   */
-  'getScore'(
-    parameters?: Parameters<Paths.GetScore.QueryParameters> | null,
-    data?: any,
-    config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.GetScore.Responses.$200>
-  /**
    * getAllOperators - Get all node operators
    * 
    * Retrieves a list of all registered node operators.
@@ -743,16 +705,6 @@ export interface OperationMethods {
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.GetOperatorByDiscordId.Responses.$200>
   /**
-   * getOperatorByAddress - Get operator by wallet address
-   * 
-   * Retrieves a specific node operator using their wallet address.
-   */
-  'getOperatorByAddress'(
-    parameters: Parameters<Paths.GetOperatorByAddress.PathParameters>,
-    data?: any,
-    config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.GetOperatorByAddress.Responses.$200>
-  /**
    * updateOperatorWallet - Update operator's wallet address
    * 
    * Updates the wallet address for a specific node operator using their Discord ID.
@@ -772,6 +724,36 @@ export interface OperationMethods {
     data?: any,
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.DeleteOperatorByDiscordId.Responses.$204>
+  /**
+   * getOperatorByAddress - Get operator by wallet address
+   * 
+   * Retrieves a specific node operator using their wallet address.
+   */
+  'getOperatorByAddress'(
+    parameters: Parameters<Paths.GetOperatorByAddress.PathParameters>,
+    data?: any,
+    config?: AxiosRequestConfig  
+  ): OperationResponse<Paths.GetOperatorByAddress.Responses.$200>
+  /**
+   * verifySignature - Verify a wallet signature
+   * 
+   * Verify a wallet signature and process Passport verification
+   */
+  'verifySignature'(
+    parameters?: Parameters<Paths.VerifySignature.QueryParameters> | null,
+    data?: Paths.VerifySignature.RequestBody,
+    config?: AxiosRequestConfig  
+  ): OperationResponse<Paths.VerifySignature.Responses.$200>
+  /**
+   * getScore - Get passport score for a given address and verification
+   * 
+   * Fetches the Gitcoin Passport score for the wallet address associated with a verification ID
+   */
+  'getScore'(
+    parameters?: Parameters<Paths.GetScore.QueryParameters> | null,
+    data?: any,
+    config?: AxiosRequestConfig  
+  ): OperationResponse<Paths.GetScore.Responses.$200>
   /**
    * getAllUsers - Get all users
    * 
@@ -803,25 +785,25 @@ export interface OperationMethods {
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.GetUserByDiscordId.Responses.$200>
   /**
-   * updateUserByDiscordId - Update a user by Discord user ID
+   * updateUser - Update a user
    * 
-   * Update an existing user's information
+   * Update a user's information
    */
-  'updateUserByDiscordId'(
-    parameters: Parameters<Paths.UpdateUserByDiscordId.PathParameters>,
-    data?: Paths.UpdateUserByDiscordId.RequestBody,
+  'updateUser'(
+    parameters: Parameters<Paths.UpdateUser.PathParameters>,
+    data?: Paths.UpdateUser.RequestBody,
     config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.UpdateUserByDiscordId.Responses.$200>
+  ): OperationResponse<Paths.UpdateUser.Responses.$200>
   /**
-   * deleteUserByDiscordId - Delete a user by Discord user ID
+   * deleteUser - Delete a user
    * 
    * Delete a user by their Discord user ID
    */
-  'deleteUserByDiscordId'(
-    parameters: Parameters<Paths.DeleteUserByDiscordId.PathParameters>,
+  'deleteUser'(
+    parameters: Parameters<Paths.DeleteUser.PathParameters>,
     data?: any,
     config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.DeleteUserByDiscordId.Responses.$200>
+  ): OperationResponse<Paths.DeleteUser.Responses.$200>
   /**
    * getUserByWalletAddress - Get a user by wallet address
    * 
@@ -881,54 +863,6 @@ export interface PathsDictionary {
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.GetRollupStatus.Responses.$200>
   }
-  ['/api/human/verify']: {
-    /**
-     * verifySignature - Verify a wallet signature
-     * 
-     * Verify a wallet signature and process Passport verification
-     */
-    'post'(
-      parameters?: Parameters<Paths.VerifySignature.QueryParameters> | null,
-      data?: Paths.VerifySignature.RequestBody,
-      config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.VerifySignature.Responses.$200>
-  }
-  ['/api/human/status/discord/{discordUserId}']: {
-    /**
-     * getStatusByDiscordId - Check verification status by Discord user ID
-     * 
-     * Check the human verification status of a user by their Discord ID
-     */
-    'get'(
-      parameters: Parameters<Paths.GetStatusByDiscordId.PathParameters>,
-      data?: any,
-      config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.GetStatusByDiscordId.Responses.$200>
-  }
-  ['/api/human/status/verification/{verificationId}']: {
-    /**
-     * getStatusByVerificationId - Check verification status by verification ID
-     * 
-     * Check the human verification status of a user by their verification ID
-     */
-    'get'(
-      parameters: Parameters<Paths.GetStatusByVerificationId.PathParameters>,
-      data?: any,
-      config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.GetStatusByVerificationId.Responses.$200>
-  }
-  ['/api/human/score']: {
-    /**
-     * getScore - Get passport score for a given address and verification
-     * 
-     * Fetches the Gitcoin Passport score for the wallet address associated with a verification ID
-     */
-    'get'(
-      parameters?: Parameters<Paths.GetScore.QueryParameters> | null,
-      data?: any,
-      config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.GetScore.Responses.$200>
-  }
   ['/api/operator']: {
     /**
      * getAllOperators - Get all node operators
@@ -962,20 +896,6 @@ export interface PathsDictionary {
       data?: any,
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.GetOperatorByDiscordId.Responses.$200>
-  }
-  ['/api/operator/address/{address}']: {
-    /**
-     * getOperatorByAddress - Get operator by wallet address
-     * 
-     * Retrieves a specific node operator using their wallet address.
-     */
-    'get'(
-      parameters: Parameters<Paths.GetOperatorByAddress.PathParameters>,
-      data?: any,
-      config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.GetOperatorByAddress.Responses.$200>
-  }
-  ['/api/operator/{discordId}']: {
     /**
      * deleteOperatorByDiscordId - Delete an operator by Discord ID
      * 
@@ -996,6 +916,42 @@ export interface PathsDictionary {
       data?: Paths.UpdateOperatorWallet.RequestBody,
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.UpdateOperatorWallet.Responses.$200>
+  }
+  ['/api/operator/address/{address}']: {
+    /**
+     * getOperatorByAddress - Get operator by wallet address
+     * 
+     * Retrieves a specific node operator using their wallet address.
+     */
+    'get'(
+      parameters: Parameters<Paths.GetOperatorByAddress.PathParameters>,
+      data?: any,
+      config?: AxiosRequestConfig  
+    ): OperationResponse<Paths.GetOperatorByAddress.Responses.$200>
+  }
+  ['/api/users/human/verify']: {
+    /**
+     * verifySignature - Verify a wallet signature
+     * 
+     * Verify a wallet signature and process Passport verification
+     */
+    'post'(
+      parameters?: Parameters<Paths.VerifySignature.QueryParameters> | null,
+      data?: Paths.VerifySignature.RequestBody,
+      config?: AxiosRequestConfig  
+    ): OperationResponse<Paths.VerifySignature.Responses.$200>
+  }
+  ['/api/users/human/score']: {
+    /**
+     * getScore - Get passport score for a given address and verification
+     * 
+     * Fetches the Gitcoin Passport score for the wallet address associated with a verification ID
+     */
+    'get'(
+      parameters?: Parameters<Paths.GetScore.QueryParameters> | null,
+      data?: any,
+      config?: AxiosRequestConfig  
+    ): OperationResponse<Paths.GetScore.Responses.$200>
   }
   ['/api/users']: {
     /**
@@ -1031,25 +987,25 @@ export interface PathsDictionary {
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.GetUserByDiscordId.Responses.$200>
     /**
-     * updateUserByDiscordId - Update a user by Discord user ID
+     * updateUser - Update a user
      * 
-     * Update an existing user's information
+     * Update a user's information
      */
     'put'(
-      parameters: Parameters<Paths.UpdateUserByDiscordId.PathParameters>,
-      data?: Paths.UpdateUserByDiscordId.RequestBody,
+      parameters: Parameters<Paths.UpdateUser.PathParameters>,
+      data?: Paths.UpdateUser.RequestBody,
       config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.UpdateUserByDiscordId.Responses.$200>
+    ): OperationResponse<Paths.UpdateUser.Responses.$200>
     /**
-     * deleteUserByDiscordId - Delete a user by Discord user ID
+     * deleteUser - Delete a user
      * 
      * Delete a user by their Discord user ID
      */
     'delete'(
-      parameters: Parameters<Paths.DeleteUserByDiscordId.PathParameters>,
+      parameters: Parameters<Paths.DeleteUser.PathParameters>,
       data?: any,
       config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.DeleteUserByDiscordId.Responses.$200>
+    ): OperationResponse<Paths.DeleteUser.Responses.$200>
   }
   ['/api/users/wallet/{walletAddress}']: {
     /**

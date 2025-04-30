@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { logger } from "@sparta/utils";
 import * as dotenv from "dotenv";
-import { ChainInfoService } from "../../services/l1-info-service";
+import { l2InfoService } from "../../services/l2-info-service";
 
 // Load environment variables
 dotenv.config();
@@ -19,9 +19,9 @@ const validatorRecords: ValidatorRecord[] = [
 ];
 
 /**
- * Checks if an address is in the validator set and if it matches our records
+ * Checks if an operator is actively attesting (missed less than 20% of attestations)
  */
-export async function isOperatorInSet(
+export async function isOperatorAttesting(
 	interaction: ChatInputCommandInteraction
 ) {
 	try {
@@ -41,40 +41,49 @@ export async function isOperatorInSet(
 
 		const address = addressOption.toLowerCase();
 
-		// Check if address is in the validator set
-		const chainInfoService = ChainInfoService.getInstance();
-		await chainInfoService.init();
-		const chainInfo = await chainInfoService.getInfo();
+		// Fetch validator stats from RPC
+		const validatorStats = await l2InfoService.fetchValidatorStats(address);
 
-		const isInValidatorSet = chainInfo.validators.some(
-			(validator: string) => validator.toLowerCase() === address
-		);
+		// Calculate percentage of missed attestations
+		let isActive = false;
+		let missedPercentage = 0;
+		if (
+			validatorStats.totalSlots &&
+			validatorStats.missedAttestationsCount !== undefined
+		) {
+			missedPercentage =
+				(validatorStats.missedAttestationsCount /
+					validatorStats.totalSlots) *
+				100;
+
+			// Active if missed less than 20% of attestations
+			isActive = missedPercentage < 20;
+		}
 
 		// Check if address matches our records
 		const validatorRecord = validatorRecords.find(
 			(record) => record.address.toLowerCase() === address
 		);
 
+		// Prepare response message
+		let responseMessage = "";
+		if (isActive) {
+			responseMessage = `Yes, address ${addressOption} is actively attesting (miss percentage: ${missedPercentage.toFixed(
+				2
+			)}%).`;
+		} else {
+			responseMessage = `No, address ${addressOption} is not actively attesting (miss percentage: ${missedPercentage.toFixed(
+				2
+			)}%).`;
+		}
+
 		// Create a color-coded embed based on the result
 		const embed = new EmbedBuilder()
-			.setTitle(
-				isInValidatorSet
-					? "✅ YES - IN VALIDATOR SET"
-					: "❌ NO - NOT IN VALIDATOR SET"
-			)
-			.setColor(isInValidatorSet ? 0x00ff00 : 0xff0000) // Green for YES, Red for NO
-			.setDescription(`Address: \`${addressOption}\``)
-			.addFields([
-				{
-					name: "Validator Status",
-					value: isInValidatorSet
-						? "This address is currently active in the validator set."
-						: "This address is not found in the current validator set.",
-				},
-			]);
+			.setTitle(isActive ? "✅ ACTIVE OPERATOR" : "❌ INACTIVE OPERATOR")
+			.setColor(isActive ? 0x00ff00 : 0xff0000) // Green for active, Red for inactive
+			.setDescription(responseMessage);
 
-		// Add username information if in validator set
-		if (isInValidatorSet) {
+		if (isActive) {
 			embed.addFields([
 				{
 					name: "Username",
@@ -86,10 +95,15 @@ export async function isOperatorInSet(
 		}
 
 		await interaction.editReply({ embeds: [embed] });
-		return isInValidatorSet ? "YES" : "NO";
+		return responseMessage;
 	} catch (error) {
-		logger.error("Error executing validator check command:", error);
-		await interaction.editReply("Error checking validator status.");
+		logger.error(
+			"Error executing operator attestation check command:",
+			error
+		);
+		await interaction.editReply(
+			"Error checking operator attestation status."
+		);
 		throw error;
 	}
 }

@@ -15,7 +15,7 @@ export const CHANNELS = {
 };
 
 /**
- * Checks if the channel is allowed for admin commands based on environment
+ * Checks if the channel is allowed for moderator commands based on environment
  * @param channel The channel to check
  * @returns True if the channel is allowed, false otherwise
  */

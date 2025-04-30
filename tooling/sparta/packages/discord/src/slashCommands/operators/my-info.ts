@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { logger } from "@sparta/utils";
 import * as dotenv from "dotenv";
-import { fetchValidatorStatsFromRpc } from "../../services/l2-info-service";
+import { l2InfoService } from "../../services/l2-info-service";
 
 // Load environment variables
 dotenv.config();
@@ -32,7 +32,7 @@ export async function getValidatorStats(
 		const address = addressOption;
 
 		// Fetch stats using the new RPC function
-		const result = await fetchValidatorStatsFromRpc(address);
+		const result = await l2InfoService.fetchValidatorStats(address);
 
 		const displayAddress = `${address.slice(0, 6)}...${address.slice(-4)}`; // Shortened address for title
 

@@ -5,19 +5,22 @@ import {
 } from "discord.js";
 // import { getValidatorStats } from "./get-operator-stats.js";
 import { logger } from "@sparta/utils";
-import { AdminSubcommandGroups, AdminSubcommands } from "../../types.js";
+import {
+	ModeratorSubcommandGroups,
+	ModeratorSubcommands,
+} from "../../types.js";
 import { isOperatorInSet } from "./operator-in-set.js";
 import { isOperatorAttesting } from "./operator-attesting.js";
-import { showAdminHelp } from "./help.js";
-import { checkAdminPermissions } from "../../utils";
+import { showModeratorHelp } from "./help.js";
+import { checkModeratorPermissions } from "../../utils/index.js";
 
 export default {
 	data: new SlashCommandBuilder()
-		.setName(AdminSubcommandGroups.Admin)
-		.setDescription("Admin commands")
+		.setName(ModeratorSubcommandGroups.Moderator)
+		.setDescription("Moderator commands")
 		.addSubcommand((subcommand) =>
 			subcommand
-				.setName(AdminSubcommands.IsInSet)
+				.setName(ModeratorSubcommands.IsInSet)
 				.setDescription(
 					"Get whether an address is in the validator set"
 				)
@@ -30,7 +33,7 @@ export default {
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
-				.setName(AdminSubcommands.IsAttesting)
+				.setName(ModeratorSubcommands.IsAttesting)
 				.setDescription("Get whether an address is attesting")
 				.addStringOption((option) =>
 					option
@@ -41,15 +44,15 @@ export default {
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
-				.setName(AdminSubcommands.Help)
-				.setDescription("Display help for admin commands")
+				.setName(ModeratorSubcommands.Help)
+				.setDescription("Display help for moderator commands")
 		),
 	execute: async (interaction: ChatInputCommandInteraction) => {
 		try {
-			// Check if the user has permission to use admin commands
-			// This checks against the defined admin roles and provides appropriate error messages
-			if (!(await checkAdminPermissions(interaction))) {
-				// The checkAdminPermissions function already sent a reply if the user doesn't have permission
+			// Check if the user has permission to use moderator commands
+			// This checks against the defined moderator roles and provides appropriate error messages
+			if (!(await checkModeratorPermissions(interaction))) {
+				// The checkModeratorPermissions function already sent a reply if the user doesn't have permission
 				return "Insufficient permissions";
 			}
 
@@ -59,14 +62,14 @@ export default {
 
 			const subcommand = interaction.options.getSubcommand();
 			switch (subcommand) {
-				case AdminSubcommands.IsInSet:
+				case ModeratorSubcommands.IsInSet:
 					await isOperatorInSet(interaction);
 					break;
-				case AdminSubcommands.IsAttesting:
+				case ModeratorSubcommands.IsAttesting:
 					await isOperatorAttesting(interaction);
 					break;
-				case AdminSubcommands.Help:
-					await showAdminHelp(interaction);
+				case ModeratorSubcommands.Help:
+					await showModeratorHelp(interaction);
 					break;
 				default:
 					await interaction.editReply({

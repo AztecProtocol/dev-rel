@@ -5,7 +5,7 @@
  */
 
 import express, { type Request, type Response } from "express";
-import { PassportService } from "../domain/humanPassport/service.js";
+import { PassportService } from "../../domain/humanPassport/service.js";
 import { logger } from "@sparta/utils/index.js";
 import { recoverMessageAddress, type Hex } from "viem";
 import type { HumanPassport } from "./users.js";
@@ -14,22 +14,29 @@ import {
 	VERIFICATION_STATUS,
 } from "@sparta/utils/const.js"; // Import status constants
 import { EmbedBuilder } from "discord.js";
-import { _handleRoleAssignment } from "@sparta/discord/src/utils/roleAssigner.js";
+import { _handleUserRoleAssignment } from "@sparta/discord/src/utils/roleAssigner.js";
 import { DiscordService } from "@sparta/discord/src/services/discord-service.js";
 import {
 	initializeUserRepository,
 	extendedDynamoDB,
-} from "../db/userRepository.js";
-import { validateVerification } from "../middlewares/humanPassport.js";
+} from "../../db/userRepository.js";
+import { validateVerification } from "../../middlewares/humanPassport.js";
+import { apiKeyMiddleware } from "../../middlewares/auth.js";
 import {
 	_handleScoring,
 	_updateUserVerificationStatus,
-} from "../domain/humanPassport/utils.js";
+} from "../../domain/humanPassport/utils.js";
 
 // Define shared schemas
 /**
  * @swagger
  * components:
+ *   securitySchemes:
+ *     ApiKeyAuth:
+ *       type: apiKey
+ *       in: header
+ *       name: x-api-key
+ *       description: API key for authenticating requests
  *   schemas:
  *     Error:
  *       type: object
@@ -197,14 +204,19 @@ async function _handleSignatureRecovery(
 
 router.use(express.json());
 
+// Apply API key middleware to all human routes
+router.use(apiKeyMiddleware);
+
 /**
  * @swagger
- * /api/human/verify:
+ * /api/users/human/verify:
  *   post:
  *     summary: Verify a wallet signature
  *     description: Verify a wallet signature and process Passport verification
- *     tags: [Human]
+ *     tags: [Users]
  *     operationId: verifySignature
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: query
  *         name: verificationId
@@ -235,6 +247,12 @@ router.use(express.json());
  *               $ref: '#/components/schemas/VerifyResponse'
  *       400:
  *         description: Bad request - missing parameters or invalid signature
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
  *         content:
  *           application/json:
  *             schema:
@@ -295,7 +313,7 @@ router.post(
 
 			try {
 				// Call role assignment - it returns true on success, false on failure.
-				const discordUpdateSuccess = await _handleRoleAssignment(
+				const discordUpdateSuccess = await _handleUserRoleAssignment(
 					verificationId,
 					user.discordUserId,
 					score
@@ -322,23 +340,23 @@ router.post(
 					// Discord update failed - Keep original DB role
 					// finalDbRole remains user.role ?? null
 					discordUpdateMessage =
-						"Could not update Discord roles. Please contact an admin.";
+						"Could not update Discord roles. Please contact a moderator.";
 					discordEmbedColor = 0xffcc00; // Yellow for error
 				}
 			} catch (roleError: any) {
-				// Catch errors specifically from _handleRoleAssignment itself (shouldn't happen based on its code, but good practice)
+				// Catch errors specifically from _handleUserRoleAssignment itself (shouldn't happen based on its code, but good practice)
 				logger.error(
 					{
 						error: roleError,
 						discordUserId: user.discordUserId,
 						verificationId,
 					},
-					"Unexpected error calling _handleRoleAssignment"
+					"Unexpected error calling _handleUserRoleAssignment"
 				);
 				roleAssignmentSucceeded = false;
 				// Keep original DB role
 				discordUpdateMessage =
-					"An unexpected error occurred during role update. Please contact an admin.";
+					"An unexpected error occurred during role update. Please contact a moderator.";
 				discordEmbedColor = 0xffcc00; // Yellow for error
 			}
 
@@ -409,11 +427,11 @@ router.post(
 			if (verified) {
 				clientMessage = roleAssignmentSucceeded
 					? "Verification successful. Roles assigned/updated."
-					: "Verification successful, but failed to update Discord roles. Please contact admin.";
+					: "Verification successful, but failed to update Discord roles. Please contact a moderator.";
 			} else {
 				clientMessage = roleAssignmentSucceeded
 					? "Verification failed: Score too low. Roles removed if previously held."
-					: "Verification failed: Score too low. Also failed to update Discord roles. Please contact admin.";
+					: "Verification failed: Score too low. Also failed to update Discord roles. Please contact a moderator.";
 			}
 
 			return res.status(200).json({
@@ -449,202 +467,14 @@ router.post(
 
 /**
  * @swagger
- * /api/human/status/discord/{discordUserId}:
- *   get:
- *     summary: Check verification status by Discord user ID
- *     description: Check the human verification status of a user by their Discord ID
- *     tags: [Human]
- *     operationId: getStatusByDiscordId
- *     parameters:
- *       - in: path
- *         name: discordUserId
- *         schema:
- *           type: string
- *         required: true
- *         description: Discord user ID
- *     responses:
- *       200:
- *         description: Status returned successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/VerificationStatusResponse'
- *       404:
- *         description: User not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       500:
- *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.get(
-	"/status/discord/:discordUserId",
-	async (req: Request, res: Response) => {
-		try {
-			const { discordUserId } = req.params;
-
-			if (!discordUserId) {
-				return res.status(400).json({
-					success: false,
-					error: "Missing discordUserId parameter",
-				});
-			}
-
-			// Get user directly
-			const user = await extendedDynamoDB.getUser(discordUserId);
-
-			if (!user) {
-				return res.status(404).json({
-					success: false,
-					error: "No user record found for this Discord user.",
-				});
-			}
-
-			const humanPassport = user.humanPassport;
-			if (!humanPassport) {
-				return res.status(404).json({
-					success: false,
-					error: "No verification record found for this Discord user.",
-				});
-			}
-
-			// Return the status info
-			return res.status(200).json({
-				success: true,
-				verificationId: humanPassport.verificationId, // Include verification ID for reference
-				walletConnected: !!user.walletAddress,
-				verified: humanPassport.status === VERIFICATION_STATUS.VERIFIED,
-				roleAssigned: user.role === "verified_human",
-				score: humanPassport.score,
-				status: humanPassport.status, // Return the current verification status
-				minimumRequiredScore: parseInt(
-					process.env.MINIMUM_SCORE || "0"
-				),
-				lastChecked: new Date().toISOString(),
-			});
-		} catch (error: any) {
-			logger.error(
-				{ error: error.message, path: req.path },
-				"Error in status check by Discord ID route"
-			);
-
-			return res.status(500).json({
-				success: false,
-				error: "Server error during status check",
-			});
-		}
-	}
-);
-
-/**
- * @swagger
- * /api/human/status/verification/{verificationId}:
- *   get:
- *     summary: Check verification status by verification ID
- *     description: Check the human verification status of a user by their verification ID
- *     tags: [Human]
- *     operationId: getStatusByVerificationId
- *     parameters:
- *       - in: path
- *         name: verificationId
- *         schema:
- *           type: string
- *         required: true
- *         description: Verification ID
- *     responses:
- *       200:
- *         description: Status returned successfully
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/VerificationStatusResponse'
- *       404:
- *         description: User not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- *       500:
- *         description: Server error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-router.get(
-	"/status/verification/:verificationId",
-	async (req: Request, res: Response) => {
-		try {
-			const { verificationId } = req.params;
-
-			if (!verificationId) {
-				return res.status(400).json({
-					success: false,
-					error: "Missing verificationId parameter",
-				});
-			}
-
-			// Get user directly
-			const user = await extendedDynamoDB.getUserByVerificationId(
-				verificationId
-			);
-
-			if (!user) {
-				return res.status(404).json({
-					success: false,
-					error: "No user record found for this verification ID.",
-				});
-			}
-
-			const humanPassport = user.humanPassport;
-			if (!humanPassport) {
-				return res.status(404).json({
-					success: false,
-					error: "No verification record found for this verification ID.",
-				});
-			}
-
-			// Return the status info
-			return res.status(200).json({
-				success: true,
-				verificationId: humanPassport.verificationId, // Include verification ID for reference
-				walletConnected: !!user.walletAddress,
-				verified: humanPassport.status === VERIFICATION_STATUS.VERIFIED,
-				roleAssigned: user.role === "verified_human",
-				score: humanPassport.score,
-				status: humanPassport.status, // Return the current verification status
-				minimumRequiredScore: parseInt(
-					process.env.MINIMUM_SCORE || "0"
-				),
-				lastChecked: new Date().toISOString(),
-			});
-		} catch (error: any) {
-			logger.error(
-				{ error: error.message, path: req.path },
-				"Error in status check by verification ID route"
-			);
-
-			return res.status(500).json({
-				success: false,
-				error: "Server error during status check",
-			});
-		}
-	}
-);
-
-/**
- * @swagger
- * /api/human/score:
+ * /api/users/human/score:
  *   get:
  *     summary: Get passport score for a given address and verification
  *     description: Fetches the Gitcoin Passport score for the wallet address associated with a verification ID
- *     tags: [Human]
+ *     tags: [Users]
  *     operationId: getScore
+ *     security:
+ *       - ApiKeyAuth: []
  *     parameters:
  *       - in: query
  *         name: verificationId
@@ -667,6 +497,12 @@ router.get(
  *               $ref: '#/components/schemas/ScoreResponse'
  *       400:
  *         description: Bad request (missing parameters)
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Error'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
  *         content:
  *           application/json:
  *             schema:

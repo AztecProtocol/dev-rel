@@ -64,14 +64,15 @@ export async function handleStatusCommand(
 
 		if (humanPassport) {
 			if (humanPassport.verificationId) {
-				const statusResponse = await client.getStatusByDiscordId({
-					discordUserId: userId,
+				const {
+					data: { user },
+				} = await client.getUserByVerificationId({
+					verificationId: humanPassport.verificationId,
 				});
 
-				if (statusResponse.data) {
-					status = statusResponse.data.status;
-					verified = statusResponse.data.verified;
-					score = statusResponse.data.score || null;
+				if (user && user.humanPassport) {
+					status = user.humanPassport.status || "Not verified";
+					score = user.humanPassport.score || null;
 				}
 			}
 		}

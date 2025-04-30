@@ -43,11 +43,37 @@ aws dynamodb create-table \
   --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
   --endpoint-url http://localhost:8000
 
-# Check if table creation was successful
+# Check if users table creation was successful
 if [ $? -eq 0 ]; then
   echo "Table users created successfully"
 else
   echo "Table users may already exist, trying to use existing table"
+fi
+
+# Create the node operators table with the required schema
+echo "Creating node operators table..."
+aws dynamodb create-table \
+  --table-name sparta-node-operators-dev \
+  --attribute-definitions \
+    AttributeName=discordId,AttributeType=S \
+    AttributeName=walletAddress,AttributeType=S \
+  --key-schema AttributeName=discordId,KeyType=HASH \
+  --global-secondary-indexes '[
+    {
+      "IndexName": "WalletAddressIndex",
+      "KeySchema": [{"AttributeName": "walletAddress", "KeyType": "HASH"}],
+      "Projection": {"ProjectionType": "ALL"},
+      "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5}
+    }
+  ]' \
+  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
+  --endpoint-url http://localhost:8000
+
+# Check if node operators table creation was successful
+if [ $? -eq 0 ]; then
+  echo "Table sparta-node-operators-dev created successfully"
+else
+  echo "Table sparta-node-operators-dev may already exist, trying to use existing table"
 fi
 
 # List tables to confirm
@@ -55,4 +81,4 @@ echo "Available tables in local DynamoDB:"
 aws dynamodb list-tables --endpoint-url http://localhost:8000
 
 echo "DynamoDB local setup complete. You can now run your application with:"
-echo "IS_LOCAL=true DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000 USER_TABLE_NAME=users npm run dev" 
+echo "IS_LOCAL=true DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000 USER_TABLE_NAME=users NODE_OPERATORS_TABLE_NAME=sparta-node-operators-dev npm run dev" 

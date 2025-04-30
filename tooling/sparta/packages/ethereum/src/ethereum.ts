@@ -23,6 +23,17 @@ import {
 import { ForwarderBytecode } from "./bytecode/ForwarderBytecode.js";
 import { logger } from "@sparta/utils";
 
+// Chain information data type
+export type ChainInfo = {
+	pendingBlockNum: string;
+	provenBlockNum: string;
+	validators: string[];
+	committee: string[];
+	currentEpoch: string;
+	currentSlot: string;
+	proposerNow: string;
+};
+
 export const DEPLOYER_ADDRESS: Hex =
 	"0x4e59b44847b379578588920cA78FbF26c0B4956C";
 
@@ -110,6 +121,50 @@ export class Ethereum {
 
 	getRollup = () => {
 		return this.rollup;
+	};
+
+	/**
+	 * Retrieves comprehensive information about the current blockchain state
+	 *
+	 * @returns {Promise<ChainInfo>} A promise that resolves to an object containing chain information
+	 * @throws Will throw an error if retrieving chain information fails
+	 */
+	getRollupInfo = async (): Promise<ChainInfo> => {
+		try {
+			// Make API calls to fetch blockchain info
+			const [
+				pendingBlockNum,
+				provenBlockNum,
+				validators,
+				committee,
+				currentEpoch,
+				currentSlot,
+				proposerNow,
+			] = await Promise.all([
+				this.rollup.read.getPendingBlockNumber(),
+				this.rollup.read.getProvenBlockNumber(),
+				this.rollup.read.getAttesters(),
+				this.rollup.read.getCurrentEpochCommittee(),
+				this.rollup.read.getCurrentEpoch(),
+				this.rollup.read.getCurrentSlot(),
+				this.rollup.read.getCurrentProposer(),
+			]);
+
+			logger.info("Retrieved chain info from Ethereum rollup");
+
+			return {
+				pendingBlockNum: pendingBlockNum,
+				provenBlockNum: provenBlockNum,
+				validators: validators,
+				committee: committee,
+				currentEpoch: currentEpoch,
+				currentSlot: currentSlot,
+				proposerNow: proposerNow,
+			};
+		} catch (error) {
+			logger.error({ error }, "Error getting rollup info");
+			throw error;
+		}
 	};
 }
 

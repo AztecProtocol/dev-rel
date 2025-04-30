@@ -7,11 +7,18 @@
 import { Router } from "express";
 import { logger } from "@sparta/utils/logger";
 import { getEthereumInstance } from "@sparta/ethereum";
+import { apiKeyMiddleware } from "../middlewares/auth.js";
 
 // --- Swagger Schemas ---
 /**
  * @swagger
  * components:
+ *   securitySchemes:
+ *     ApiKeyAuth:
+ *       type: apiKey
+ *       in: header
+ *       name: x-api-key
+ *       description: API key for authenticating requests
  *   schemas:
  *     EthereumResponse:
  *       type: object
@@ -110,6 +117,9 @@ import { getEthereumInstance } from "@sparta/ethereum";
 
 const router = Router();
 
+// Apply API key middleware to all Ethereum routes
+router.use(apiKeyMiddleware);
+
 /**
  * @swagger
  * /api/ethereum/rollup/committee:
@@ -118,6 +128,8 @@ const router = Router();
  *     description: Retrieves the list of committee members for the current epoch
  *     tags: [Ethereum]
  *     operationId: getCurrentEpochCommittee
+ *     security:
+ *       - ApiKeyAuth: []
  *     responses:
  *       200:
  *         description: Successfully retrieved committee members
@@ -125,6 +137,12 @@ const router = Router();
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/EthereumResponse'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Server error occurred while retrieving committee data
  *         content:
@@ -140,7 +158,7 @@ router.get("/rollup/committee", async (_req, res) => {
 
 		return res.status(200).json({
 			success: true,
-			data: committee.data,
+			data: committee,
 		});
 	} catch (error: any) {
 		logger.error(
@@ -162,6 +180,8 @@ router.get("/rollup/committee", async (_req, res) => {
  *     description: Retrieves the list of all attesters (validators) in the rollup system
  *     tags: [Ethereum]
  *     operationId: getAllValidators
+ *     security:
+ *       - ApiKeyAuth: []
  *     responses:
  *       200:
  *         description: Successfully retrieved validators
@@ -169,6 +189,12 @@ router.get("/rollup/committee", async (_req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/EthereumResponse'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Server error occurred while retrieving validators data
  *         content:
@@ -184,7 +210,7 @@ router.get("/rollup/validators", async (_req, res) => {
 
 		return res.status(200).json({
 			success: true,
-			data: validators.data,
+			data: validators,
 		});
 	} catch (error: any) {
 		logger.error(
@@ -206,6 +232,8 @@ router.get("/rollup/validators", async (_req, res) => {
  *     description: Retrieves complete information about the rollup's current state including block numbers, validators, committee members, and other chain data
  *     tags: [Ethereum]
  *     operationId: getRollupStatus
+ *     security:
+ *       - ApiKeyAuth: []
  *     responses:
  *       200:
  *         description: Successfully retrieved rollup status
@@ -213,6 +241,12 @@ router.get("/rollup/validators", async (_req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/RollupStatusResponse'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
  *         description: Server error occurred while retrieving rollup status
  *         content:
@@ -223,45 +257,21 @@ router.get("/rollup/validators", async (_req, res) => {
 router.get("/rollup/status", async (_req, res) => {
 	try {
 		const ethereum = await getEthereumInstance();
-		const rollup = ethereum.getRollup();
 
-		const [
-			pendingBlockNum,
-			provenBlockNum,
-			validators,
-			committee,
-			archive,
-			currentEpoch,
-			currentSlot,
-			proposerNow,
-			forwardedValidators,
-			forwardedCommittee,
-		] = await Promise.all([
-			rollup.read.getPendingBlockNumber(),
-			rollup.read.getProvenBlockNumber(),
-			rollup.read.getAttesters(),
-			rollup.read.getCurrentEpochCommittee(),
-			rollup.read.getArchive(),
-			rollup.read.getCurrentEpoch(),
-			rollup.read.getCurrentSlot(),
-			rollup.read.getCurrentProposer(),
-			rollup.read.getForwardedAttesters(),
-			rollup.read.getForwardedCommittee(),
-		]);
+		// Get main chain info from the Ethereum instance directly
+		const chainInfo = await ethereum.getRollupInfo();
 
+		console.log(chainInfo);
 		return res.status(200).json({
 			success: true,
 			data: {
-				pendingBlockNum: pendingBlockNum.data,
-				provenBlockNum: provenBlockNum.data,
-				validators: validators.data,
-				forwardedValidators: forwardedValidators.data,
-				committee: committee.data,
-				forwardedCommittee: forwardedCommittee.data,
-				archive: archive.data,
-				currentEpoch: currentEpoch.data,
-				currentSlot: currentSlot.data,
-				proposerNow: proposerNow.data,
+				pendingBlockNum: chainInfo.pendingBlockNum.toString(),
+				provenBlockNum: chainInfo.provenBlockNum.toString(),
+				validators: chainInfo.validators,
+				committee: chainInfo.committee,
+				currentEpoch: chainInfo.currentEpoch.toString(),
+				currentSlot: chainInfo.currentSlot.toString(),
+				proposerNow: chainInfo.proposerNow,
 			},
 		});
 	} catch (error: any) {

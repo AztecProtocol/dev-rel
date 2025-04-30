@@ -37,26 +37,6 @@ Always use:
 - Ensure `.gitignore` includes all sensitive files
 - Use environment-specific configuration files
 
-## Project Structure
-
-```
-sparta/
-├── src/                      # Source code
-│   ├── clients/              # External API clients (Discord, Ethereum, Google)
-│   ├── roles/                # Role-specific Discord commands
-│   │   ├── nodeOperators/    # Commands for Node Operator role 
-│   │   └── admins/           # Admin-only commands
-│   ├── services/             # Business logic services
-│   │   ├── chaininfo-service.ts    # Chain information retrieval
-│   │   ├── discord-service.ts      # Discord role management
-│   │   ├── googlesheet-service.ts  # Google Sheets integration
-│   │   ├── validator-service.ts    # Validator management
-│   │   └── index.ts                # Service exports
-│   └── utils/                # Utility functions
-├── terraform/                # Infrastructure as Code
-└── Dockerfile                # Docker configuration
-```
-
 ## Local Development
 
 1. Clone the repository:
@@ -100,8 +80,6 @@ DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000
 # RPC Configuration
 ETHEREUM_HOST=https://your-ethereum-rpc-url
 L1_CHAIN_ID=11155111 
-FUNDER_ADDRESS_PRIVATE_KEY=your_private_key
-FUNDER_AMOUNT=0.1
 STAKING_ASSET_HANDLER_ADDRESS=your_staking_asset_handler_address
 
 # Logging
@@ -190,8 +168,6 @@ terraform apply
 - `/validator register`: Register a validator address
 - `/validator help`: Get help for validator commands
 
-### Admin Commands
-(More details in the admin command section)
 
 ## Environment Variables
 

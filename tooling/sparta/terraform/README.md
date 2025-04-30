@@ -28,27 +28,26 @@ Before deploying, ensure you have:
 
 The deployment is configured using the following variables:
 
-| Name                          | Description                                                             | Required?    |
-|-------------------------------|-------------------------------------------------------------------------|--------------|
-| `aws_region`                  | AWS region                                                              | Required     |
-| `environment`                 | Deployment environment (development/production)                         | Required     |
-| `bot_token`                   | Discord bot token                                                       | Required     |
-| `bot_client_id`               | Discord client ID                                                       | Required     |
-| `guild_id`                    | Discord server ID                                                       | Required     |
-| `ethereum_host`               | Ethereum node URL                                                       | Required     |
-| `staking_asset_handler_address` | Contract address                                                      | Required     |
-| `l1_chain_id`                 | Ethereum chain ID                                                       | Required     |
-| `funder_address_private_key`  | Private key for funding                                                 | Required     |
-| `log_level`                   | Log level (debug, info, warn, error)                                    | Optional     |
-| `log_pretty_print`            | Enable pretty printing for logs                                         | Optional     |
-| `availability_zones`          | List of Availability Zones                                              | Optional     |
-| `public_subnet_cidrs`         | List of CIDR blocks for public subnets                                  | Optional     |
-| `private_subnet_cidrs`        | List of CIDR blocks for private subnets                                 | Optional     |
-| `api_port`                    | Port for the API container                                              | Optional     |
-| `api_desired_count`           | Desired number of API tasks                                             | Optional     |
-| `api_cpu`                     | CPU units for API task                                                  | Optional     |
-| `api_memory`                  | Memory for API task                                                     | Optional     |
-| `vpc_cidr`                    | CIDR block for the VPC                                                  | Optional     |
+| Name                            | Description                                     | Required? |
+| ------------------------------- | ----------------------------------------------- | --------- |
+| `aws_region`                    | AWS region                                      | Required  |
+| `environment`                   | Deployment environment (development/production) | Required  |
+| `bot_token`                     | Discord bot token                               | Required  |
+| `bot_client_id`                 | Discord client ID                               | Required  |
+| `guild_id`                      | Discord server ID                               | Required  |
+| `ethereum_host`                 | Ethereum node URL                               | Required  |
+| `staking_asset_handler_address` | Contract address                                | Required  |
+| `l1_chain_id`                   | Ethereum chain ID                               | Required  |
+| `log_level`                     | Log level (debug, info, warn, error)            | Optional  |
+| `log_pretty_print`              | Enable pretty printing for logs                 | Optional  |
+| `availability_zones`            | List of Availability Zones                      | Optional  |
+| `public_subnet_cidrs`           | List of CIDR blocks for public subnets          | Optional  |
+| `private_subnet_cidrs`          | List of CIDR blocks for private subnets         | Optional  |
+| `api_port`                      | Port for the API container                      | Optional  |
+| `api_desired_count`             | Desired number of API tasks                     | Optional  |
+| `api_cpu`                       | CPU units for API task                          | Optional  |
+| `api_memory`                    | Memory for API task                             | Optional  |
+| `vpc_cidr`                      | CIDR block for the VPC                          | Optional  |
 
 ## Deployment Steps
 

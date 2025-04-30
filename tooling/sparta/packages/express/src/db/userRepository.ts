@@ -13,7 +13,7 @@ import {
 	QueryCommand,
 	ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
-import type { User } from "../routes/users.js";
+import type { User } from "../routes/users/users.js";
 import DynamoDBService from "@sparta/utils/dynamo-db.js";
 
 // Type for extended DynamoDB with user methods

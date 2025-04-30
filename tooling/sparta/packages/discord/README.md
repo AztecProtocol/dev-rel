@@ -19,25 +19,31 @@ The bot supports the following slash commands:
 | `/human`    | `verify`       | Verify your identity with Human Passport                                                         | None                                                 |
 | `/human`    | `status`       | Check your Human Passport verification status                                                    | None                                                 |
 | `/operator` | `chain-info`   | Get current chain information including pending/proven blocks, epoch, slot, and current proposer | None                                                 |
-| `/operator` | `my-stats`     | Check validator statistics                                                                       | `address` (required): The validator address to check |
-| `/admin`    | `help`         | Display all admin commands and their descriptions in a table                                     | None                                                 |
-| `/admin`    | `is-in-set`    | Check if an address is in the validator set                                                      | `address` (required): The validator address to check |
-| `/admin`    | `is-attesting` | Check if an address is actively attesting                                                        | `address` (required): The validator address to check |
+| `/operator` | `my-info`      | Check validator statistics                                                                       | `address` (required): The validator address to check |
+| `/operator` | `register`     | Register as a validator and get the Apprentice role                                              | `address`, `block-number`, `proof`                   |
+| `/operator` | `help`         | Display operator commands and instructions                                                       | None                                                 |
+| `/mod`      | `help`         | Display all moderator commands and their descriptions in a table                                 | None                                                 |
+| `/mod`      | `is-in-set`    | Check if an address is in the validator set                                                      | `address` (required): The validator address to check |
+| `/mod`      | `is-attesting` | Check if an address is actively attesting                                                        | `address` (required): The validator address to check |
 
 ## Command Restrictions
 
-### Admin Commands
+### Moderator Commands
 
-Admin commands (`/admin`) have the following restrictions:
+Moderator commands (`/mod`) have the following restrictions:
 
-- **Role-based access**: Only users with one of these roles can use admin commands:
-  - Aztec Labs Team
-  - AzMod
-  - Admin
+- **Role-based access**: Only users with one of these roles can use moderator commands:
+  - Aztec Labs Team (ID: 1144693819015700620)
+  - AzMod (ID: 1362901049803018513)
+  - Admin (ID: 1146246812299165817)
 
 - **Channel restrictions**:
   - In production: Commands can only be used in `#mod-bot` or `#bot-test` channels
   - In development: Commands can only be used in the `#bot-test` channel
+
+### User Roles
+
+- **Apprentice** (ID: 1366916508072148992): Assigned to users who successfully register as validators
 
 ## Usage
 
