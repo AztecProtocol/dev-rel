@@ -172,6 +172,12 @@ variable "api_port" {
   default     = 3000
 }
 
+variable "backend_api_key" {
+  description = "API key for the backend"
+  type        = string
+  sensitive   = true
+}
+
 variable "api_desired_count" {
   description = "Desired number of tasks for the API service"
   type        = number

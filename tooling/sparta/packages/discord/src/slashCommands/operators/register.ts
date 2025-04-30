@@ -254,7 +254,7 @@ export async function registerValidator(
 						);
 					}
 				} catch (apiError) {
-					// console.log(apiError);
+					console.log(apiError);
 					logger.error("Error with operator API:", { apiError });
 
 					// Set fallback message when API error occurs
