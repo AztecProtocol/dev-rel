@@ -1,4 +1,8 @@
-import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import {
+	ChatInputCommandInteraction,
+	EmbedBuilder,
+	MessageFlags,
+} from "discord.js";
 import { logger } from "@sparta/utils";
 import * as dotenv from "dotenv";
 import { l2InfoService } from "../../services/l2-info-service";
@@ -13,7 +17,9 @@ export async function getValidatorStats(
 	interaction: ChatInputCommandInteraction
 ) {
 	try {
-		await interaction.deferReply();
+		await interaction.deferReply({
+			flags: MessageFlags.Ephemeral,
+		});
 
 		// Get address from options directly instead of using the validator
 		const addressOption = interaction.options.getString("address");

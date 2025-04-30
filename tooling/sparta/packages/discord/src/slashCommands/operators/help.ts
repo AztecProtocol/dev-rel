@@ -4,7 +4,11 @@
  * @module sparta/discord/roles/operators/help
  */
 
-import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import {
+	ChatInputCommandInteraction,
+	EmbedBuilder,
+	MessageFlags,
+} from "discord.js";
 import { logger } from "@sparta/utils";
 import { NodeOperatorSubcommands } from "../../types.js";
 
@@ -15,7 +19,9 @@ export async function showOperatorHelp(
 	interaction: ChatInputCommandInteraction
 ): Promise<string> {
 	try {
-		await interaction.deferReply();
+		await interaction.deferReply({
+			flags: MessageFlags.Ephemeral,
+		});
 
 		// Create a formatted embed for the command help
 		const helpEmbed = new EmbedBuilder()

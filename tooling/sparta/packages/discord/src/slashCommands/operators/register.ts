@@ -1,4 +1,8 @@
-import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
+import {
+	ChatInputCommandInteraction,
+	EmbedBuilder,
+	MessageFlags,
+} from "discord.js";
 import { logger } from "@sparta/utils";
 import { l2InfoService } from "../../services/l2-info-service";
 import { clientPromise } from "../../api/axios";
@@ -63,7 +67,9 @@ export async function registerValidator(
 	interaction: ChatInputCommandInteraction
 ): Promise<string> {
 	try {
-		await interaction.deferReply();
+		await interaction.deferReply({
+			flags: MessageFlags.Ephemeral,
+		});
 
 		// Get parameters from the command options
 		const address = interaction.options.getString("address");
