@@ -7,7 +7,7 @@ import {
 } from "../../types.js";
 import { getValidatorStats } from "./my-info.js";
 import { registerValidator } from "./register.js";
-import { showOperatorHelp } from "./help.js";
+import { showRegistrationHelp } from "./help.js";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -32,26 +32,24 @@ export default {
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName(NodeOperatorSubcommands.Start)
-				.setDescription(
-					"Register your validator or get registration instructions"
-				)
+				.setDescription("Register your validator")
 				.addStringOption((option) =>
 					option
 						.setName("address")
 						.setDescription("Your validator address")
-						.setRequired(false)
+						.setRequired(true)
 				)
 				.addStringOption((option) =>
 					option
 						.setName("block-number")
 						.setDescription("Block number for verification")
-						.setRequired(false)
+						.setRequired(true)
 				)
 				.addStringOption((option) =>
 					option
 						.setName("proof")
 						.setDescription("Your sync proof")
-						.setRequired(false)
+						.setRequired(true)
 				)
 		)
 		.addSubcommand((subcommand) =>
@@ -73,7 +71,7 @@ export default {
 					await registerValidator(interaction);
 					break;
 				case NodeOperatorSubcommands.Help:
-					await showOperatorHelp(interaction);
+					await showRegistrationHelp(interaction);
 					break;
 				default:
 					await interaction.editReply({

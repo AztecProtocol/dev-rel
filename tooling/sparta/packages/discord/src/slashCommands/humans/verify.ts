@@ -34,6 +34,8 @@ export async function handleVerifyCommand(
 	interaction: ChatInputCommandInteraction
 ): Promise<void> {
 	try {
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
 		const userId = interaction.user.id;
 		const interactionToken = interaction.token;
 		const verificationId = randomUUID();
