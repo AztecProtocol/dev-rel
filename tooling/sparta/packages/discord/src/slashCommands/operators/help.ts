@@ -47,7 +47,7 @@ export async function showOperatorHelp(
 					inline: false,
 				},
 				{
-					name: `/operator ${NodeOperatorSubcommands.Register}`,
+					name: `/operator ${NodeOperatorSubcommands.Start}`,
 					value: "Register your validator node on the discord server\n• Run without parameters for detailed registration instructions\n• Or use with:\n`address` - Your validator address\n`block-number` - Block number for verification\n`proof` - Your sync proof",
 					inline: false,
 				},

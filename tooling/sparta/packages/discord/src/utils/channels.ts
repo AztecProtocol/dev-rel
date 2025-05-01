@@ -12,6 +12,7 @@ import { TextChannel } from "discord.js";
 export const CHANNELS = {
 	MOD_BOT: { name: "mod-bot", id: "1367117045963161685" },
 	BOT_TEST: { name: "bot-test", id: "1329081299490570296" },
+	OPERATORS_START_HERE: { name: "operators | start-here", id: "1367196595866828982" },
 };
 
 /**

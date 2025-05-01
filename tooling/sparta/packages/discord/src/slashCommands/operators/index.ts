@@ -31,7 +31,7 @@ export default {
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
-				.setName(NodeOperatorSubcommands.Register)
+				.setName(NodeOperatorSubcommands.Start)
 				.setDescription(
 					"Register your validator or get registration instructions"
 				)
@@ -69,7 +69,7 @@ export default {
 				case NodeOperatorSubcommands.ChainInfo:
 					await getChainInfo(interaction);
 					break;
-				case NodeOperatorSubcommands.Register:
+				case NodeOperatorSubcommands.Start:
 					await registerValidator(interaction);
 					break;
 				case NodeOperatorSubcommands.Help:

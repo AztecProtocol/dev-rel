@@ -23,7 +23,7 @@ export enum NodeOperatorSubcommandGroups {
 export enum NodeOperatorSubcommands {
 	ChainInfo = "chain-info",
 	MyStats = "my-stats",
-	Register = "register",
+	Start = "start",
 	Help = "help",
 }
 
