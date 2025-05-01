@@ -6,16 +6,10 @@ import { getDiscordInstance } from "@sparta/discord/src/clients/discord.js";
 import { logger } from "@sparta/utils";
 import path from "path"; // Import path module
 import { fileURLToPath } from "url"; // Import fileURLToPath for ES modules
-import { initializeUserRepository } from "./db/userRepository.js";
-// @ts-ignore
-import { initApiServer } from "../../vite/src/api/axios";
 
 // Define __dirname for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
-// Initialize the User repository
-initializeUserRepository();
 
 let allowedOrigins: string[] = [];
 const corsAllowedOriginsEnv = process.env.CORS_ALLOWED_ORIGINS;

@@ -6,7 +6,7 @@
 
 import express, { type Request, type Response } from "express";
 import { logger } from "@sparta/utils/index.js";
-import { extendedDynamoDB } from "../../db/userRepository.js";
+import { userRepository } from "../../db/userRepository.js";
 import { apiKeyMiddleware } from "../../middlewares/auth.js";
 
 const router = express.Router();
@@ -187,7 +187,7 @@ router.use(apiKeyMiddleware);
  */
 router.get("/", async (_req: Request, res: Response) => {
 	try {
-		const users = await extendedDynamoDB.getAllUsers();
+		const users = await userRepository.getAllUsers();
 
 		return res.status(200).json({
 			success: true,
@@ -259,12 +259,12 @@ router.get("/discord/:discordUserId", async (req: Request, res: Response) => {
 			});
 		}
 
-		const user = await extendedDynamoDB.getUser(discordUserId);
+		const user = await userRepository.getUser(discordUserId);
 
 		if (!user) {
-			return res.status(404).json({
-				success: false,
-				error: "User not found",
+			return res.status(200).json({
+				success: true,
+				user: null,
 			});
 		}
 
@@ -346,7 +346,7 @@ router.get("/wallet/:walletAddress", async (req: Request, res: Response) => {
 		}
 
 		// Check if this wallet is already registered to another user
-		const existingUser = await extendedDynamoDB.getUserByWalletAddress(
+		const existingUser = await userRepository.getUserByWalletAddress(
 			walletAddress
 		);
 
@@ -447,6 +447,7 @@ router.get("/wallet/:walletAddress", async (req: Request, res: Response) => {
  */
 router.post("/", async (req: Request, res: Response) => {
 	try {
+		logger.debug(JSON.stringify(req.body), "Request body");
 		const {
 			discordUserId,
 			discordUsername,
@@ -455,19 +456,12 @@ router.post("/", async (req: Request, res: Response) => {
 			humanPassport,
 		} = req.body;
 
-		logger.debug(
-			{
-				discordUserId,
-				discordUsername,
-				walletAddress,
-				role,
-				humanPassport,
-			},
-			"Creating user in route"
-		);
-
 		// Validate required fields
 		if (!discordUserId || !discordUsername) {
+			logger.error(
+				{ discordUserId, discordUsername },
+				"Missing required fields: discordUserId and discordUsername are required"
+			);
 			return res.status(400).json({
 				success: false,
 				error: "Missing required fields: discordUserId and discordUsername are required",
@@ -475,8 +469,12 @@ router.post("/", async (req: Request, res: Response) => {
 		}
 
 		// Check if this Discord user already exists
-		const existingUser = await extendedDynamoDB.getUser(discordUserId);
+		const existingUser = await userRepository.getUser(discordUserId);
 		if (existingUser) {
+			logger.error(
+				{ discordUserId, discordUsername },
+				"User with this Discord ID already exists"
+			);
 			return res.status(400).json({
 				success: false,
 				error: "User with this Discord ID already exists",
@@ -486,9 +484,14 @@ router.post("/", async (req: Request, res: Response) => {
 
 		// Check if wallet address is already in use by another user (if provided)
 		if (walletAddress) {
-			const existingWallet =
-				await extendedDynamoDB.getUserByWalletAddress(walletAddress);
+			const existingWallet = await userRepository.getUserByWalletAddress(
+				walletAddress
+			);
 			if (existingWallet) {
+				logger.error(
+					{ discordUserId, discordUsername },
+					"Wallet address already in use"
+				);
 				return res.status(400).json({
 					success: false,
 					error: "This wallet address is already registered to another Discord user",
@@ -509,8 +512,7 @@ router.post("/", async (req: Request, res: Response) => {
 			updatedAt: timestamp,
 		};
 
-		logger.debug({ newUser }, "Creating user in route");
-		const created = await extendedDynamoDB.createUser(newUser);
+		const created = await userRepository.createUser(newUser);
 
 		if (!created) {
 			return res.status(500).json({
@@ -631,7 +633,7 @@ router.put("/discord/:discordUserId", async (req: Request, res: Response) => {
 		}
 
 		// Find the user
-		const user = await extendedDynamoDB.getUser(discordUserId);
+		const user = await userRepository.getUser(discordUserId);
 
 		if (!user) {
 			return res.status(404).json({
@@ -645,10 +647,9 @@ router.put("/discord/:discordUserId", async (req: Request, res: Response) => {
 			updates.walletAddress &&
 			updates.walletAddress !== user.walletAddress
 		) {
-			const existingWallet =
-				await extendedDynamoDB.getUserByWalletAddress(
-					updates.walletAddress
-				);
+			const existingWallet = await userRepository.getUserByWalletAddress(
+				updates.walletAddress
+			);
 
 			if (
 				existingWallet &&
@@ -666,10 +667,7 @@ router.put("/discord/:discordUserId", async (req: Request, res: Response) => {
 		updates.updatedAt = Date.now();
 
 		// Update the user
-		const updated = await extendedDynamoDB.updateUser(
-			discordUserId,
-			updates
-		);
+		const updated = await userRepository.updateUser(discordUserId, updates);
 
 		if (!updated) {
 			return res.status(500).json({
@@ -679,7 +677,7 @@ router.put("/discord/:discordUserId", async (req: Request, res: Response) => {
 		}
 
 		// Get the updated user
-		const updatedUser = await extendedDynamoDB.getUser(discordUserId);
+		const updatedUser = await userRepository.getUser(discordUserId);
 
 		return res.status(200).json({
 			success: true,
@@ -762,7 +760,7 @@ router.delete(
 			}
 
 			// Check if user exists
-			const user = await extendedDynamoDB.getUser(discordUserId);
+			const user = await userRepository.getUser(discordUserId);
 
 			if (!user) {
 				return res.status(404).json({
@@ -772,7 +770,7 @@ router.delete(
 			}
 
 			// Delete the user
-			const deleted = await extendedDynamoDB.deleteUser(discordUserId);
+			const deleted = await userRepository.deleteUser(discordUserId);
 
 			if (!deleted) {
 				return res.status(500).json({
@@ -870,7 +868,7 @@ router.get(
 				});
 			}
 
-			const user = await extendedDynamoDB.getUserByVerificationId(
+			const user = await userRepository.getUserByVerificationId(
 				verificationId
 			);
 

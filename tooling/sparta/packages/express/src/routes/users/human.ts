@@ -16,12 +16,8 @@ import {
 import { EmbedBuilder } from "discord.js";
 import { _handleUserRoleAssignment } from "@sparta/discord/src/utils/roleAssigner.js";
 import { DiscordService } from "@sparta/discord/src/services/discord-service.js";
-import {
-	initializeUserRepository,
-	extendedDynamoDB,
-} from "../../db/userRepository.js";
+import { userRepository } from "../../db/userRepository.js";
 import { validateVerification } from "../../middlewares/humanPassport.js";
-import { apiKeyMiddleware } from "../../middlewares/auth.js";
 import {
 	_handleScoring,
 	_updateUserVerificationStatus,
@@ -149,9 +145,6 @@ import {
  *         - minimumScore
  */
 
-// Initialize the User repository so we have access to createUser
-initializeUserRepository();
-
 // Define the verification status
 
 const router = express.Router();
@@ -175,7 +168,7 @@ async function _handleSignatureRecovery(
 		});
 
 		// Find and update the user with the human passport data
-		const user = await extendedDynamoDB.getUserByVerificationId(
+		const user = await userRepository.getUserByVerificationId(
 			verificationId
 		);
 
@@ -393,7 +386,7 @@ router.post(
 				verificationId: verificationId, // Ensure verificationId is persisted
 			};
 
-			await extendedDynamoDB.updateUser(user.discordUserId, {
+			await userRepository.updateUser(user.discordUserId, {
 				humanPassport,
 				walletAddress: recoveredAddress, // Ensure wallet is updated
 				role: finalDbRole, // Use the role determined by assignment success
@@ -521,7 +514,7 @@ router.get("/score", async (req: Request, res: Response) => {
 
 	try {
 		// Check if there's a user with this verification ID
-		const user = await extendedDynamoDB.getUserByVerificationId(
+		const user = await userRepository.getUserByVerificationId(
 			verificationId
 		);
 		if (!user) {

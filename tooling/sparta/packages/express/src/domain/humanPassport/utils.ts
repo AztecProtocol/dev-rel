@@ -1,4 +1,4 @@
-import { extendedDynamoDB } from "@sparta/express/db/userRepository";
+import { userRepository } from "@sparta/express/db/userRepository";
 import { PassportService } from "./service";
 import { logger } from "@sparta/utils/logger";
 import { VERIFICATION_STATUS } from "@sparta/utils/const.js";
@@ -21,7 +21,7 @@ export async function _updateUserVerificationStatus(
 	status: string
 ): Promise<boolean> {
 	try {
-		const user = await extendedDynamoDB.getUserByVerificationId(
+		const user = await userRepository.getUserByVerificationId(
 			verificationId
 		);
 		if (!user) {
@@ -38,7 +38,7 @@ export async function _updateUserVerificationStatus(
 			status: status,
 		};
 
-		await extendedDynamoDB.updateUser(user.discordUserId, {
+		await userRepository.updateUser(user.discordUserId, {
 			humanPassport,
 			updatedAt: Date.now(),
 		});
@@ -96,7 +96,7 @@ export async function _handleScoring(
 	const verified = score >= parseFloat(process.env.MINIMUM_SCORE || "0");
 
 	// Find and update the user
-	const user = await extendedDynamoDB.getUserByVerificationId(verificationId);
+	const user = await userRepository.getUserByVerificationId(verificationId);
 	if (user) {
 		// Create or update humanPassport object
 		const humanPassport: HumanPassport = {
@@ -106,7 +106,7 @@ export async function _handleScoring(
 			lastVerificationTime: lastScoreTimestamp,
 		};
 
-		await extendedDynamoDB.updateUser(user.discordUserId, {
+		await userRepository.updateUser(user.discordUserId, {
 			humanPassport,
 			updatedAt: Date.now(),
 		});

@@ -18,6 +18,7 @@ import { randomUUID } from "crypto";
 import { VERIFICATION_STATUS } from "@sparta/utils/const";
 import { getDiscordInstance } from "../../clients/discord";
 import { HumanSubcommands } from "../../types.js";
+import { clientPromise } from "../../api/axios";
 
 /**
  * Command definition for the verify subcommand
@@ -40,33 +41,29 @@ export async function handleVerifyCommand(
 		let discordUsername = interaction.user.username;
 
 		// Get API client
-		const discord = await getDiscordInstance();
-		const apiProvider = discord.getApiProvider();
-		const client = apiProvider.getClient();
+		const client = await clientPromise;
 
 		logger.debug(
 			{ userId, interactionToken, verificationId },
 			"Verify command"
 		);
 
-		// Check if the user already exists
-		const userResponse = await client.getUserByDiscordId({
-			discordUserId: userId,
-		});
-
 		try {
-			logger.debug({ userResponse }, "User response");
+			// Check if the user already exists
+			const { data } = await client.getUserByDiscordId({
+				discordUserId: userId,
+			});
 
-			const user = userResponse.data.user;
+			logger.debug({ data }, "User response");
 
-			if (user) {
+			if (data.user) {
 				// Update existing user
 				await client.updateUser(
 					{ discordUserId: userId },
 					{
 						humanPassport: {
 							status:
-								user.humanPassport?.status ||
+								data.user.humanPassport?.status ||
 								VERIFICATION_STATUS.NOT_VERIFIED,
 							verificationId,
 							interactionToken,
@@ -79,6 +76,8 @@ export async function handleVerifyCommand(
 					"Updated user verification data"
 				);
 			} else {
+				logger.info("User not found, creating new user");
+
 				// Create a new user
 				const timestamp = Date.now();
 
@@ -96,22 +95,23 @@ export async function handleVerifyCommand(
 					},
 				});
 
-				await client.createUser({
-					discordUserId: userId,
-					discordUsername,
-					walletAddress: undefined,
-					role: undefined,
-					humanPassport: {
-						//@ts-ignore
-						status: VERIFICATION_STATUS.NOT_VERIFIED,
-						verificationId,
-						interactionToken,
-						lastVerificationTime: null,
-						score: null,
-					},
-					createdAt: timestamp,
-					updatedAt: timestamp,
-				});
+				await client.createUser(
+					{},
+					{
+						discordUserId: userId,
+						discordUsername,
+						walletAddress: undefined,
+						role: undefined,
+						humanPassport: {
+							//@ts-ignore
+							status: VERIFICATION_STATUS.NOT_VERIFIED,
+							verificationId,
+							interactionToken,
+							lastVerificationTime: null,
+							score: null,
+						},
+					}
+				);
 
 				logger.info(
 					{ userId, verificationId },

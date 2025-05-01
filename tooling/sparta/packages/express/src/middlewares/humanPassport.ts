@@ -6,7 +6,7 @@
 
 import { type Request, type Response, type NextFunction } from "express";
 import { logger } from "@sparta/utils/index.js";
-import { extendedDynamoDB } from "../db/userRepository.js";
+import { userRepository } from "../db/userRepository.js";
 import type { User } from "../routes/users/users.js";
 
 /**
@@ -34,7 +34,7 @@ export const validateVerification = async (
 
 		console.log(`Validating verification with ID: ${verificationId}`);
 
-		const user = await extendedDynamoDB.getUserByVerificationId(
+		const user = await userRepository.getUserByVerificationId(
 			verificationId
 		);
 

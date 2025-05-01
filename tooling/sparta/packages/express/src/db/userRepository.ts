@@ -12,44 +12,38 @@ import {
 	DeleteCommand,
 	QueryCommand,
 	ScanCommand,
+	DynamoDBDocumentClient,
 } from "@aws-sdk/lib-dynamodb";
 import type { User } from "../routes/users/users.js";
 import DynamoDBService from "@sparta/utils/dynamo-db.js";
 
-// Type for extended DynamoDB with user methods
-interface ExtendedDynamoDB {
-	getUser(discordUserId: string): Promise<User | null>;
-	getUserByVerificationId(verificationId: string): Promise<User | null>;
-	getUserByWalletAddress(walletAddress: string): Promise<User | null>;
-	getAllUsers(): Promise<User[]>;
-	createUser(user: User): Promise<User | null>;
-	updateUser(discordUserId: string, updates: Partial<User>): Promise<boolean>;
-	deleteUser(discordUserId: string): Promise<boolean>;
-	getClient(): any;
-}
-
 const USERS_TABLE_NAME = process.env.USERS_TABLE_NAME || "users";
 
 // Instantiate the shared service for the users table
-const dynamoDB = new DynamoDBService(USERS_TABLE_NAME);
+const dynamoDBService = new DynamoDBService(USERS_TABLE_NAME);
 
-const extendedDynamoDB = dynamoDB as unknown as ExtendedDynamoDB;
+export class UserRepository {
+	private client: DynamoDBDocumentClient;
+	private tableName: string;
 
-logger.info("dynamoDB config", dynamoDB.getClient().config);
+	constructor() {
+		this.tableName = USERS_TABLE_NAME;
+		// Get the client instance from the shared service
+		this.client = dynamoDBService.getClient();
+		logger.info(
+			`UserRepository initialized using shared DynamoDBService for table: ${this.tableName}`
+		);
+	}
 
-// Extend the DynamoDB service with user operations
-export function extendDynamoDBWithUserMethods(): void {
 	// Get user by Discord ID
-	extendedDynamoDB.getUser = async (
-		discordUserId: string
-	): Promise<User | null> => {
+	async getUser(discordUserId: string): Promise<User | null> {
 		try {
 			const command = new GetCommand({
-				TableName: process.env.USERS_TABLE_NAME || "users",
+				TableName: this.tableName,
 				Key: { discordUserId },
 			});
 
-			const response = await dynamoDB.getClient().send(command);
+			const response = await this.client.send(command);
 			return (response.Item as User) || null;
 		} catch (error: any) {
 			logger.error(
@@ -58,15 +52,15 @@ export function extendDynamoDBWithUserMethods(): void {
 			);
 			return null;
 		}
-	};
+	}
 
 	// Get user by verification ID - uses the flattened verificationId index
-	extendedDynamoDB.getUserByVerificationId = async (
+	async getUserByVerificationId(
 		verificationId: string
-	): Promise<User | null> => {
+	): Promise<User | null> {
 		try {
 			const command = new QueryCommand({
-				TableName: process.env.USERS_TABLE_NAME || "users",
+				TableName: this.tableName,
 				IndexName: "verificationId-index",
 				KeyConditionExpression: "verificationId = :verificationId",
 				ExpressionAttributeValues: {
@@ -74,7 +68,7 @@ export function extendDynamoDBWithUserMethods(): void {
 				},
 			});
 
-			const response = await dynamoDB.getClient().send(command);
+			const response = await this.client.send(command);
 
 			if (!response.Items || response.Items.length === 0) {
 				return null;
@@ -92,18 +86,16 @@ export function extendDynamoDBWithUserMethods(): void {
 			);
 			return null;
 		}
-	};
+	}
 
 	// Get user by wallet address
-	extendedDynamoDB.getUserByWalletAddress = async (
-		walletAddress: string
-	): Promise<User | null> => {
+	async getUserByWalletAddress(walletAddress: string): Promise<User | null> {
 		try {
 			// Normalize wallet address (lowercase)
 			const normalizedAddress = walletAddress.toLowerCase();
 
 			const command = new QueryCommand({
-				TableName: process.env.USERS_TABLE_NAME || "users",
+				TableName: this.tableName,
 				IndexName: "walletAddress-index", // This assumes a GSI on walletAddress
 				KeyConditionExpression: "walletAddress = :walletAddress",
 				ExpressionAttributeValues: {
@@ -111,7 +103,7 @@ export function extendDynamoDBWithUserMethods(): void {
 				},
 			});
 
-			const response = await dynamoDB.getClient().send(command);
+			const response = await this.client.send(command);
 
 			if (response.Items && response.Items.length > 0) {
 				return response.Items[0] as User;
@@ -125,25 +117,25 @@ export function extendDynamoDBWithUserMethods(): void {
 			);
 			return null;
 		}
-	};
+	}
 
 	// Get all users
-	extendedDynamoDB.getAllUsers = async (): Promise<User[]> => {
+	async getAllUsers(): Promise<User[]> {
 		try {
 			const command = new ScanCommand({
-				TableName: process.env.USERS_TABLE_NAME || "users",
+				TableName: this.tableName,
 			});
 
-			const response = await dynamoDB.getClient().send(command);
+			const response = await this.client.send(command);
 			return (response.Items as User[]) || [];
 		} catch (error: any) {
 			logger.error({ error: error.message }, "Error getting all users");
 			return [];
 		}
-	};
+	}
 
 	// Create a new user
-	extendedDynamoDB.createUser = async (user: User): Promise<User | null> => {
+	async createUser(user: User): Promise<User | null> {
 		try {
 			// Create a clean version of the user object for DynamoDB
 			const dynamoUser: any = { ...user };
@@ -159,6 +151,12 @@ export function extendDynamoDBWithUserMethods(): void {
 
 			// Handle humanPassport fields - remove any null values to ensure proper indexing
 			if (dynamoUser.humanPassport) {
+				logger.debug(
+					{
+						dynamoUser: dynamoUser.humanPassport,
+					},
+					"Human passport in createUser"
+				);
 				const cleanHumanPassport: Record<string, any> = {};
 
 				// Only keep non-null values
@@ -186,26 +184,24 @@ export function extendDynamoDBWithUserMethods(): void {
 			}
 
 			const command = new PutCommand({
-				TableName: process.env.USERS_TABLE_NAME || "users",
+				TableName: this.tableName,
 				Item: dynamoUser,
 				ConditionExpression: "attribute_not_exists(discordUserId)",
 			});
 
-			logger.debug({ command }, "Creating user in repository");
-
-			await dynamoDB.getClient().send(command);
+			await this.client.send(command);
 			return user;
 		} catch (error: any) {
 			logger.error({ error: error.message, user }, "Error creating user");
 			return null;
 		}
-	};
+	}
 
 	// Update a user
-	extendedDynamoDB.updateUser = async (
+	async updateUser(
 		discordUserId: string,
 		updates: Partial<User>
-	): Promise<boolean> => {
+	): Promise<boolean> {
 		try {
 			// Build update and remove expressions
 			const updateExpressions: string[] = [];
@@ -289,7 +285,7 @@ export function extendDynamoDBWithUserMethods(): void {
 			}
 
 			const command = new UpdateCommand({
-				TableName: process.env.USERS_TABLE_NAME || "users",
+				TableName: this.tableName,
 				Key: { discordUserId },
 				UpdateExpression: updateExpression,
 				ExpressionAttributeNames: expressionAttributeNames,
@@ -297,7 +293,7 @@ export function extendDynamoDBWithUserMethods(): void {
 				ReturnValues: "UPDATED_NEW",
 			});
 
-			await dynamoDB.getClient().send(command);
+			await this.client.send(command);
 			return true;
 		} catch (error: any) {
 			logger.error(
@@ -306,19 +302,17 @@ export function extendDynamoDBWithUserMethods(): void {
 			);
 			return false;
 		}
-	};
+	}
 
 	// Delete a user
-	extendedDynamoDB.deleteUser = async (
-		discordUserId: string
-	): Promise<boolean> => {
+	async deleteUser(discordUserId: string): Promise<boolean> {
 		try {
 			const command = new DeleteCommand({
-				TableName: process.env.USERS_TABLE_NAME || "users",
+				TableName: this.tableName,
 				Key: { discordUserId },
 			});
 
-			await dynamoDB.getClient().send(command);
+			await this.client.send(command);
 			return true;
 		} catch (error: any) {
 			logger.error(
@@ -327,14 +321,8 @@ export function extendDynamoDBWithUserMethods(): void {
 			);
 			return false;
 		}
-	};
+	}
 }
 
-// Export the extended dynamoDB for use in other modules
-export { extendedDynamoDB };
-
-// Export function to initialize - this will be called during app startup
-export function initializeUserRepository(): void {
-	extendDynamoDBWithUserMethods();
-	logger.info("User repository initialized");
-}
+// Export a singleton instance of the repository
+export const userRepository = new UserRepository();

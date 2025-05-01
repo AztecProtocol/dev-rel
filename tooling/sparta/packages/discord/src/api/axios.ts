@@ -1,12 +1,13 @@
-import { OpenAPIClientAxios } from "openapi-client-axios";
-import { apiDocs } from "@sparta/utils";
-import { type Client } from "@sparta/utils/openapi/types";
+// packages/vite/src/api/axios.ts
+import { type OpenAPIV3, OpenAPIClientAxios } from "openapi-client-axios";
+import spec from "@sparta/utils/openapi/api-docs.json";
+import type { Client } from "@sparta/utils/openapi/types";
 
 const apiInstance = new OpenAPIClientAxios({
-	// @ts-ignore
-	definition: apiDocs,
+	definition: spec as OpenAPIV3.Document,
+	// validate: false, // Invalid option, removed
 	axiosConfigDefaults: {
-		baseURL: process.env.VITE_APP_API_URL || "http://localhost:3000",
+		baseURL: process.env.VITE_APP_API_URL,
 		timeout: 10_000,
 		headers: {
 			"Content-Type": "application/json",
