@@ -8,11 +8,12 @@ terraform {
   required_version = ">= 1.0" # Specify minimum Terraform version
 
   backend "s3" {
-    bucket = "sparta-tf-state" # Ensure this bucket exists
+    bucket = "sparta-terraf-state" # Ensure this bucket exists
     region = "eu-west-2"
     key    = "production/terraform.tfstate"
   }
 }
+
 
 provider "aws" {
   region = var.aws_region

@@ -9,6 +9,7 @@ This package provides Discord bot functionality for the Sparta project. It commu
 - Role management commands
 - Human verification via Passport
 - Chain information queries
+- Node operator registration and monitoring
 
 ## Available Commands
 
@@ -19,8 +20,8 @@ The bot supports the following slash commands:
 | `/human`    | `verify`       | Verify your identity with Human Passport                                                         | None                                                 |
 | `/human`    | `status`       | Check your Human Passport verification status                                                    | None                                                 |
 | `/operator` | `chain-info`   | Get current chain information including pending/proven blocks, epoch, slot, and current proposer | None                                                 |
-| `/operator` | `my-info`      | Check validator statistics                                                                       | `address` (required): The validator address to check |
-| `/operator` | `register`     | Register as a validator and get the Apprentice role                                              | `address`, `block-number`, `proof`                   |
+| `/operator` | `my-stats`     | Check validator statistics                                                                       | `address` (required): The validator address to check |
+| `/operator` | `register`     | Register as a validator and get the Apprentice role                                              | `address` (optional): Your validator address<br>`block-number` (optional): Block number for verification<br>`proof` (optional): Your sync proof |
 | `/operator` | `help`         | Display operator commands and instructions                                                       | None                                                 |
 | `/mod`      | `help`         | Display all moderator commands and their descriptions in a table                                 | None                                                 |
 | `/mod`      | `is-in-set`    | Check if an address is in the validator set                                                      | `address` (required): The validator address to check |
@@ -43,7 +44,8 @@ Moderator commands (`/mod`) have the following restrictions:
 
 ### User Roles
 
-- **Apprentice** (ID: 1366916508072148992): Assigned to users who successfully register as validators
+- **Verified+**: Assigned to users who have successfully verified with Human Passport
+- **Apprentice**: Assigned to users who successfully register as validators
 
 ## Usage
 
