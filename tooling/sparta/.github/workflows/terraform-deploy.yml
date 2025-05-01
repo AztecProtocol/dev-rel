@@ -1,0 +1,66 @@
+name: Terraform Deploy
+
+on:
+    workflow_dispatch:
+
+permissions:
+    contents: read
+    pull-requests: write
+
+jobs:
+    terraform:
+        name: Terraform
+        runs-on: ubuntu-latest
+
+        env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            TF_VAR_bot_token: ${{ secrets.BOT_TOKEN }}
+            TF_VAR_passport_api_key: ${{ secrets.PASSPORT_API_KEY }}
+            TF_VAR_ethereum_host: ${{ secrets.ETHEREUM_HOST }}
+            TF_VAR_backend_api_key: ${{ secrets.BACKEND_API_KEY }}
+            TF_VAR_aws_region: "eu-west-2"
+            TF_VAR_environment: "production"
+            TF_VAR_bot_client_id: "1329079356785688616"
+            TF_VAR_guild_id: "1144692727120937080"
+            TF_VAR_passport_verified_role_id: "1364982673604345886"
+            TF_VAR_minimum_score: "10"
+            TF_VAR_passport_scorer_id: "11493"
+            TF_VAR_vite_reown_project_id: "d037e9da5c5c9b24cfcd94c509d88dce"
+            TF_VAR_staking_asset_handler_address: "0xF739D03e98e23A7B65940848aBA8921fF3bAc4b2"
+            TF_VAR_l1_chain_id: "11155111"
+            TF_VAR_local_dynamo_db: "false"
+            TF_VAR_dynamodb_local_endpoint: "http://localhost:8000"
+            TF_VAR_log_level: "info"
+            TF_VAR_log_pretty_print: "false"
+            TF_VAR_api_port: "3000"
+
+        defaults:
+            run:
+                working-directory: tooling/sparta/terraform
+
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v3
+              with:
+                  terraform_version: 1.5.7
+
+            - name: Terraform Init
+              id: init
+              run: terraform init
+
+            - name: Terraform Format
+              id: fmt
+              run: terraform fmt -check
+              continue-on-error: true
+
+            - name: Terraform Validate
+              id: validate
+              run: terraform validate
+
+            - name: Terraform Apply
+              run: |
+                  terraform apply -auto-approve

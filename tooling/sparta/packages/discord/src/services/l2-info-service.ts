@@ -318,7 +318,7 @@ export class L2InfoService {
 		}
 
 		const tip = await this.getL2Tips();
-		if (Number(tip) > Number(blockNumber) + 20) {
+		if (Number(tip) > Number(blockNumber) + 100) {
 			throw new Error("Proof is too old");
 		}
 

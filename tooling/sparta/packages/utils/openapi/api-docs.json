@@ -1081,11 +1081,6 @@
           "Users"
         ],
         "operationId": "verifySignature",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
         "parameters": [
           {
             "in": "query",
@@ -1140,16 +1135,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
           "404": {
             "description": "Verification not found",
             "content": {
@@ -1181,11 +1166,6 @@
           "Users"
         ],
         "operationId": "getScore",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
         "parameters": [
           {
             "in": "query",
@@ -1219,16 +1199,6 @@
           },
           "400": {
             "description": "Bad request (missing parameters)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
             "content": {
               "application/json": {
                 "schema": {

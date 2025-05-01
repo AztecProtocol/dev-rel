@@ -502,7 +502,6 @@ declare namespace Paths {
         namespace Responses {
             export type $200 = Components.Schemas.ScoreResponse;
             export type $400 = Components.Schemas.Error;
-            export type $401 = Components.Schemas.Error;
             export type $404 = Components.Schemas.Error;
             export type $500 = Components.Schemas.Error;
         }
@@ -636,7 +635,6 @@ declare namespace Paths {
         namespace Responses {
             export type $200 = Components.Schemas.VerifyResponse;
             export type $400 = Components.Schemas.Error;
-            export type $401 = Components.Schemas.Error;
             export type $404 = Components.Schemas.Error;
             export type $500 = Components.Schemas.Error;
         }
