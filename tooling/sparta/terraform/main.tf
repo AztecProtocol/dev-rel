@@ -492,7 +492,7 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "L1_CHAIN_ID", value = var.l1_chain_id },
         { name = "LOG_LEVEL", value = var.log_level },
         { name = "LOG_PRETTY_PRINT", value = var.log_pretty_print ? "true" : "false" },
-        { name = "VITE_APP_API_URL", value = "http://${aws_lb.sparta_alb.dns_name}" },
+        { name = "VITE_APP_API_URL", value = "http://${aws_lb.sparta_alb.dns_name}/api" },
         { name = "CORS_ALLOWED_ORIGINS", value = "http://${aws_lb.sparta_alb.dns_name}" },
         { name = "USERS_TABLE_NAME", value = aws_dynamodb_table.sparta_users.name },
         { name = "NODE_OPERATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_node_operators.name }
