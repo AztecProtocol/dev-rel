@@ -49,12 +49,12 @@ export async function handleVerifyCommand(
 			"Verify command"
 		);
 
-		try {
-			// Check if the user already exists
-			const userResponse = await client.getUserByDiscordId({
-				discordUserId: userId,
-			});
+		// Check if the user already exists
+		const userResponse = await client.getUserByDiscordId({
+			discordUserId: userId,
+		});
 
+		try {
 			logger.debug({ userResponse }, "User response");
 
 			const user = userResponse.data.user;

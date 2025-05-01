@@ -250,6 +250,8 @@ router.get("/discord/:discordUserId", async (req: Request, res: Response) => {
 	try {
 		const { discordUserId } = req.params;
 
+		logger.debug({ discordUserId }, "Getting user by Discord ID");
+
 		if (!discordUserId) {
 			return res.status(400).json({
 				success: false,
