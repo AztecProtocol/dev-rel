@@ -34,8 +34,6 @@ export async function handleVerifyCommand(
 	interaction: ChatInputCommandInteraction
 ): Promise<void> {
 	try {
-		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-
 		const userId = interaction.user.id;
 		const interactionToken = interaction.token;
 		const verificationId = randomUUID();
@@ -145,10 +143,9 @@ export async function handleVerifyCommand(
 				logger.error(
 					"VITE_APP_API_URL environment variable is not set!"
 				);
-				await interaction.reply({
+				await interaction.editReply({
 					content:
 						"Configuration error. Please contact an administrator.",
-					flags: MessageFlags.Ephemeral,
 				});
 				return;
 			}
@@ -166,10 +163,9 @@ export async function handleVerifyCommand(
 			);
 
 			// Send the embed and button to the user
-			await interaction.reply({
+			await interaction.editReply({
 				embeds: [embed],
 				components: [row],
-				flags: MessageFlags.Ephemeral,
 			});
 
 			logger.info(
@@ -179,19 +175,17 @@ export async function handleVerifyCommand(
 		} catch (error: any) {
 			logger.error(error, "Error handling passport verify command");
 
-			await interaction.reply({
+			await interaction.editReply({
 				content:
 					"An error occurred while creating your verification session. Please try again later.",
-				flags: MessageFlags.Ephemeral,
 			});
 		}
 	} catch (error: any) {
 		logger.error(error, "Error handling passport verify command");
 
-		await interaction.reply({
+		await interaction.editReply({
 			content:
 				"An error occurred while creating your verification session. Please try again later.",
-			flags: MessageFlags.Ephemeral,
 		});
 	}
 }

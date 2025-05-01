@@ -41,6 +41,8 @@ async function execute(
 	interaction: ChatInputCommandInteraction
 ): Promise<string | undefined> {
 	try {
+		await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
 		const subcommand = interaction.options.getSubcommand();
 
 		switch (subcommand) {
@@ -63,9 +65,8 @@ async function execute(
 		logger.error(error, "Error executing human passport command");
 
 		if (!interaction.replied && !interaction.deferred) {
-			await interaction.reply({
+			await interaction.editReply({
 				content: "An error occurred while processing your command.",
-				flags: MessageFlags.Ephemeral,
 			});
 		}
 

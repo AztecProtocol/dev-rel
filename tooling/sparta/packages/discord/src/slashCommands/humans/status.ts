@@ -47,10 +47,9 @@ export async function handleStatusCommand(
 		const user = userResponse.data.user;
 
 		if (!user) {
-			await interaction.reply({
+			await interaction.editReply({
 				content:
 					"You haven't initiated verification yet. Use `/human verify` to get started.",
-				flags: MessageFlags.Ephemeral,
 			});
 			return;
 		}
@@ -116,25 +115,22 @@ export async function handleStatusCommand(
 				verifyButton
 			);
 
-			await interaction.reply({
+			await interaction.editReply({
 				embeds: [embed],
 				components: [row],
-				flags: MessageFlags.Ephemeral,
 			});
 			return;
 		}
 
-		await interaction.reply({
+		await interaction.editReply({
 			embeds: [embed],
-			flags: MessageFlags.Ephemeral,
 		});
 	} catch (error: any) {
 		logger.error(error, "Error handling passport status command");
 
-		await interaction.reply({
+		await interaction.editReply({
 			content:
 				"An error occurred while checking your verification status.",
-			flags: MessageFlags.Ephemeral,
 		});
 	}
 }
