@@ -453,6 +453,17 @@ router.post("/", async (req: Request, res: Response) => {
 			humanPassport,
 		} = req.body;
 
+		logger.debug(
+			{
+				discordUserId,
+				discordUsername,
+				walletAddress,
+				role,
+				humanPassport,
+			},
+			"Creating user in route"
+		);
+
 		// Validate required fields
 		if (!discordUserId || !discordUsername) {
 			return res.status(400).json({
