@@ -92,12 +92,12 @@ export async function showRegistrationHelp(
 			.addFields([
 				{
 					name: "📋 Step 1: Get the latest proven block number",
-					value: '```bash\ncurl -s -X POST -H \'Content-Type: application/json\' \\\n-d \'{"jsonrpc":"2.0","method":"node_getL2Tips","params":[],"id":67}\' \\\n<your-node>:<your-port> | jq -r ".result.proven.number"\n```\n• Replace `<your-node>:<your-port>` with your node\'s URL, for example `http://localhost:8545` or `https://mynode.example.com:8545`\n• Save this block number for the next steps\n• Example output: `12345`',
+					value: '```bash\ncurl -s -X POST -H \'Content-Type: application/json\' \\\n-d \'{"jsonrpc":"2.0","method":"node_getL2Tips","params":[],"id":67}\' \\\n<your-node>:<your-port> | jq -r ".result.proven.number"\n```\n• Replace `<your-node>:<your-port>` with your node\'s URL, for example `http://localhost:8080` or `https://mynode.example.com:8080`\n• Save this block number for the next steps\n• Example output: `12345`',
 					inline: false,
 				},
 				{
 					name: "🔍 Step 2: Generate your sync proof",
-					value: '```bash\ncurl -s -X POST -H \'Content-Type: application/json\' \\\n-d \'{"jsonrpc":"2.0","method":"node_getArchiveSiblingPath","params":["<block-number>","<block-number>"],"id":67}\' \\\n<your-node>:<your-port> | jq -r ".result"\n```\n• Replace `<your-node>:<your-port>` with the same URL you used in Step 1\n• Replace both instances of `<block-number>` with the number from Step 1 (example: 12345)\n• This will output a long base64-encoded string - copy it completely\n• Example command with values filled in:\n```bash\ncurl -s -X POST -H \'Content-Type: application/json\' \\\n-d \'{"jsonrpc":"2.0","method":"node_getArchiveSiblingPath","params":["12345","12345"],"id":67}\' \\\nhttp://localhost:8545 | jq -r ".result"\n```',
+					value: '```bash\ncurl -s -X POST -H \'Content-Type: application/json\' \\\n-d \'{"jsonrpc":"2.0","method":"node_getArchiveSiblingPath","params":["<block-number>","<block-number>"],"id":67}\' \\\n<your-node>:<your-port> | jq -r ".result"\n```\n• Replace `<your-node>:<your-port>` with the same URL you used in Step 1\n• Replace both instances of `<block-number>` with the number from Step 1 (example: 12345)\n• This will output a long base64-encoded string - copy it completely\n• Example command with values filled in:\n```bash\ncurl -s -X POST -H \'Content-Type: application/json\' \\\n-d \'{"jsonrpc":"2.0","method":"node_getArchiveSiblingPath","params":["12345","12345"],"id":67}\' \\\nhttp://localhost:8080 | jq -r ".result"\n```',
 					inline: false,
 				},
 				{
