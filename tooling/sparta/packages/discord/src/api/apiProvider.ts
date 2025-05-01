@@ -1,6 +1,5 @@
 import { clientPromise } from "./axios";
 import type { Client as ApiClient } from "@sparta/utils/openapi/types";
-import { logger } from "@sparta/utils";
 
 /**
  * Singleton class to provide access to the API client
@@ -31,23 +30,11 @@ export class ApiProvider {
 		if (this.client) return; // Already initialized
 
 		try {
-			logger.info("Initializing API client");
 			this.client = await clientPromise;
-			logger.info("API client initialized successfully");
 			this.error = null;
 		} catch (err) {
 			this.error = err instanceof Error ? err : new Error(String(err));
-			logger.error(
-				{
-					error: this.error,
-					message: this.error.message,
-					stack: this.error.stack,
-					apiUrl:
-						process.env.VITE_APP_API_URL || "http://localhost:3000",
-					apiKeyPresent: !!process.env.BACKEND_API_KEY,
-				},
-				"ApiProvider: Failed to initialize client"
-			);
+			console.error("ApiProvider: Failed to initialize client:", err);
 		}
 	}
 
@@ -57,11 +44,7 @@ export class ApiProvider {
 	 */
 	public getClient(): ApiClient {
 		if (!this.client) {
-			const error = new Error(
-				"API client not initialized. Call init() first."
-			);
-			logger.error({ error }, "Failed to get API client");
-			throw error;
+			throw new Error("API client not initialized. Call init() first.");
 		}
 		return this.client;
 	}

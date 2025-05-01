@@ -45,16 +45,6 @@ export async function handleVerifyCommand(
 		const client = apiProvider.getClient();
 
 		try {
-			// Log API configuration for debugging
-			const apiConfig = {
-				baseUrl:
-					process.env.VITE_APP_API_URL || "http://localhost:3000",
-				apiPath: `/api/users/discord/${userId}`,
-				hasApiKey: !!process.env.BACKEND_API_KEY,
-				apiKeyLength: process.env.BACKEND_API_KEY?.length,
-			};
-			logger.info({ apiConfig }, "API client configuration");
-
 			// Check if the user already exists
 			const userResponse = await client.getUserByDiscordId({
 				discordUserId: userId,
@@ -145,19 +135,7 @@ export async function handleVerifyCommand(
 				return;
 			}
 
-			// Ensure the URL has the correct format
-			let verificationUrl = `${publicFrontendUrl}`;
-			if (verificationUrl.endsWith("/")) {
-				verificationUrl = `${verificationUrl}?verificationId=${verificationId}`;
-			} else {
-				verificationUrl = `${verificationUrl}/?verificationId=${verificationId}`;
-			}
-
-			// Log the verification URL (strip the ID for security)
-			logger.info(
-				{ verificationUrlBase: verificationUrl.split("?")[0] },
-				"Created verification URL"
-			);
+			const verificationUrl = `${publicFrontendUrl}/?verificationId=${verificationId}`;
 
 			// Create a button with the verification link
 			const verifyButton = new ButtonBuilder()
@@ -181,22 +159,7 @@ export async function handleVerifyCommand(
 				"Created verification session for user"
 			);
 		} catch (error: any) {
-			logger.error(
-				{
-					error,
-					errorMessage: error.message,
-					stack: error.stack,
-					code: error.code,
-					status: error.status,
-					config: error.config,
-					baseUrl:
-						process.env.VITE_APP_API_URL || "http://localhost:3000",
-					backendApiKey: process.env.BACKEND_API_KEY
-						? "present"
-						: "missing",
-				},
-				"Error handling passport verify command"
-			);
+			logger.error(error, "Error handling passport verify command");
 
 			await interaction.reply({
 				content:
@@ -205,22 +168,7 @@ export async function handleVerifyCommand(
 			});
 		}
 	} catch (error: any) {
-		logger.error(
-			{
-				error,
-				errorMessage: error.message,
-				stack: error.stack,
-				code: error.code,
-				status: error.status,
-				config: error.config,
-				baseUrl:
-					process.env.VITE_APP_API_URL || "http://localhost:3000",
-				backendApiKey: process.env.BACKEND_API_KEY
-					? "present"
-					: "missing",
-			},
-			"Error handling passport verify command"
-		);
+		logger.error(error, "Error handling passport verify command");
 
 		await interaction.reply({
 			content:
