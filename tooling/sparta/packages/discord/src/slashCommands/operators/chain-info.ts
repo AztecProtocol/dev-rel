@@ -6,6 +6,8 @@ export const get = async (
 	interaction: ChatInputCommandInteraction
 ): Promise<string> => {
 	try {
+		await interaction.deferReply();
+
 		// Get Ethereum instance
 		const ethereum = await getEthereumInstance();
 
@@ -18,7 +20,7 @@ export const get = async (
 			proposerNow,
 		} = await ethereum.getRollupInfo();
 
-		await interaction.reply({
+		await interaction.editReply({
 			content: `
 Pending block: [${pendingBlockNum}](https://aztecscan.xyz/blocks/${pendingBlockNum})
 Proven block: [${provenBlockNum}](https://aztecscan.xyz/blocks/${provenBlockNum})
