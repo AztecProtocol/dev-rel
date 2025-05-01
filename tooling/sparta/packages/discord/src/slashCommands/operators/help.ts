@@ -102,7 +102,7 @@ export async function showRegistrationHelp(
 				},
 				{
 					name: "✅ Step 3: Register with Discord",
-					value: "Type the following command in this Discord server:\n```\n/operator register\n```\n**IMPORTANT**: After typing the command, Discord will display option fields that look like this:\n```\nOPTIONS\naddress            Your validator address\nblock-number      Block number for verification\nproof             Your sync proof\n```\nClick on each option to fill in your information:\n• `address`: Your Ethereum validator address (must start with 0x, example: 0x1234567890abcdef1234567890abcdef12345678)\n• `block-number`: The block number from Step 1 (example: 12345)\n• `proof`: The complete base64 string from Step 2\n\n❗ **Common mistake**: Do not type all parameters in a single line. You must click on each option field separately to input your data.",
+					value: "Type the following command in this Discord server:\n```\n/operator start\n```\n**IMPORTANT**: After typing the command, Discord will display option fields that look like this:\n```\nOPTIONS\naddress            Your validator address\nblock-number      Block number for verification\nproof             Your sync proof\n```\nClick on each option to fill in your information:\n• `address`: Your Ethereum validator address (must start with 0x, example: 0x1234567890abcdef1234567890abcdef12345678)\n• `block-number`: The block number from Step 1 (example: 12345)\n• `proof`: The complete base64 string from Step 2\n\n❗ **Common mistake**: Do not type all parameters in a single line. You must click on each option field separately to input your data.",
 					inline: false,
 				},
 				{
