@@ -129,7 +129,7 @@ export function extendDynamoDBWithUserMethods(): void {
 	extendedDynamoDB.getAllUsers = async (): Promise<User[]> => {
 		try {
 			const command = new ScanCommand({
-				TableName: process.env.USERS_TABLE_NAME,
+				TableName: process.env.USERS_TABLE_NAME || "users",
 			});
 
 			const response = await dynamoDB.getClient().send(command);
@@ -184,7 +184,7 @@ export function extendDynamoDBWithUserMethods(): void {
 			}
 
 			const command = new PutCommand({
-				TableName: process.env.USERS_TABLE_NAME,
+				TableName: process.env.USERS_TABLE_NAME || "users",
 				Item: dynamoUser,
 				ConditionExpression: "attribute_not_exists(discordUserId)",
 			});
@@ -285,7 +285,7 @@ export function extendDynamoDBWithUserMethods(): void {
 			}
 
 			const command = new UpdateCommand({
-				TableName: process.env.USERS_TABLE_NAME,
+				TableName: process.env.USERS_TABLE_NAME || "users",
 				Key: { discordUserId },
 				UpdateExpression: updateExpression,
 				ExpressionAttributeNames: expressionAttributeNames,
@@ -310,7 +310,7 @@ export function extendDynamoDBWithUserMethods(): void {
 	): Promise<boolean> => {
 		try {
 			const command = new DeleteCommand({
-				TableName: process.env.USERS_TABLE_NAME,
+				TableName: process.env.USERS_TABLE_NAME || "users",
 				Key: { discordUserId },
 			});
 

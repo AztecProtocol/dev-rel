@@ -6,7 +6,7 @@ const apiInstance = new OpenAPIClientAxios({
 	// @ts-ignore
 	definition: apiDocs,
 	axiosConfigDefaults: {
-		baseURL: process.env.API_URL || "http://localhost:3000",
+		baseURL: process.env.VITE_APP_API_URL || "http://localhost:3000",
 		timeout: 10_000,
 		headers: {
 			"Content-Type": "application/json",

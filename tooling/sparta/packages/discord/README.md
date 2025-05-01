@@ -15,17 +15,17 @@ This package provides Discord bot functionality for the Sparta project. It commu
 
 The bot supports the following slash commands:
 
-| Command     | Subcommand     | Description                                                                                      | Parameters                                           |
-| ----------- | -------------- | ------------------------------------------------------------------------------------------------ | ---------------------------------------------------- |
-| `/human`    | `verify`       | Verify your identity with Human Passport                                                         | None                                                 |
-| `/human`    | `status`       | Check your Human Passport verification status                                                    | None                                                 |
-| `/operator` | `chain-info`   | Get current chain information including pending/proven blocks, epoch, slot, and current proposer | None                                                 |
-| `/operator` | `my-stats`     | Check validator statistics                                                                       | `address` (required): The validator address to check |
+| Command     | Subcommand     | Description                                                                                      | Parameters                                                                                                                                      |
+| ----------- | -------------- | ------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/human`    | `verify`       | Verify your identity with Human Passport                                                         | None                                                                                                                                            |
+| `/human`    | `status`       | Check your Human Passport verification status                                                    | None                                                                                                                                            |
+| `/operator` | `chain-info`   | Get current chain information including pending/proven blocks, epoch, slot, and current proposer | None                                                                                                                                            |
+| `/operator` | `my-stats`     | Check validator statistics                                                                       | `address` (required): The validator address to check                                                                                            |
 | `/operator` | `register`     | Register as a validator and get the Apprentice role                                              | `address` (optional): Your validator address<br>`block-number` (optional): Block number for verification<br>`proof` (optional): Your sync proof |
-| `/operator` | `help`         | Display operator commands and instructions                                                       | None                                                 |
-| `/mod`      | `help`         | Display all moderator commands and their descriptions in a table                                 | None                                                 |
-| `/mod`      | `is-in-set`    | Check if an address is in the validator set                                                      | `address` (required): The validator address to check |
-| `/mod`      | `is-attesting` | Check if an address is actively attesting                                                        | `address` (required): The validator address to check |
+| `/operator` | `help`         | Display operator commands and instructions                                                       | None                                                                                                                                            |
+| `/mod`      | `help`         | Display all moderator commands and their descriptions in a table                                 | None                                                                                                                                            |
+| `/mod`      | `is-in-set`    | Check if an address is in the validator set                                                      | `address` (required): The validator address to check                                                                                            |
+| `/mod`      | `is-attesting` | Check if an address is actively attesting                                                        | `address` (required): The validator address to check                                                                                            |
 
 ## Command Restrictions
 
@@ -66,9 +66,8 @@ The following environment variables are required:
 - `BOT_TOKEN`: Discord bot token
 - `BOT_CLIENT_ID`: Discord client ID
 - `GUILD_ID`: Discord guild (server) ID
-- `API_URL`: Backend API server URL
 - `MINIMUM_SCORE`: Minimum score required for verification
-- `VITE_APP_API_URL`: Frontend URL for verification links
+- `VITE_APP_API_URL`: API URL for verification links and API
 - `NODE_ENV`: Environment setting, affects command restrictions and behavior
 
 ## Development
