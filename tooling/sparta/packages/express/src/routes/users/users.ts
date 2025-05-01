@@ -496,6 +496,7 @@ router.post("/", async (req: Request, res: Response) => {
 			updatedAt: timestamp,
 		};
 
+		logger.debug({ newUser }, "Creating user in route");
 		const created = await extendedDynamoDB.createUser(newUser);
 
 		if (!created) {

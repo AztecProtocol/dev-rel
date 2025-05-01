@@ -28,8 +28,10 @@ interface ExtendedDynamoDB {
 	getClient(): any;
 }
 
-// Get the dynamoDB instance with our extended type
-const dynamoDB = new DynamoDBService(process.env.USERS_TABLE_NAME || "users");
+const USERS_TABLE_NAME = process.env.USERS_TABLE_NAME || "users";
+
+// Instantiate the shared service for the users table
+const dynamoDB = new DynamoDBService(USERS_TABLE_NAME);
 
 const extendedDynamoDB = dynamoDB as unknown as ExtendedDynamoDB;
 
@@ -188,6 +190,8 @@ export function extendDynamoDBWithUserMethods(): void {
 				Item: dynamoUser,
 				ConditionExpression: "attribute_not_exists(discordUserId)",
 			});
+
+			logger.debug({ command }, "Creating user in repository");
 
 			await dynamoDB.getClient().send(command);
 			return user;

@@ -50,6 +50,8 @@ export async function handleVerifyCommand(
 				discordUserId: userId,
 			});
 
+			logger.debug({ userResponse }, "User response");
+
 			const user = userResponse.data.user;
 
 			if (user) {
@@ -68,12 +70,26 @@ export async function handleVerifyCommand(
 				);
 
 				logger.info(
-					{ userId, verificationId },
+					{ userId, verificationId, interactionToken },
 					"Updated user verification data"
 				);
 			} else {
 				// Create a new user
 				const timestamp = Date.now();
+
+				logger.debug({
+					discordUserId: userId,
+					discordUsername,
+					walletAddress: undefined,
+					role: undefined,
+					humanPassport: {
+						status: VERIFICATION_STATUS.NOT_VERIFIED,
+						verificationId,
+						interactionToken,
+						lastVerificationTime: null,
+						score: null,
+					},
+				});
 
 				await client.createUser({
 					discordUserId: userId,
