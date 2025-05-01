@@ -71,11 +71,11 @@ export async function showRegistrationHelp(
 export async function registerValidator(
 	interaction: ChatInputCommandInteraction
 ): Promise<string> {
-	try {
-		await interaction.deferReply({
-			flags: MessageFlags.Ephemeral,
-		});
+	await interaction.deferReply({
+		flags: MessageFlags.Ephemeral,
+	});
 
+	try {
 		// Get parameters from the command options
 		const address = interaction.options.getString("address");
 		const blockNumber = interaction.options.getString("block-number");
@@ -333,10 +333,9 @@ export async function registerValidator(
 					"Something went wrong while processing your registration.",
 			});
 		} else {
-			await interaction.reply({
+			await interaction.editReply({
 				content:
 					"Something went wrong while processing your registration.",
-				ephemeral: true,
 			});
 		}
 

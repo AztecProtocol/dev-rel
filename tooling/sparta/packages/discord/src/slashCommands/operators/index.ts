@@ -85,9 +85,6 @@ export default {
 			return;
 		} catch (error) {
 			logger.error("Failed to execute operator command:", error);
-			await interaction.editReply({
-				content: "Something went wrong while executing the command.",
-			});
 			return; // Keep explicit return
 		}
 	},
