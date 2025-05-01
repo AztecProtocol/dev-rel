@@ -44,6 +44,11 @@ export async function handleVerifyCommand(
 		const apiProvider = discord.getApiProvider();
 		const client = apiProvider.getClient();
 
+		logger.debug(
+			{ userId, interactionToken, verificationId },
+			"Verify command"
+		);
+
 		try {
 			// Check if the user already exists
 			const userResponse = await client.getUserByDiscordId({
