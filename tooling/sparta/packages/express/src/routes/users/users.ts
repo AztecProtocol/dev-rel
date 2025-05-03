@@ -8,13 +8,14 @@ import express, { type Request, type Response } from "express";
 import { logger } from "@sparta/utils/index.js";
 import { userRepository } from "../../db/userRepository.js";
 import { apiKeyMiddleware } from "../../middlewares/auth.js";
+import type { PassportResponse } from "../../domain/humanPassport/service.js";
+import type { Role } from "@sparta/utils/const/roles.js";
 
 const router = express.Router();
 
 // HumanPassport interface - specific to human verification
 export interface HumanPassport {
-	status: string; // Current status of verification
-	score?: number | null; // Passport score if verification completed
+	passportData?: PassportResponse | null; // Passport data if verification completed
 	lastVerificationTime?: number | null; // When they last completed verification
 	verificationId?: string | null; // ID used for the verification process
 	interactionToken?: string | null; // Discord interaction token for UI updates
@@ -25,7 +26,7 @@ export interface User {
 	discordUserId: string; // Primary identifier - Discord user ID
 	discordUsername: string; // Discord username
 	walletAddress?: string | null; // Ethereum address (verified through passport)
-	role?: string | null; // User role within the system
+	roles?: Role[] | null; // User role within the system
 	humanPassport?: HumanPassport | null; // Human verification data
 	createdAt: number; // Timestamp when user was created
 	updatedAt: number; // Timestamp when user was last updated
@@ -452,7 +453,7 @@ router.post("/", async (req: Request, res: Response) => {
 			discordUserId,
 			discordUsername,
 			walletAddress,
-			role,
+			roles,
 			humanPassport,
 		} = req.body;
 
@@ -506,7 +507,7 @@ router.post("/", async (req: Request, res: Response) => {
 			discordUserId,
 			discordUsername,
 			walletAddress: walletAddress || null,
-			role: role || null,
+			roles: roles || null,
 			humanPassport: humanPassport || null,
 			createdAt: timestamp,
 			updatedAt: timestamp,

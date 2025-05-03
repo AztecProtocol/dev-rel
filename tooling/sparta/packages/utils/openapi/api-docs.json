@@ -358,31 +358,42 @@
           "lastChecked"
         ]
       },
-      "ScoreResponse": {
+      "StampsResponse": {
         "type": "object",
         "properties": {
           "success": {
             "type": "boolean",
-            "description": "True if the score is sufficient, false otherwise."
+            "description": "True if the operation completed successfully."
           },
-          "score": {
-            "type": "number",
-            "description": "The fetched Gitcoin Passport score."
+          "stamps": {
+            "type": "array",
+            "description": "Array of Gitcoin Passport stamps associated with the wallet.",
+            "items": {
+              "type": "object"
+            }
           },
-          "status": {
-            "type": "string",
-            "description": "Status indicating score sufficiency (e.g., score_sufficient, verification_failed)."
-          },
-          "minimumScore": {
-            "type": "number",
-            "description": "The minimum score required."
+          "user": {
+            "type": "object",
+            "properties": {
+              "discordUserId": {
+                "type": "string",
+                "description": "The Discord user ID."
+              },
+              "walletAddress": {
+                "type": "string",
+                "description": "The user's wallet address."
+              },
+              "humanPassport": {
+                "type": "object",
+                "description": "Human passport verification data."
+              }
+            }
           }
         },
         "required": [
           "success",
-          "score",
-          "status",
-          "minimumScore"
+          "stamps",
+          "user"
         ]
       },
       "HumanPassport": {
@@ -1158,14 +1169,14 @@
         }
       }
     },
-    "/api/users/human/score": {
+    "/api/users/human/stamps": {
       "get": {
-        "summary": "Get passport score for a given address and verification",
-        "description": "Fetches the Gitcoin Passport score for the wallet address associated with a verification ID",
+        "summary": "Get passport stamps for a given address and verification",
+        "description": "Fetches the Gitcoin Passport stamps for the wallet address associated with a verification ID",
         "tags": [
           "Users"
         ],
-        "operationId": "getScore",
+        "operationId": "getStamps",
         "parameters": [
           {
             "in": "query",
@@ -1188,11 +1199,11 @@
         ],
         "responses": {
           "200": {
-            "description": "Score retrieved successfully",
+            "description": "Stamps retrieved successfully",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ScoreResponse"
+                  "$ref": "#/components/schemas/StampsResponse"
                 }
               }
             }

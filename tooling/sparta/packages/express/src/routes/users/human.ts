@@ -9,19 +9,14 @@ import { PassportService } from "../../domain/humanPassport/service.js";
 import { logger } from "@sparta/utils/index.js";
 import { recoverMessageAddress, type Hex } from "viem";
 import type { HumanPassport } from "./users.js";
-import {
-	VERIFICATION_MESSAGE,
-	VERIFICATION_STATUS,
-} from "@sparta/utils/const.js"; // Import status constants
+import { VERIFICATION_MESSAGE } from "@sparta/utils/const/verificationStatus.js"; // Import status constants
 import { EmbedBuilder } from "discord.js";
-import { _handleUserRoleAssignment } from "@sparta/discord/src/utils/roleAssigner.js";
 import { DiscordService } from "@sparta/discord/src/services/discord-service.js";
 import { userRepository } from "../../db/userRepository.js";
 import { validateVerification } from "../../middlewares/humanPassport.js";
-import {
-	_handleScoring,
-	_updateUserVerificationStatus,
-} from "../../domain/humanPassport/utils.js";
+import { _handleScoring } from "../../domain/humanPassport/utils.js";
+import { type Role } from "@sparta/utils/const/roles.js";
+import { _handleUserRolesAssignment } from "packages/discord/src/utils/roleAssigner.js";
 
 // Define shared schemas
 /**
@@ -123,26 +118,33 @@ import {
  *         - status
  *         - minimumRequiredScore
  *         - lastChecked
- *     ScoreResponse:
+ *     StampsResponse:
  *       type: object
  *       properties:
  *         success:
  *           type: boolean
- *           description: True if the score is sufficient, false otherwise.
- *         score:
- *           type: number
- *           description: The fetched Gitcoin Passport score.
- *         status:
- *           type: string
- *           description: Status indicating score sufficiency (e.g., score_sufficient, verification_failed).
- *         minimumScore:
- *           type: number
- *           description: The minimum score required.
+ *           description: True if the operation completed successfully.
+ *         stamps:
+ *           type: array
+ *           description: Array of Gitcoin Passport stamps associated with the wallet.
+ *           items:
+ *             type: object
+ *         user:
+ *           type: object
+ *           properties:
+ *             discordUserId:
+ *               type: string
+ *               description: The Discord user ID.
+ *             walletAddress:
+ *               type: string
+ *               description: The user's wallet address.
+ *             humanPassport:
+ *               type: object
+ *               description: Human passport verification data.
  *       required:
  *         - success
- *         - score
- *         - status
- *         - minimumScore
+ *         - stamps
+ *         - user
  */
 
 // Define the verification status
@@ -279,43 +281,44 @@ router.post(
 			);
 
 			// Step 2: Handle scoring (checks score against minimum)
-			const { score, verified } = await _handleScoring(
+			const { newRoles, passportData } = await _handleScoring(
 				verificationId,
 				recoveredAddress
 			);
-			logger.info({ verificationId, score, verified }, "Score fetched");
+			logger.info(
+				{ verificationId, newRoles },
+				"Human passport data fetched"
+			);
 
 			// Step 3: Attempt role assignment/removal based on score
 			let roleAssignmentSucceeded = false;
 			// Initialize with existing role, handling potential undefined
-			let finalDbRole: string | null = user.role ?? null;
+			let finalDbRoles: Role[] | null = user.roles ?? null;
 			let discordUpdateMessage = "";
 			let discordEmbedColor = 0xffcc00; // Default: Yellow (Partial/Error)
-			const minScore = parseInt(process.env.MINIMUM_SCORE || "0");
 
 			try {
 				// Call role assignment - it returns true on success, false on failure.
-				const discordUpdateSuccess = await _handleUserRoleAssignment(
+				const discordUpdateSuccess = await _handleUserRolesAssignment(
 					verificationId,
 					user.discordUserId,
-					score
+					newRoles
 				);
 
 				roleAssignmentSucceeded = discordUpdateSuccess; // Store the direct result
 
 				if (discordUpdateSuccess) {
 					// Determine the intended DB role *only if* Discord update succeeded
-					if (verified) {
+					if (newRoles.length > 0) {
 						// Score was sufficient - Assign standard verified role
-						finalDbRole = "verified_human";
+						finalDbRoles?.push(...newRoles);
 						discordUpdateMessage =
 							"Verification successful. Role assigned/updated.";
 						discordEmbedColor = 0x00ff00; // Green
 					} else {
 						// Score was insufficient, role should be removed/defaulted
-						finalDbRole = null; // Or your default non-verified role name
 						discordUpdateMessage =
-							"Score insufficient. Verified role removed if previously held.";
+							"Score insufficient. No roles have been assigned.";
 						discordEmbedColor = 0xff0000; // Red
 					}
 				} else {
@@ -351,10 +354,11 @@ router.post(
 						.setColor(discordEmbedColor)
 						.addFields(
 							{ name: "Status", value: discordUpdateMessage },
-							{ name: "Your Score", value: score.toString() },
 							{
-								name: "Minimum Required",
-								value: minScore.toString(),
+								name: "New Roles",
+								value: newRoles
+									.map((role) => role.name)
+									.join(", "),
 							}
 						)
 						.setFooter({ text: "You can dismiss this message." });
@@ -374,14 +378,9 @@ router.post(
 				}
 			}
 
-			// Step 4: Update user record in DB
-			const finalStatus = verified
-				? VERIFICATION_STATUS.VERIFIED // Score sufficient
-				: VERIFICATION_STATUS.NOT_VERIFIED; // Score insufficient
 			const humanPassport: HumanPassport = {
 				...(user.humanPassport || {}),
-				status: finalStatus,
-				score: score,
+				passportData: passportData,
 				lastVerificationTime: Date.now(),
 				verificationId: verificationId, // Ensure verificationId is persisted
 			};
@@ -389,42 +388,28 @@ router.post(
 			await userRepository.updateUser(user.discordUserId, {
 				humanPassport,
 				walletAddress: recoveredAddress, // Ensure wallet is updated
-				role: finalDbRole, // Use the role determined by assignment success
+				roles: finalDbRoles, // Use the role determined by assignment success
 				updatedAt: Date.now(),
 			});
 
 			logger.info(
 				{
+					discordUserId: user.discordUserId,
+					discordUsername: user.discordUsername,
+					walletAddress: recoveredAddress,
 					verificationId,
-					status: finalStatus,
+					passportData: passportData,
 					roleAssigned: roleAssignmentSucceeded,
-					finalDbRole: finalDbRole,
+					finalDbRoles: finalDbRoles,
 				},
 				"Verification process complete."
 			);
 
-			// Step 5: Return final result to client
-			// Construct user-facing message based on verification and role status
-			let clientMessage = "";
-			if (verified) {
-				clientMessage = roleAssignmentSucceeded
-					? "Verification successful. Roles assigned/updated."
-					: "Verification successful, but failed to update Discord roles. Please contact a moderator.";
-			} else {
-				clientMessage = roleAssignmentSucceeded
-					? "Verification failed: Score too low. Roles removed if previously held."
-					: "Verification failed: Score too low. Also failed to update Discord roles. Please contact a moderator.";
-			}
-
 			return res.status(200).json({
 				success: true, // API call succeeded
-				verified: verified, // Score met threshold
-				score: score,
 				roleAssigned: roleAssignmentSucceeded, // Discord update succeeded
+				newRoles: newRoles,
 				address: recoveredAddress,
-				status: finalStatus, // Overall verification status (based on score)
-				message: clientMessage,
-				minimumRequiredScore: minScore,
 			});
 		} catch (error: any) {
 			// Handle errors from signature recovery, scoring, or DB updates
@@ -441,7 +426,6 @@ router.post(
 			return res.status(500).json({
 				success: false,
 				error: error.message || "Server error during verification",
-				status: VERIFICATION_STATUS.NOT_VERIFIED,
 			});
 		}
 	}
@@ -449,12 +433,12 @@ router.post(
 
 /**
  * @swagger
- * /api/users/human/score:
+ * /api/users/human/stamps:
  *   get:
- *     summary: Get passport score for a given address and verification
- *     description: Fetches the Gitcoin Passport score for the wallet address associated with a verification ID
+ *     summary: Get passport stamps for a given address and verification
+ *     description: Fetches the Gitcoin Passport stamps for the wallet address associated with a verification ID
  *     tags: [Users]
- *     operationId: getScore
+ *     operationId: getStamps
  *     parameters:
  *       - in: query
  *         name: verificationId
@@ -470,11 +454,11 @@ router.post(
  *         description: The wallet address to check (case-insensitive comparison).
  *     responses:
  *       200:
- *         description: Score retrieved successfully
+ *         description: Stamps retrieved successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ScoreResponse'
+ *               $ref: '#/components/schemas/StampsResponse'
  *       400:
  *         description: Bad request (missing parameters)
  *         content:
@@ -494,7 +478,7 @@ router.post(
  *             schema:
  *               $ref: '#/components/schemas/Error'
  */
-router.get("/score", async (req: Request, res: Response) => {
+router.get("/stamps", async (req: Request, res: Response) => {
 	const { address: providedAddress, verificationId } = req.query;
 
 	if (
@@ -526,58 +510,41 @@ router.get("/score", async (req: Request, res: Response) => {
 		// Get score from passport service
 		logger.info(
 			{ verificationId, address: addressToCheck },
-			"Fetching score for provided address (pre-signature check)..."
+			"Fetching stamps for provided address (pre-signature check)..."
 		);
-		const scoreResponse = await passportService.getScore(addressToCheck);
-		const minimumScore = parseFloat(process.env.MINIMUM_SCORE || "0");
 
-		if (!scoreResponse || typeof scoreResponse.score === "undefined") {
-			logger.error(
-				{ verificationId, address: addressToCheck },
-				"Failed to retrieve passport score or score was undefined."
-			);
-			// Don't update user status here, just report error to frontend
-			return res.status(500).json({
+		const { passportData } = await _handleScoring(
+			verificationId,
+			addressToCheck
+		);
+
+		if (!passportData) {
+			return res.status(404).json({
 				success: false,
-				error: "Failed to retrieve passport score.",
+				error: "No passport data found for provided address",
 			});
 		}
 
-		const score = parseFloat(scoreResponse.score);
-		if (isNaN(score)) {
-			logger.error(
-				{ verificationId, address: addressToCheck, scoreResponse },
-				"Invalid score format received during score check."
-			);
-			return res.status(500).json({
-				success: false,
-				error: "Invalid score format received.",
-			});
-		}
-
-		const isSufficient = score >= minimumScore;
+		const stamps = passportData.stamps;
 
 		// No user update needed here, just returning the check result
 		logger.info(
 			{
 				verificationId,
 				address: addressToCheck,
-				score,
-				minimumScore,
-				isSufficient,
+				stamps,
 			},
-			"Pre-signature score check completed."
+			"Pre-signature stamps check completed."
 		);
 
 		return res.status(200).json({
-			success: isSufficient, // Success means score is sufficient
-			score: score,
+			success: true,
+			stamps,
 			user: {
 				discordUserId: user.discordUserId,
 				walletAddress: user.walletAddress,
 				humanPassport: user.humanPassport,
 			},
-			minimumScore: minimumScore, // Return minimum score for context
 		});
 	} catch (error: any) {
 		logger.error(

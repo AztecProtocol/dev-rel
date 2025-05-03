@@ -7,11 +7,12 @@
 import { getDiscordInstance } from "../clients/discord";
 import { logger } from "@sparta/utils";
 import { PassportRoles } from "../types";
-import type { Guild, Role, GuildMember } from "discord.js";
+import type { Guild, GuildMember, Role as DiscordRole } from "discord.js";
 import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v10";
 import type { ApiProvider } from "../api/apiProvider";
 import type { Client as ApiClient } from "@sparta/utils/openapi/types";
+import type { Role } from "@sparta/utils/const/roles";
 
 /**
  * Discord service class for role management and user operations
@@ -67,7 +68,7 @@ export class DiscordService {
 		isValid: boolean;
 		message: string;
 		guild?: Guild;
-		role?: Role;
+		role?: DiscordRole;
 		member?: GuildMember;
 	}> {
 		try {
@@ -91,7 +92,9 @@ export class DiscordService {
 			}
 
 			// Find the role
-			const role = guild.roles.cache.find((r) => r.name === roleName);
+			const role: DiscordRole | undefined = guild.roles.cache.find(
+				(r) => r.name === roleName
+			);
 			if (!role) {
 				return {
 					isValid: false,
@@ -139,32 +142,21 @@ export class DiscordService {
 		}
 	}
 
+	public async assignRoles(userId: string, roles: Role[]): Promise<boolean> {
+		for (const role of roles) {
+			await this.assignRole(userId, role.name);
+		}
+		return true;
+	}
+
 	/**
 	 * Assigns a role to a Discord user
 	 * @param userId The Discord user ID
 	 * @param roleName The name of the role to assign
 	 */
-	public async assignRole(userId: string, roleName: string): Promise<boolean>;
-
-	/**
-	 * Assigns a role to a Discord user using pre-validated data
-	 * @param validatedData The validated data from validateRoleAssignment
-	 */
-	public async assignRole(validatedData: {
-		member: GuildMember;
-		role: Role;
-	}): Promise<boolean>;
-
-	/**
-	 * Assigns a role based on user score
-	 * @param userId The Discord user ID
-	 * @param score The user's passport score
-	 */
-	public async assignRole(userId: string, score: number): Promise<boolean>;
-
 	public async assignRole(
-		arg1: string | { member: GuildMember; role: Role },
-		arg2?: string | number
+		userId: string,
+		roleName: string
 	): Promise<boolean> {
 		// Ensure API client is initialized
 		if (!this.apiClient) {
@@ -175,198 +167,38 @@ export class DiscordService {
 			}
 		}
 
-		try {
-			// Check if this is the userId + score version
-			if (typeof arg1 === "string" && typeof arg2 === "number") {
-				const userId = arg1;
-				const score = arg2;
-				const minimumScore = parseInt(process.env.MINIMUM_SCORE || "0");
+		const validationResult = await this.validateRoleAssignment(
+			userId,
+			roleName
+		);
 
-				const validationResult = await this.validateRoleAssignment(
-					userId,
-					PassportRoles.Verified
-				);
-
-				if (!validationResult.isValid || !validationResult.member) {
-					logger.error(
-						{
-							userId,
-							score,
-							error: validationResult.message,
-						},
-						"Validation failed before score-based role assignment/removal."
-					);
-					return false;
-				}
-
-				const { member, guild } = validationResult;
-				if (!guild) {
-					logger.error(
-						{ userId },
-						"Guild not found in validation result"
-					);
-					return false;
-				}
-				const verifiedRole = guild.roles.cache.find(
-					(r) => r.name === PassportRoles.Verified
-				);
-
-				if (!verifiedRole) {
-					logger.error(
-						{
-							userId,
-							roleName: PassportRoles.Verified,
-							guildId: guild.id,
-						},
-						"Verified role not found in guild during score-based assignment."
-					);
-					return false;
-				}
-
-				// Assign or remove role based on score
-				if (score >= minimumScore) {
-					// Add role if user meets minimum score
-					await member.roles.add(verifiedRole);
-					logger.info(
-						{ userId, score, minimum: minimumScore },
-						"Added verified role based on score"
-					);
-
-					// Update user in API with new role info
-					try {
-						await this.apiClient.updateUser(
-							{ discordUserId: userId },
-							{
-								role: PassportRoles.Verified,
-								humanPassport: {
-									status: "verification_complete",
-									score,
-									lastVerificationTime: Date.now(),
-								},
-							}
-						);
-					} catch (apiError) {
-						logger.error(
-							{ error: apiError, userId },
-							"Failed to update user role in API"
-						);
-						// Continue since Discord role was already assigned
-					}
-
-					return true;
-				} else {
-					// Remove role if user doesn't meet minimum score
-					if (member.roles.cache.has(verifiedRole.id)) {
-						await member.roles.remove(verifiedRole);
-						logger.info(
-							{ userId, roleName: verifiedRole.name },
-							"Successfully removed role due to low score."
-						);
-
-						// Update user in API with role removal
-						try {
-							await this.apiClient.updateUser(
-								{ discordUserId: userId },
-								{
-									role: undefined,
-									humanPassport: {
-										status: "verification_failed",
-										score,
-										lastVerificationTime: Date.now(),
-									},
-								}
-							);
-						} catch (apiError) {
-							logger.error(
-								{ error: apiError, userId },
-								"Failed to update user role in API"
-							);
-							// Continue since Discord role was already removed
-						}
-					}
-					return true;
-				}
-			}
-
-			// Handle normal role assignment (userId + roleName)
-			if (typeof arg1 === "string" && typeof arg2 === "string") {
-				const userId = arg1;
-				const roleName = arg2;
-
-				const validationResult = await this.validateRoleAssignment(
-					userId,
-					roleName
-				);
-
-				if (!validationResult.isValid) {
-					logger.error(
-						{ userId, roleName, error: validationResult.message },
-						"Role assignment validation failed"
-					);
-					return false;
-				}
-
-				const { member, role } = validationResult;
-				await member!.roles.add(role!);
-				logger.info({ userId, roleName }, "Role assigned successfully");
-
-				// Update user role in API
-				try {
-					await this.apiClient.updateUser(
-						{ discordUserId: userId },
-						{ role: roleName }
-					);
-				} catch (apiError) {
-					logger.error(
-						{ error: apiError, userId, roleName },
-						"Failed to update user role in API"
-					);
-					// Continue since Discord role was already assigned
-				}
-
-				return true;
-			}
-
-			// Handle pre-validated data
-			if (typeof arg1 === "object") {
-				const { member, role } = arg1;
-				await member.roles.add(role);
-				logger.info(
-					{ userId: member.id, roleName: role.name },
-					"Role assigned from validated data"
-				);
-
-				// Update user role in API
-				try {
-					await this.apiClient.updateUser(
-						{ discordUserId: member.id },
-						{ role: role.name }
-					);
-				} catch (apiError) {
-					logger.error(
-						{
-							error: apiError,
-							userId: member.id,
-							roleName: role.name,
-						},
-						"Failed to update user role in API"
-					);
-					// Continue since Discord role was already assigned
-				}
-
-				return true;
-			}
-
-			// If we get here, something's wrong with the arguments
+		if (!validationResult.isValid) {
 			logger.error(
-				{ arg1, arg2 },
-				"Invalid arguments for role assignment"
+				{ userId, roleName, error: validationResult.message },
+				"Role assignment validation failed"
 			);
 			return false;
-		} catch (error) {
-			logger.error({ error }, "Error assigning role");
-			return false;
 		}
+
+		const { member, role } = validationResult;
+		await member!.roles.add(role!);
+		logger.info({ userId, roleName }, "Role assigned successfully");
+
+		// Update user role in API
+		try {
+			await this.apiClient.updateUser(
+				{ discordUserId: userId },
+				{ role: roleName }
+			);
+		} catch (apiError) {
+			logger.error(
+				{ error: apiError, userId, roleName },
+				"Failed to update user role in API"
+			);
+			// Continue since Discord role was already assigned
+		}
+
+		return true;
 	}
 
 	/**

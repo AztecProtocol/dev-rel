@@ -1,120 +1,71 @@
-import { userRepository } from "@sparta/express/db/userRepository";
-import { PassportService } from "./service";
+import { PassportService, type PassportResponse } from "./service";
 import { logger } from "@sparta/utils/logger";
-import { VERIFICATION_STATUS } from "@sparta/utils/const.js";
 import type { Hex } from "viem";
-import type { HumanPassport } from "@sparta/express/routes/users/users";
+import {
+	DEVELOPER_ROLES,
+	USER_ROLES,
+	type Role,
+} from "@sparta/utils/const/roles";
 
 interface ScoringResult {
-	score: number;
-	verified: boolean;
+	newRoles: Role[];
 	lastScoreTimestamp: number;
+	passportData: PassportResponse;
 }
 
 const passportService = PassportService.getInstance();
 
 /**
- * Updates a user's verification status
- */
-export async function _updateUserVerificationStatus(
-	verificationId: string,
-	status: string
-): Promise<boolean> {
-	try {
-		const user = await userRepository.getUserByVerificationId(
-			verificationId
-		);
-		if (!user) {
-			logger.error(
-				{ verificationId },
-				"Could not find user to update verification status"
-			);
-			return false;
-		}
-
-		// Create or update humanPassport object
-		const humanPassport: HumanPassport = {
-			...(user.humanPassport || {}),
-			status: status,
-		};
-
-		await userRepository.updateUser(user.discordUserId, {
-			humanPassport,
-			updatedAt: Date.now(),
-		});
-		return true;
-	} catch (error: any) {
-		logger.error(
-			{ error: error.message, verificationId },
-			"Error updating user verification status"
-		);
-		return false;
-	}
-}
-
-/**
- * Gets passport score, updates user, and determines verification status.
+ * Gets passport score, updates user, and determines verification status depending on the supplied role.
  * Throws error if scoring fails.
  */
 export async function _handleScoring(
 	verificationId: string,
 	address: Hex
 ): Promise<ScoringResult> {
-	const scoreResponse = await passportService.getScore(address);
+	const humanPassportData = await passportService.getHumanPassportData(
+		address
+	);
 
-	if (!scoreResponse) {
+	if (!humanPassportData) {
 		logger.error(
 			{ verificationId, address },
-			"Failed to retrieve passport score."
+			"Failed to retrieve passport data."
 		);
-		// Update the user with error status
-		await _updateUserVerificationStatus(
-			verificationId,
-			VERIFICATION_STATUS.NOT_VERIFIED
-		);
-		throw new Error("Failed to retrieve passport score.");
+		throw new Error("Failed to retrieve passport data.");
 	}
 
-	// Basic validation/parsing (consider more robust parsing if needed)
-	const score = parseFloat(scoreResponse.score);
-	if (isNaN(score)) {
-		logger.error(
-			{ verificationId, address, scoreResponse },
-			"Invalid score format received."
-		);
-		await _updateUserVerificationStatus(
-			verificationId,
-			VERIFICATION_STATUS.NOT_VERIFIED
-		);
-		throw new Error("Invalid score format received from passport service.");
-	}
-
-	const lastScoreTimestamp = scoreResponse.last_score_timestamp
-		? new Date(scoreResponse.last_score_timestamp).getTime()
+	const lastScoreTimestamp = humanPassportData.last_score_timestamp
+		? new Date(humanPassportData.last_score_timestamp).getTime()
 		: Date.now();
 
-	const verified = score >= parseFloat(process.env.MINIMUM_SCORE || "0");
+	const { score, stamps } = humanPassportData;
+	const newRoles: Role[] = [];
 
-	// Find and update the user
-	const user = await userRepository.getUserByVerificationId(verificationId);
-	if (user) {
-		// Create or update humanPassport object
-		const humanPassport: HumanPassport = {
-			...(user.humanPassport || {}),
-			status: VERIFICATION_STATUS.VERIFIED,
-			score: score,
-			lastVerificationTime: lastScoreTimestamp,
-		};
+	// Currently not giving human roles based on Human Passport to Node Operators
+	// for (const role of Object.values(NODE_OPERATOR_ROLES)) {
+	// }
 
-		await userRepository.updateUser(user.discordUserId, {
-			humanPassport,
-			updatedAt: Date.now(),
-		});
+	// Currently only giving human roles based on Human Passport to Developers
+	for (const role of Object.values(USER_ROLES)) {
+		// if (stamps?.["githubContributionActivityGte#30"]?.expiration_date) {
+		// 	const githubExpirationDate = new Date(
+		// 		stamps?.["githubContributionActivityGte#30"]?.expiration_date
+		// 	);
+
+		// 	if (githubExpirationDate > new Date()) {
+		// 		newRoles.push(role);
+		// 	}
+		// }
+
+		if (Number(score) >= 10) {
+			newRoles.push(role);
+		}
 	}
 
 	logger.info(
-		{ verificationId, address, score, verified },
+		{ verificationId, address, score, newRoles },
 		"Passport score retrieved."
 	);
-	return { score, verified, lastScoreTimestamp };
+	return { newRoles, passportData: humanPassportData, lastScoreTimestamp };
 }

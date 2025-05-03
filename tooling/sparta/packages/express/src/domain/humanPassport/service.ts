@@ -18,7 +18,7 @@ interface PassportConfig {
 /**
  * Response from a passport score request
  */
-interface PassportScoreResponse {
+export interface PassportResponse {
 	address: string;
 	score: string;
 	passing_score: boolean;
@@ -76,14 +76,14 @@ export class PassportService {
 	}
 
 	/**
-	 * Fetches the score for an address using the v2 API
+	 * Fetches the passport data for an address using the v2 API
 	 *
-	 * @param {string} address - Wallet address to get score for
-	 * @returns {Promise<PassportScoreResponse | null>} The score response, or null if there was an error
+	 * @param {string} address - Wallet address to get passport data for
+	 * @returns {Promise<PassportResponse | null>} The passport data, or null if there was an error
 	 */
-	public async getScore(
+	public async getHumanPassportData(
 		address: string
-	): Promise<PassportScoreResponse | null> {
+	): Promise<PassportResponse | null> {
 		try {
 			const config = {
 				headers: {
@@ -102,7 +102,7 @@ export class PassportService {
 		} catch (error: any) {
 			logger.error(
 				{ error: error.message, address },
-				"Error fetching passport score"
+				"Error fetching passport data"
 			);
 			return null;
 		}

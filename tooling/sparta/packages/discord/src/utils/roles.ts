@@ -11,22 +11,7 @@ import {
 	MessageFlags,
 } from "discord.js";
 import { isAllowedChannel, getAllowedChannelsText } from "./channels";
-
-/**
- * Moderator role definitions mapping role names to their Discord IDs
- */
-export const MODERATOR_ROLES = {
-	AZTEC_LABS_TEAM: { name: "Aztec Labs Team", id: "1144693819015700620" },
-	AZMOD: { name: "AzMod", id: "1362901049803018513" },
-	ADMIN: { name: "Admin", id: "1146246812299165817" },
-};
-
-/**
- * User role definitions mapping role names to their Discord IDs
- */
-export const USER_ROLES = {
-	APPRENTICE: { name: "Apprentice", id: "1366916508072148992" },
-};
+import { MODERATOR_ROLES } from "@sparta/utils/const/roles";
 
 /**
  * Checks if the user has any of the specified moderator roles

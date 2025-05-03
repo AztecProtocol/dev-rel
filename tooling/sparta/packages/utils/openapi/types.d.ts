@@ -202,23 +202,33 @@ declare namespace Components {
                 proposerNow?: string;
             };
         }
-        export interface ScoreResponse {
+        export interface StampsResponse {
             /**
-             * True if the score is sufficient, false otherwise.
+             * True if the operation completed successfully.
              */
             success: boolean;
             /**
-             * The fetched Gitcoin Passport score.
+             * Array of Gitcoin Passport stamps associated with the wallet.
              */
-            score: number;
-            /**
-             * Status indicating score sufficiency (e.g., score_sufficient, verification_failed).
-             */
-            status: string;
-            /**
-             * The minimum score required.
-             */
-            minimumScore: number;
+            stamps: {
+                [key: string]: any;
+            }[];
+            user: {
+                /**
+                 * The Discord user ID.
+                 */
+                discordUserId?: string;
+                /**
+                 * The user's wallet address.
+                 */
+                walletAddress?: string;
+                /**
+                 * Human passport verification data.
+                 */
+                humanPassport?: {
+                    [key: string]: any;
+                };
+            };
         }
         export interface User {
             /**
@@ -490,7 +500,7 @@ declare namespace Paths {
             export type $500 = Components.Schemas.ErrorResponse;
         }
     }
-    namespace GetScore {
+    namespace GetStamps {
         namespace Parameters {
             export type Address = string;
             export type VerificationId = string;
@@ -500,7 +510,7 @@ declare namespace Paths {
             address: Parameters.Address;
         }
         namespace Responses {
-            export type $200 = Components.Schemas.ScoreResponse;
+            export type $200 = Components.Schemas.StampsResponse;
             export type $400 = Components.Schemas.Error;
             export type $404 = Components.Schemas.Error;
             export type $500 = Components.Schemas.Error;
@@ -743,15 +753,15 @@ export interface OperationMethods {
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.VerifySignature.Responses.$200>
   /**
-   * getScore - Get passport score for a given address and verification
+   * getStamps - Get passport stamps for a given address and verification
    * 
-   * Fetches the Gitcoin Passport score for the wallet address associated with a verification ID
+   * Fetches the Gitcoin Passport stamps for the wallet address associated with a verification ID
    */
-  'getScore'(
-    parameters?: Parameters<Paths.GetScore.QueryParameters> | null,
+  'getStamps'(
+    parameters?: Parameters<Paths.GetStamps.QueryParameters> | null,
     data?: any,
     config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.GetScore.Responses.$200>
+  ): OperationResponse<Paths.GetStamps.Responses.$200>
   /**
    * getAllUsers - Get all users
    * 
@@ -939,17 +949,17 @@ export interface PathsDictionary {
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.VerifySignature.Responses.$200>
   }
-  ['/api/users/human/score']: {
+  ['/api/users/human/stamps']: {
     /**
-     * getScore - Get passport score for a given address and verification
+     * getStamps - Get passport stamps for a given address and verification
      * 
-     * Fetches the Gitcoin Passport score for the wallet address associated with a verification ID
+     * Fetches the Gitcoin Passport stamps for the wallet address associated with a verification ID
      */
     'get'(
-      parameters?: Parameters<Paths.GetScore.QueryParameters> | null,
+      parameters?: Parameters<Paths.GetStamps.QueryParameters> | null,
       data?: any,
       config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.GetScore.Responses.$200>
+    ): OperationResponse<Paths.GetStamps.Responses.$200>
   }
   ['/api/users']: {
     /**

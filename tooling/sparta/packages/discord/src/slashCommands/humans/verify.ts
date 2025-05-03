@@ -15,8 +15,6 @@ import {
 } from "discord.js";
 import { logger } from "@sparta/utils";
 import { randomUUID } from "crypto";
-import { VERIFICATION_STATUS } from "@sparta/utils/const";
-import { getDiscordInstance } from "../../clients/discord";
 import { HumanSubcommands } from "../../types.js";
 import { clientPromise } from "../../api/axios";
 
@@ -62,9 +60,7 @@ export async function handleVerifyCommand(
 					{ discordUserId: userId },
 					{
 						humanPassport: {
-							status:
-								data.user.humanPassport?.status ||
-								VERIFICATION_STATUS.NOT_VERIFIED,
+							status: data.user.humanPassport?.status || false,
 							verificationId,
 							interactionToken,
 						},
@@ -78,16 +74,13 @@ export async function handleVerifyCommand(
 			} else {
 				logger.info("User not found, creating new user");
 
-				// Create a new user
-				const timestamp = Date.now();
-
 				logger.debug({
 					discordUserId: userId,
 					discordUsername,
 					walletAddress: undefined,
 					role: undefined,
 					humanPassport: {
-						status: VERIFICATION_STATUS.NOT_VERIFIED,
+						status: false,
 						verificationId,
 						interactionToken,
 						lastVerificationTime: null,
@@ -103,8 +96,7 @@ export async function handleVerifyCommand(
 						walletAddress: undefined,
 						role: undefined,
 						humanPassport: {
-							//@ts-ignore
-							status: VERIFICATION_STATUS.NOT_VERIFIED,
+							status: false,
 							verificationId,
 							interactionToken,
 							lastVerificationTime: null,
@@ -126,18 +118,10 @@ export async function handleVerifyCommand(
 				.setDescription(
 					"To verify your identity and unlock roles, click the button below to connect your wallet and complete the verification process."
 				)
-				.addFields(
-					{
-						name: "What is Human Passport?",
-						value: "Human Passport is a sybil resistance tool that verifies you're a unique human.",
-					},
-					{
-						name: "Passport Status",
-						value: `You'll need a score of at least ${
-							process.env.MINIMUM_SCORE || "0"
-						} to verify.`,
-					}
-				)
+				.addFields({
+					name: "What is Human Passport?",
+					value: "Human Passport is a sybil resistance tool that verifies you're a unique human.",
+				})
 				.setFooter({
 					text: "This verification link will expire in 30 minutes.",
 				});

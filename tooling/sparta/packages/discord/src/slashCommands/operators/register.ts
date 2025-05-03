@@ -6,7 +6,7 @@ import {
 import { logger } from "@sparta/utils";
 import { l2InfoService } from "../../services/l2-info-service";
 import { clientPromise } from "../../api/axios";
-import { USER_ROLES } from "../../utils/roles";
+import { NODE_OPERATOR_ROLES } from "@sparta/utils/const/roles";
 import { _handleNodeOperatorRoleAssignment } from "../../utils/roleAssigner";
 
 /**
@@ -114,7 +114,7 @@ export async function registerValidator(
 							const success =
 								await _handleNodeOperatorRoleAssignment(
 									discordId,
-									USER_ROLES.APPRENTICE.name
+									NODE_OPERATOR_ROLES.APPRENTICE!
 								);
 							if (success) {
 								logger.info(

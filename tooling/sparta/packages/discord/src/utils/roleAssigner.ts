@@ -1,7 +1,6 @@
 import { logger } from "@sparta/utils/logger";
-import { DiscordService } from "../services/discord-service";
-
-const discordService = DiscordService.getInstance(); // Get instance
+import { DiscordService } from "../services/discord-service.js";
+import type { Role } from "@sparta/utils/const/roles.js";
 
 /**
  * Attempts to assign Discord roles based on score.
@@ -9,8 +8,10 @@ const discordService = DiscordService.getInstance(); // Get instance
  */
 export async function _handleNodeOperatorRoleAssignment(
 	discordUserId: string,
-	roleName: string
+	role: Role
 ): Promise<boolean> {
+	const discordService = DiscordService.getInstance(); // Get instance
+
 	logger.info(
 		{ userId: discordUserId },
 		"Attempting immediate role assignment..."
@@ -21,16 +22,16 @@ export async function _handleNodeOperatorRoleAssignment(
 
 		const success = await discordService.assignRole(
 			discordUserId,
-			roleName
+			role.name
 		);
 		if (success) {
 			logger.info(
-				{ userId: discordUserId, roleName },
+				{ userId: discordUserId, role: role.name },
 				"Node operator role assignment successful."
 			);
 		} else {
 			logger.error(
-				{ userId: discordUserId, roleName },
+				{ userId: discordUserId, role: role.name },
 				"Node operator role assignment failed (discordService returned false)."
 			);
 		}
@@ -48,28 +49,31 @@ export async function _handleNodeOperatorRoleAssignment(
  * Attempts to assign Discord roles based on score.
  * Returns true if successful, false otherwise (logs errors).
  */
-export async function _handleUserRoleAssignment(
+export async function _handleUserRolesAssignment(
 	sessionId: string,
 	discordUserId: string,
-	score: number
+	roles: Role[]
 ): Promise<boolean> {
 	logger.info(
-		{ sessionId, userId: discordUserId, score },
+		{ sessionId, userId: discordUserId, roles },
 		"Attempting immediate role assignment..."
 	);
+
+	const discordService = DiscordService.getInstance(); // Get instance
+
 	try {
 		// Ensure the discord service is initialized
 		await discordService.init();
 
-		const success = await discordService.assignRole(discordUserId, score);
+		const success = await discordService.assignRoles(discordUserId, roles);
 		if (success) {
 			logger.info(
-				{ sessionId, userId: discordUserId, score },
+				{ sessionId, userId: discordUserId, roles },
 				"Role assignment successful."
 			);
 		} else {
 			logger.error(
-				{ sessionId, userId: discordUserId, score },
+				{ sessionId, userId: discordUserId, roles },
 				"Role assignment failed (discordService returned false)."
 			);
 		}
