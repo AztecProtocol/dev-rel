@@ -9,7 +9,6 @@ ECR_REPOSITORY_URL="$2"
 DOCKERFILE_DIR="$3" # Directory containing the Dockerfile relative to where script runs
 # The URL for the frontend, needed at build time by Vite
 VITE_APP_API_URL="$4"
-VITE_MINIMUM_SCORE="$6"
 
 # --- Derived Variables ---
 # Extract repository name from URL (e.g., 123456789012.dkr.ecr.eu-west-2.amazonaws.com/sparta-development-api -> sparta-development-api)
@@ -25,8 +24,6 @@ aws ecr get-login-password --region "${AWS_REGION}" | docker login --username AW
 (cd "${DOCKERFILE_DIR}" && docker build \
     --platform linux/amd64 \
     --build-arg VITE_APP_API_URL="${VITE_APP_API_URL}" \
-    --build-arg VITE_REOWN_PROJECT_ID="${VITE_REOWN_PROJECT_ID}" \
-    --build-arg VITE_MINIMUM_SCORE="${VITE_MINIMUM_SCORE}" \
     -t "${ECR_REPOSITORY_URL}:latest" \
     -f Dockerfile .) > /dev/null
 

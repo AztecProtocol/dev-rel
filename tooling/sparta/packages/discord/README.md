@@ -64,7 +64,6 @@ The following environment variables are required:
 - `BOT_TOKEN`: Discord bot token
 - `BOT_CLIENT_ID`: Discord client ID
 - `GUILD_ID`: Discord guild (server) ID
-- `MINIMUM_SCORE`: Minimum score required for verification
 - `VITE_APP_API_URL`: API URL for verification links and API
 - `NODE_ENV`: Environment setting, affects command restrictions and behavior
 

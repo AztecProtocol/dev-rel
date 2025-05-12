@@ -47,7 +47,6 @@ COPY . .
 
 # Declare the build argument for the Vite frontend URL
 ARG VITE_APP_API_URL
-ARG VITE_MINIMUM_SCORE
 
 ENV VITE_APP_API_URL=$VITE_APP_API_URL
 

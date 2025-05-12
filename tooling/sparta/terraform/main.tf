@@ -402,8 +402,7 @@ data "external" "api_docker_build_push_digest" {
     var.aws_region, 
     aws_ecr_repository.sparta_api.repository_url, 
     "${path.module}/../", 
-    "http://${aws_lb.sparta_alb.dns_name}",
-    var.minimum_score
+    "http://${aws_lb.sparta_alb.dns_name}"
   ] # Pass region, repo url, Dockerfile dir, frontend URL, and VITE variables
 
   # Ensure ECR repository exists before running the script
