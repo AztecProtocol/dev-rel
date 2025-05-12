@@ -32,7 +32,6 @@ COPY package.json bun.lock ./
 # Create the packages directory first
 RUN mkdir packages
 COPY packages/express/package.json ./packages/express/
-COPY packages/vite/package.json ./packages/vite/
 COPY packages/utils/package.json ./packages/utils/
 COPY packages/discord/package.json ./packages/discord/
 COPY packages/ethereum/package.json ./packages/ethereum/
@@ -53,13 +52,6 @@ ENV VITE_APP_API_URL=$VITE_APP_API_URL
 # Generate Swagger docs during build
 RUN bun run swagger
 RUN bun run prep
-
-# Build the Vite frontend application
-# Assumes the build script exists in packages/vite/package.json
-# The ARG variables will be available as environment variables here
-RUN cd packages/vite && \
-    VITE_APP_API_URL=$VITE_APP_API_URL \
-    bun run build
 
 # Expose the port the Express server will listen on
 # Make sure this matches the PORT environment variable passed in Terraform (var.api_port)
