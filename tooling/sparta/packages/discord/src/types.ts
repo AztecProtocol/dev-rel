@@ -27,16 +27,6 @@ export enum NodeOperatorSubcommands {
 	Help = "help",
 }
 
-// Human Passport command enums
-export enum HumanSubcommandGroups {
-	Human = "human",
-}
-
-export enum HumanSubcommands {
-	Verify = "verify",
-	Status = "status",
-}
-
 // Other role-related enums
 export enum PassportRoles {
 	Verified = "Verified+", // Base role for verification

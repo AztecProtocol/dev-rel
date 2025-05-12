@@ -403,7 +403,6 @@ data "external" "api_docker_build_push_digest" {
     aws_ecr_repository.sparta_api.repository_url, 
     "${path.module}/../", 
     "http://${aws_lb.sparta_alb.dns_name}",
-    var.vite_reown_project_id,
     var.minimum_score
   ] # Pass region, repo url, Dockerfile dir, frontend URL, and VITE variables
 
@@ -483,10 +482,6 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "BOT_TOKEN", value = var.bot_token },
         { name = "BOT_CLIENT_ID", value = var.bot_client_id },
         { name = "GUILD_ID", value = var.guild_id },
-        { name = "PASSPORT_VERIFIED_ROLE_ID", value = var.passport_verified_role_id },
-        { name = "MINIMUM_SCORE", value = tostring(var.minimum_score) },
-        { name = "PASSPORT_API_KEY", value = var.passport_api_key },
-        { name = "PASSPORT_SCORER_ID", value = var.passport_scorer_id },
         { name = "ETHEREUM_HOST", value = var.ethereum_host },
         { name = "STAKING_ASSET_HANDLER_ADDRESS", value = var.staking_asset_handler_address },
         { name = "L1_CHAIN_ID", value = var.l1_chain_id },

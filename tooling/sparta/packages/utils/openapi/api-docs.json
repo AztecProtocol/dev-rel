@@ -240,269 +240,6 @@
             "description": "Timestamp when operator was last updated"
           }
         }
-      },
-      "Error": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "example": false
-          },
-          "error": {
-            "type": "string",
-            "description": "Error message describing the issue."
-          }
-        },
-        "required": [
-          "success",
-          "error"
-        ]
-      },
-      "VerifyResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "example": true
-          },
-          "verified": {
-            "type": "boolean",
-            "description": "Whether the overall verification (score + role assignment) was successful."
-          },
-          "score": {
-            "type": "number",
-            "description": "The user's Gitcoin Passport score."
-          },
-          "roleAssigned": {
-            "type": "boolean",
-            "description": "Whether the Discord role was successfully assigned/updated."
-          },
-          "address": {
-            "type": "string",
-            "description": "The wallet address recovered from the signature."
-          },
-          "status": {
-            "type": "string",
-            "description": "Final status of the verification process (e.g., verification_complete, verification_failed)."
-          },
-          "message": {
-            "type": "string",
-            "description": "A user-friendly message summarizing the result."
-          },
-          "minimumRequiredScore": {
-            "type": "number",
-            "description": "The minimum score required for verification."
-          }
-        },
-        "required": [
-          "success",
-          "verified",
-          "score",
-          "roleAssigned",
-          "address",
-          "status",
-          "message",
-          "minimumRequiredScore"
-        ]
-      },
-      "VerificationStatusResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "example": true
-          },
-          "verificationId": {
-            "type": "string",
-            "description": "The verification ID associated with this status check."
-          },
-          "walletConnected": {
-            "type": "boolean",
-            "description": "Whether a wallet address is associated with this verification."
-          },
-          "verified": {
-            "type": "boolean",
-            "description": "Whether the verification process was successfully completed (met score threshold)."
-          },
-          "roleAssigned": {
-            "type": "boolean",
-            "description": "Whether the Discord role was assigned."
-          },
-          "score": {
-            "type": "number",
-            "nullable": true,
-            "description": "The user's score, if verification was attempted."
-          },
-          "status": {
-            "type": "string",
-            "description": "The current status of the verification process (e.g., pending_signature, verification_complete)."
-          },
-          "minimumRequiredScore": {
-            "type": "number",
-            "description": "The minimum score required for verification."
-          },
-          "lastChecked": {
-            "type": "string",
-            "format": "date-time",
-            "description": "The timestamp when this status check was performed."
-          }
-        },
-        "required": [
-          "success",
-          "verificationId",
-          "walletConnected",
-          "verified",
-          "roleAssigned",
-          "status",
-          "minimumRequiredScore",
-          "lastChecked"
-        ]
-      },
-      "StampsResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "True if the operation completed successfully."
-          },
-          "stamps": {
-            "type": "array",
-            "description": "Array of Gitcoin Passport stamps associated with the wallet.",
-            "items": {
-              "type": "object"
-            }
-          },
-          "user": {
-            "type": "object",
-            "properties": {
-              "discordUserId": {
-                "type": "string",
-                "description": "The Discord user ID."
-              },
-              "walletAddress": {
-                "type": "string",
-                "description": "The user's wallet address."
-              },
-              "humanPassport": {
-                "type": "object",
-                "description": "Human passport verification data."
-              }
-            }
-          }
-        },
-        "required": [
-          "success",
-          "stamps",
-          "user"
-        ]
-      },
-      "HumanPassport": {
-        "type": "object",
-        "properties": {
-          "status": {
-            "type": "string",
-            "description": "Current status of verification (e.g., pending_signature, verification_complete)"
-          },
-          "score": {
-            "type": "number",
-            "nullable": true,
-            "description": "Passport score if verification completed"
-          },
-          "lastVerificationTime": {
-            "type": "number",
-            "format": "int64",
-            "nullable": true,
-            "description": "Timestamp (ms) when verification was last completed"
-          },
-          "verificationId": {
-            "type": "string",
-            "nullable": true,
-            "description": "ID used for the verification process"
-          },
-          "interactionToken": {
-            "type": "string",
-            "nullable": true,
-            "description": "Discord interaction token for UI updates"
-          }
-        }
-      },
-      "User": {
-        "type": "object",
-        "properties": {
-          "discordUserId": {
-            "type": "string",
-            "description": "Discord user ID (Primary Key)"
-          },
-          "discordUsername": {
-            "type": "string",
-            "description": "Discord username"
-          },
-          "walletAddress": {
-            "type": "string",
-            "nullable": true,
-            "description": "Ethereum address (verified through passport)"
-          },
-          "role": {
-            "type": "string",
-            "nullable": true,
-            "description": "User role within the system"
-          },
-          "humanPassport": {
-            "$ref": "#/components/schemas/HumanPassport",
-            "nullable": true
-          },
-          "createdAt": {
-            "type": "number",
-            "format": "int64",
-            "description": "Timestamp when user was created"
-          },
-          "updatedAt": {
-            "type": "number",
-            "format": "int64",
-            "description": "Timestamp when user was last updated"
-          }
-        },
-        "required": [
-          "discordUserId",
-          "discordUsername",
-          "createdAt",
-          "updatedAt"
-        ]
-      },
-      "UserResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "Success status"
-          },
-          "user": {
-            "$ref": "#/components/schemas/User"
-          }
-        },
-        "required": [
-          "success",
-          "user"
-        ]
-      },
-      "UsersResponse": {
-        "type": "object",
-        "properties": {
-          "success": {
-            "type": "boolean",
-            "description": "Success status"
-          },
-          "users": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/User"
-            }
-          }
-        },
-        "required": [
-          "success",
-          "users"
-        ]
       }
     }
   },
@@ -650,8 +387,8 @@
     },
     "/api/operator": {
       "get": {
-        "summary": "Get all node operators",
-        "description": "Retrieves a list of all registered node operators.",
+        "summary": "Get node operators",
+        "description": "Retrieves a list of registered node operators.",
         "tags": [
           "NodeOperator"
         ],
@@ -661,15 +398,36 @@
             "ApiKeyAuth": []
           }
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "pageToken",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "Token for pagination to get the next page of results."
+          }
+        ],
         "responses": {
           "200": {
-            "description": "A list of node operators.",
+            "description": "A list of node operators with pagination token.",
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/NodeOperator"
+                  "type": "object",
+                  "properties": {
+                    "operators": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NodeOperator"
+                      }
+                    },
+                    "nextPageToken": {
+                      "type": "string",
+                      "description": "Token to retrieve the next page of results. Not present on the last page.",
+                      "example": "eyJsYXN0S2V5IjoiMTIzNDU2Nzg5MCJ9"
+                    }
                   }
                 }
               }
@@ -752,6 +510,65 @@
           },
           "409": {
             "description": "Conflict - Operator with this Discord ID already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operator/stats": {
+      "get": {
+        "summary": "Get node operator statistics",
+        "description": "Retrieves statistics about registered node operators.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "getOperatorStats",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Node operator statistics.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "totalCount": {
+                          "type": "number",
+                          "description": "Total number of registered operators.",
+                          "example": 42
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
             "content": {
               "application/json": {
                 "schema": {
@@ -1077,737 +894,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/users/human/verify": {
-      "post": {
-        "summary": "Verify a wallet signature",
-        "description": "Verify a wallet signature and process Passport verification",
-        "tags": [
-          "Users"
-        ],
-        "operationId": "verifySignature",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "verificationId",
-            "schema": {
-              "type": "string"
-            },
-            "description": "The verification ID (can also be provided in body)"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "signature"
-                ],
-                "properties": {
-                  "signature": {
-                    "type": "string",
-                    "description": "Wallet signature"
-                  },
-                  "verificationId": {
-                    "type": "string",
-                    "description": "The verification ID (if not provided in query)"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Signature verified successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VerifyResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request - missing parameters or invalid signature",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Verification not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/users/human/stamps": {
-      "get": {
-        "summary": "Get passport stamps for a given address and verification",
-        "description": "Fetches the Gitcoin Passport stamps for the wallet address associated with a verification ID",
-        "tags": [
-          "Users"
-        ],
-        "operationId": "getStamps",
-        "parameters": [
-          {
-            "in": "query",
-            "name": "verificationId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "The verification ID obtained during verification initiation."
-          },
-          {
-            "in": "query",
-            "name": "address",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "The wallet address to check (case-insensitive comparison)."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Stamps retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StampsResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request (missing parameters)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Verification not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error during score fetching or processing",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/users": {
-      "get": {
-        "summary": "Get all users",
-        "description": "Retrieve a list of all users",
-        "tags": [
-          "Users"
-        ],
-        "operationId": "getAllUsers",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A list of users",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UsersResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "summary": "Create a new user",
-        "description": "Create a new user profile",
-        "tags": [
-          "Users"
-        ],
-        "operationId": "createUser",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "discordUserId",
-                  "discordUsername"
-                ],
-                "properties": {
-                  "discordUserId": {
-                    "type": "string",
-                    "description": "Discord user ID"
-                  },
-                  "discordUsername": {
-                    "type": "string",
-                    "description": "Discord username"
-                  },
-                  "walletAddress": {
-                    "type": "string",
-                    "description": "Ethereum wallet address"
-                  },
-                  "role": {
-                    "type": "string",
-                    "description": "User role"
-                  },
-                  "humanPassport": {
-                    "type": "object",
-                    "description": "Human passport verification data"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "User created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "user": {
-                      "$ref": "#/components/schemas/User"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request - Missing required fields or wallet already in use",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/users/discord/{discordUserId}": {
-      "get": {
-        "summary": "Get a specific user by Discord user ID",
-        "description": "Retrieve a user by their Discord user ID",
-        "tags": [
-          "Users"
-        ],
-        "operationId": "getUserByDiscordId",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "discordUserId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "Discord user ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "User not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "summary": "Update a user",
-        "description": "Update a user's information",
-        "tags": [
-          "Users"
-        ],
-        "operationId": "updateUser",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "discordUserId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "Discord user ID"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "discordUsername": {
-                    "type": "string",
-                    "description": "Discord username"
-                  },
-                  "walletAddress": {
-                    "type": "string",
-                    "description": "Ethereum wallet address"
-                  },
-                  "role": {
-                    "type": "string",
-                    "description": "User role"
-                  },
-                  "humanPassport": {
-                    "type": "object",
-                    "description": "Human passport verification data"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "User updated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string"
-                    },
-                    "user": {
-                      "$ref": "#/components/schemas/User"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request - Missing required fields or invalid data",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "User not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Delete a user",
-        "description": "Delete a user by their Discord user ID",
-        "tags": [
-          "Users"
-        ],
-        "operationId": "deleteUser",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "discordUserId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "Discord user ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User deleted successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "example": true
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "User not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/users/wallet/{walletAddress}": {
-      "get": {
-        "summary": "Get a user by wallet address",
-        "description": "Retrieve a user by their Ethereum wallet address",
-        "tags": [
-          "Users"
-        ],
-        "operationId": "getUserByWalletAddress",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "walletAddress",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "Ethereum wallet address"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request - Invalid wallet address format",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "User not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/users/verification/{verificationId}": {
-      "get": {
-        "summary": "Get a user by verification ID",
-        "description": "Retrieve a user by their Human Passport verification ID",
-        "tags": [
-          "Users"
-        ],
-        "operationId": "getUserByVerificationId",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "verificationId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "Human Passport verification ID"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "User profile",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "description": "Success status"
-                    },
-                    "user": {
-                      "$ref": "#/components/schemas/User"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad request - Missing verification ID",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "User not found with this verification ID",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Error"
                 }
               }
             }

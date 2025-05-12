@@ -4,10 +4,9 @@
  * @module sparta/discord/roles
  */
 
-import humansCommands from "./humans/index";
 import operatorsCommands from "./operators/index";
 import moderatorsCommands from "./moderators/index";
 export * from "../types";
 
 // Export roles commands
-export default { humansCommands, operatorsCommands, moderatorsCommands };
+export default { operatorsCommands, moderatorsCommands };

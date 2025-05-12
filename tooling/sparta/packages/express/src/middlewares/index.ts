@@ -4,5 +4,4 @@
  * @module sparta/express/middlewares
  */
 
-export * from './humanPassport.js';
 export * from './auth.js'; 

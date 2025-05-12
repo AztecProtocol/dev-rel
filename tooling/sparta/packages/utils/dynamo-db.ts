@@ -44,7 +44,6 @@ class DynamoDBService {
 
 		// Create the DynamoDB client
 		const options: any = {};
-
 		// Use local DynamoDB when running locally
 		if (this.isLocal) {
 			options.endpoint =

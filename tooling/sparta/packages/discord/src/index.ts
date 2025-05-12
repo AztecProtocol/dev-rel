@@ -15,4 +15,4 @@ export { Discord, getDiscordInstance } from "./clients/discord";
 export { DiscordService, discordService } from "./services";
 
 // Export utils
-export { _handleUserRoleAssignment } from "./utils/roleAssigner";
+export { _handleUserRolesAssignment } from "./utils/roleAssigner";

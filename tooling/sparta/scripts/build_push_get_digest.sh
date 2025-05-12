@@ -9,7 +9,6 @@ ECR_REPOSITORY_URL="$2"
 DOCKERFILE_DIR="$3" # Directory containing the Dockerfile relative to where script runs
 # The URL for the frontend, needed at build time by Vite
 VITE_APP_API_URL="$4"
-VITE_REOWN_PROJECT_ID="$5"
 VITE_MINIMUM_SCORE="$6"
 
 # --- Derived Variables ---

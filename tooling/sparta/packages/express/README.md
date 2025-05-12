@@ -66,10 +66,6 @@ API_PORT=3000
 WEBAPP_PORT=3001
 WEBAPP_HOST=http://localhost
 
-# Passport Configuration
-PASSPORT_SCORER_ID=your-passport-scorer-id
-PASSPORT_API_KEY=your-passport-api-key
-
 # AWS Configuration
 AWS_REGION=us-east-1
 AWS_ACCESS_KEY_ID=your-access-key

@@ -62,16 +62,9 @@ cp .env.example .env
 BOT_TOKEN=your_discord_bot_token
 BOT_CLIENT_ID=your_discord_client_id
 GUILD_ID=your_discord_server_id
-PASSPORT_VERIFIED_ROLE_ID=your_discord_role_id
-MINIMUM_SCORE=10
-
-# Gitcoin Passport Configuration
-PASSPORT_API_KEY=your_passport_api_key
-PASSPORT_SCORER_ID=your_passport_scorer_id
 
 # Verification Web App
 VITE_APP_API_URL=http://localhost:3000
-VITE_REOWN_PROJECT_ID=your_reown_project_id
 
 # Session Storage
 LOCAL_DYNAMO_DB=true

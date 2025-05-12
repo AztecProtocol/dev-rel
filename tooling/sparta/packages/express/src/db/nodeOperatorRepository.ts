@@ -31,13 +31,41 @@ export class NodeOperatorRepository {
 		);
 	}
 
-	async findAll(): Promise<NodeOperator[]> {
+	async findAll(pageToken?: string): Promise<{ operators: NodeOperator[]; nextPageToken?: string }> {
 		try {
-			const command = new ScanCommand({
+			const ITEMS_PER_PAGE = 10;
+			
+			// Build the scan command
+			const scanParams: any = {
 				TableName: this.tableName,
-			});
+				Limit: ITEMS_PER_PAGE,
+			};
+			
+			// If we have a page token, use it as the ExclusiveStartKey
+			if (pageToken) {
+				try {
+					const decodedToken = JSON.parse(Buffer.from(pageToken, 'base64').toString());
+					scanParams.ExclusiveStartKey = decodedToken;
+				} catch (error) {
+					logger.error({ error, pageToken }, "Invalid page token format");
+				}
+			}
+			
+			const command = new ScanCommand(scanParams);
 			const response = await this.client.send(command);
-			return (response.Items ?? []) as NodeOperator[];
+			
+			// Generate the next page token if LastEvaluatedKey exists
+			let nextPageToken: string | undefined = undefined;
+			if (response.LastEvaluatedKey) {
+				nextPageToken = Buffer.from(
+					JSON.stringify(response.LastEvaluatedKey)
+				).toString('base64');
+			}
+			
+			return {
+				operators: (response.Items ?? []) as NodeOperator[],
+				nextPageToken,
+			};
 		} catch (error) {
 			logger.error(
 				{ error, tableName: this.tableName },
@@ -94,6 +122,23 @@ export class NodeOperatorRepository {
 			throw new Error(
 				"Repository failed to retrieve node operator by address."
 			);
+		}
+	}
+
+	async countAll(): Promise<number> {
+		try {
+			const command = new ScanCommand({
+				TableName: this.tableName,
+				Select: "COUNT",
+			});
+			const response = await this.client.send(command);
+			return response.Count ?? 0;
+		} catch (error) {
+			logger.error(
+				{ error, tableName: this.tableName },
+				"Error counting NodeOperators in repository"
+			);
+			throw new Error("Repository failed to count node operators.");
 		}
 	}
 

@@ -8,7 +8,6 @@ import {
 import { getValidatorStats } from "./my-info.js";
 import { registerValidator } from "./register.js";
 import { showRegistrationHelp } from "./help.js";
-import { incrementCommandsCount } from "../../debug.js";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -64,19 +63,15 @@ export default {
 			switch (subcommand) {
 				case NodeOperatorSubcommands.MyStats:
 					await getValidatorStats(interaction);
-					incrementCommandsCount(NodeOperatorSubcommands.MyStats);
 					break;
 				case NodeOperatorSubcommands.ChainInfo:
 					await getChainInfo(interaction);
-					incrementCommandsCount(NodeOperatorSubcommands.ChainInfo);
 					break;
 				case NodeOperatorSubcommands.Start:
 					await registerValidator(interaction);
-					incrementCommandsCount(NodeOperatorSubcommands.Start);
 					break;
 				case NodeOperatorSubcommands.Help:
 					await showRegistrationHelp(interaction);
-					incrementCommandsCount(NodeOperatorSubcommands.Help);
 					break;
 				default:
 					await interaction.editReply({

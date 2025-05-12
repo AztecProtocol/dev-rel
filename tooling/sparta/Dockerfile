@@ -47,11 +47,9 @@ COPY . .
 
 # Declare the build argument for the Vite frontend URL
 ARG VITE_APP_API_URL
-ARG VITE_REOWN_PROJECT_ID
 ARG VITE_MINIMUM_SCORE
 
 ENV VITE_APP_API_URL=$VITE_APP_API_URL
-ENV VITE_REOWN_PROJECT_ID=$VITE_REOWN_PROJECT_ID
 
 # Generate Swagger docs during build
 RUN bun run swagger
@@ -62,7 +60,6 @@ RUN bun run prep
 # The ARG variables will be available as environment variables here
 RUN cd packages/vite && \
     VITE_APP_API_URL=$VITE_APP_API_URL \
-    VITE_REOWN_PROJECT_ID=$VITE_REOWN_PROJECT_ID \
     bun run build
 
 # Expose the port the Express server will listen on

@@ -88,50 +88,40 @@ const router: Router = express.Router();
 // Apply API key middleware to all operator routes
 router.use(apiKeyMiddleware);
 
-// Middleware for handling async route handlers and errors
-const asyncHandler =
-	(fn: (req: Request, res: Response) => Promise<any>) =>
-	(req: Request, res: Response, next: (err?: any) => void) => {
-		Promise.resolve(fn(req, res)).catch((err) => {
-			logger.error(
-				{ error: err, route: req.originalUrl, method: req.method },
-				"API Route Error"
-			);
-			// Send a generic error response
-			if (!res.headersSent) {
-				res.status(500).json({
-					error: "Internal Server Error",
-					message:
-						err instanceof Error
-							? err.message
-							: "An unknown error occurred",
-				});
-			} else {
-				next(err); // Pass to default Express error handler if headers already sent
-			}
-		});
-	};
-
 // GET /api/operator - returns all operators
 /**
  * @swagger
  * /api/operator:
  *   get:
- *     summary: Get all node operators
- *     description: Retrieves a list of all registered node operators.
+ *     summary: Get node operators
+ *     description: Retrieves a list of registered node operators.
  *     tags: [NodeOperator]
  *     operationId: getAllOperators
  *     security:
  *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: pageToken
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Token for pagination to get the next page of results.
  *     responses:
  *       200:
- *         description: A list of node operators.
+ *         description: A list of node operators with pagination token.
  *         content:
  *           application/json:
  *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/NodeOperator'
+ *               type: object
+ *               properties:
+ *                 operators:
+ *                   type: array
+ *                   items:
+ *                     $ref: '#/components/schemas/NodeOperator'
+ *                 nextPageToken:
+ *                   type: string
+ *                   description: Token to retrieve the next page of results. Not present on the last page.
+ *                   example: "eyJsYXN0S2V5IjoiMTIzNDU2Nzg5MCJ9"
  *       401:
  *         description: Unauthorized - Invalid or missing API key
  *         content:
@@ -145,14 +135,71 @@ const asyncHandler =
  *             schema:
  *               $ref: '#/components/schemas/OperatorError'
  */
-router.get(
-	"/",
-	asyncHandler(async (_req: Request, res: Response) => {
-		const operators = await nodeOperatorService.getAllOperators();
-		res.status(200).json(operators);
-		return;
-	})
-);
+router.get("/", async (_req: Request, res: Response) => {
+	const pageToken = _req.query.pageToken as string | undefined;
+	const { operators, nextPageToken } = await nodeOperatorService.getAllOperators(pageToken);
+	res.status(200).json({ operators, nextPageToken });
+	return;
+});
+
+// GET /api/operator/stats - returns operator statistics
+/**
+ * @swagger
+ * /api/operator/stats:
+ *   get:
+ *     summary: Get node operator statistics
+ *     description: Retrieves statistics about registered node operators.
+ *     tags: [NodeOperator]
+ *     operationId: getOperatorStats
+ *     security:
+ *       - ApiKeyAuth: []
+ *     responses:
+ *       200:
+ *         description: Node operator statistics.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 stats:
+ *                   type: object
+ *                   properties:
+ *                     totalCount:
+ *                       type: number
+ *                       description: Total number of registered operators.
+ *                       example: 42
+ *                     # Future stats can be added here
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ */
+router.get("/stats", async (_req: Request, res: Response) => {
+	try {
+		// Get current stats
+		const totalCount = await nodeOperatorService.countOperators();
+		
+		// Return stats object that can be expanded with more metrics in the future
+		res.status(200).json({
+			stats: {
+				totalCount
+				// Future stats can be added here
+			}
+		});
+	} catch (error) {
+		logger.error(error, "Error retrieving operator statistics");
+		res.status(500).json({ error: "Failed to retrieve operator statistics" });
+	}
+	return;
+});
 
 // GET /api/operator/discord/:discordId - returns the operator by discordId
 /**
@@ -206,7 +253,7 @@ router.get(
  */
 router.get(
 	"/discord/:discordId",
-	asyncHandler(async (req: Request, res: Response) => {
+	async (req: Request, res: Response) => {
 		const { discordId } = req.params;
 		if (!discordId) {
 			return res
@@ -219,11 +266,10 @@ router.get(
 		if (operator) {
 			res.status(200).json(operator);
 		} else {
-			res.status(404).json({ error: "Operator not found" });
-		}
-		return;
-	})
-);
+		res.status(404).json({ error: "Operator not found" });
+	}
+	return;
+});
 
 // GET /api/operator/address/:address - returns the operator by address
 /**
@@ -277,7 +323,7 @@ router.get(
  */
 router.get(
 	"/address/:address",
-	asyncHandler(async (req: Request, res: Response) => {
+	async (req: Request, res: Response) => {
 		const { address } = req.params;
 		if (!address) {
 			return res.status(400).json({ error: "Missing address parameter" });
@@ -297,8 +343,7 @@ router.get(
 			res.status(404).json({ error: "Operator not found" });
 		}
 		return;
-	})
-);
+	});
 
 // POST /api/operator - adds a new operator
 /**
@@ -351,7 +396,7 @@ router.get(
  */
 router.post(
 	"/",
-	asyncHandler(async (req: Request, res: Response) => {
+	async (req: Request, res: Response) => {
 		const { discordId, walletAddress } = req.body;
 		if (!discordId || !walletAddress) {
 			return res.status(400).json({
@@ -380,8 +425,7 @@ router.post(
 		}
 
 		return res.status(201).json(newOperator);
-	})
-);
+	});
 
 // DELETE /api/operator/discord/:discordId - deletes the operator by discordId
 /**
@@ -431,7 +475,7 @@ router.post(
  */
 router.delete(
 	"/discord/:discordId",
-	asyncHandler(async (req: Request, res: Response) => {
+	async (req: Request, res: Response) => {
 		const { discordId } = req.params;
 		if (!discordId) {
 			return res
@@ -459,8 +503,7 @@ router.delete(
 				error: "Failed to delete operator",
 			});
 		}
-	})
-);
+	});
 
 // PUT /api/operator/discord/:discordId - updates the operator with a new wallet
 /**
@@ -520,7 +563,7 @@ router.delete(
  */
 router.put(
 	"/discord/:discordId",
-	asyncHandler(async (req: Request, res: Response) => {
+	async (req: Request, res: Response) => {
 		const { discordId } = req.params;
 		const { walletAddress } = req.body;
 		if (!discordId) {
@@ -558,7 +601,6 @@ router.put(
 				error: "Failed to update operator",
 			});
 		}
-	})
-);
+	});
 
 export default router;

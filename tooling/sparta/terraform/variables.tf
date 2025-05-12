@@ -44,33 +44,6 @@ variable "guild_id" {
   type        = string
 }
 
-variable "passport_verified_role_id" {
-  description = "Discord role ID for users verified with Passport"
-  type        = string
-}
-
-
-variable "minimum_score" {
-  description = "Minimum Passport score required for verification"
-  type        = number
-  default     = 10
-}
-
-
-# -----------------------------------------------------------------------------
-# Gitcoin Passport Configuration
-# -----------------------------------------------------------------------------
-variable "passport_api_key" {
-  description = "API Key for Gitcoin Passport API v2"
-  type        = string
-  sensitive   = true
-}
-
-variable "passport_scorer_id" {
-  description = "Scorer ID from Gitcoin Passport"
-  type        = string
-}
-
 # -----------------------------------------------------------------------------
 # Ethereum Configuration
 # -----------------------------------------------------------------------------
@@ -89,14 +62,6 @@ variable "l1_chain_id" {
   type        = string
 }
 
-
-# -----------------------------------------------------------------------------
-# Web App Configuration
-# -----------------------------------------------------------------------------
-variable "vite_reown_project_id" {
-  description = "Project ID for Reown integration"
-  type        = string
-}
 
 # -----------------------------------------------------------------------------
 # DynamoDB Configuration

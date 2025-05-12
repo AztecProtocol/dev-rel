@@ -21,16 +21,30 @@ class NodeOperatorService {
 	}
 
 	/**
-	 * Retrieves all node operators.
-	 * @returns Array of NodeOperator objects.
+	 * Retrieves all node operators with pagination.
+	 * @param pageToken Optional token for pagination
+	 * @returns Object containing array of NodeOperator objects and optional nextPageToken.
 	 */
-	public async getAllOperators(): Promise<NodeOperator[]> {
+	public async getAllOperators(pageToken?: string): Promise<{ operators: NodeOperator[]; nextPageToken?: string }> {
 		try {
-			return await this.repository.findAll();
+			return await this.repository.findAll(pageToken);
 		} catch (error) {
-			logger.error({ error }, "Service error getting all operators");
+			logger.error(error, "Service error getting all operators");
 			// Re-throw or handle specific service-level errors
 			throw error; // Re-throwing the repository error for now
+		}
+	}
+
+	/**
+	 * Counts the total number of node operators.
+	 * @returns The count of node operators.
+	 */
+	public async countOperators(): Promise<number> {
+		try {
+			return await this.repository.countAll();
+		} catch (error) {
+			logger.error(error, "Service error counting operators");
+			throw error;
 		}
 	}
 
