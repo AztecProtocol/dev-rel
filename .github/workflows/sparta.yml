@@ -41,3 +41,21 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v3
+              with:
+                  terraform_version: 1.5.7
+                
+            - name: Terraform Init
+              run: terraform init
+
+            - name: Terraform Format
+              run: terraform fmt -check
+              continue-on-error: true
+
+            - name: Terraform Validate
+              run: terraform validate
+
+            - name: Terraform Apply
+              run: terraform apply -auto-approve
