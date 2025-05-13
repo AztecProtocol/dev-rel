@@ -7,6 +7,11 @@ permissions:
     contents: read
     pull-requests: write
 
+env:
+    TF_LOG: DEBUG
+    AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
 jobs:
     terraform-sparta:
         name: Terraform Sparta Bot
@@ -15,9 +20,6 @@ jobs:
             run:
                 working-directory: tooling/sparta/terraform
 
-        env:
-            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
 
         steps:
             - name: Checkout
@@ -75,4 +77,4 @@ jobs:
                 EOF
 
             - name: Terraform Apply
-              run: terraform apply -var-file="terraform.production.tfvars" -auto-approve
+              run: terraform apply -var-file="terraform.production.tfvars" -auto-approve -input=false
