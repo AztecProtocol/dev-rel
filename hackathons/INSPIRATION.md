@@ -12,9 +12,9 @@ The lack of privacy is consistently brought up as one of the main reasons we are
 
 These projects would be implemented as, or in conjunction with, Aztec contracts:
 
-- **ZK Uniswap frontend -** develop a frontend for our uniswap smart contract found [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/uniswap_contract)
+- **ZK Uniswap frontend -** develop a frontend for our uniswap smart contract found [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/app/uniswap_contract)
 - **ZK stablecoin** - build a stablecoin that allows you to wrap a stablecoin so it can be privately transferred
-- **Private lending front end** - you can see an example [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/lending_contract)
+- **Private lending front end** - you can see an example [here](https://github.com/AztecProtocol/aztec-packages/tree/master/noir-projects/noir-contracts/contracts/app/lending_contract)
 - **ZKollateral** - privately prove assets for collateral or creditworthiness for a loan
 - **Proof of Liquidity** - privately prove solvency and/or compliance without exposing the underlying assets or trades
 - **Private DEX** - allows users to trade assets without revealing the accounts that the assets originate from.
