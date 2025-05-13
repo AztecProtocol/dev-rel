@@ -7,6 +7,7 @@ import {
 export interface NodeOperator {
 	discordId: string; // Primary Key
 	walletAddress: string; // GSI Partition Key: WalletAddressIndex
+	discordUsername?: string; // Optional Discord username
 	createdAt: number;
 	updatedAt: number;
 }
@@ -68,6 +69,25 @@ class NodeOperatorService {
 	}
 
 	/**
+	 * Retrieves a node operator by their Discord username.
+	 * @param discordUsername The Discord username.
+	 * @returns The NodeOperator object or undefined if not found.
+	 */
+	public async getOperatorByDiscordUsername(
+		discordUsername: string
+	): Promise<NodeOperator | undefined> {
+		try {
+			return await this.repository.findByDiscordUsername(discordUsername);
+		} catch (error) {
+			logger.error(
+				{ error, discordUsername },
+				"Service error getting operator by Discord username"
+			);
+			throw error;
+		}
+	}
+
+	/**
 	 * Retrieves a node operator by their wallet address.
 	 * @param walletAddress The wallet address.
 	 * @returns The NodeOperator object or undefined if not found.
@@ -91,18 +111,21 @@ class NodeOperatorService {
 	 * Creates a new node operator.
 	 * @param discordId The Discord ID.
 	 * @param walletAddress The wallet address.
+	 * @param discordUsername The Discord username.
 	 * @returns The created NodeOperator object or undefined if creation failed (e.g., duplicate discordId).
 	 */
 	public async createOperator(
 		discordId: string,
-		walletAddress: string
+		walletAddress: string,
+		discordUsername?: string,
+		isApproved?: boolean
 	): Promise<NodeOperator | undefined> {
 		try {
 			// Add any service-level validation or transformation here
-			return await this.repository.create(discordId, walletAddress);
+			return await this.repository.create(discordId, walletAddress, discordUsername, isApproved);
 		} catch (error: any) {
 			logger.error(
-				{ error: error.message, discordId, walletAddress }, // Log error message
+				{ error: error.message, discordId, walletAddress, discordUsername }, // Log error message
 				"Service error creating operator"
 			);
 			// Check for specific repository errors (like duplicate) and handle
@@ -156,6 +179,32 @@ class NodeOperatorService {
 				"Service error deleting operator by Discord ID"
 			);
 			// Repository returns false if not found, re-throw other errors
+			throw error;
+		}
+	}
+
+	/**
+	 * Updates the approval status for a node operator.
+	 * @param discordId The Discord ID of the operator to update.
+	 * @param isApproved The approval status to set.
+	 * @returns True if the update was successful, false otherwise (e.g., operator not found).
+	 */
+	public async updateApprovalStatus(
+		discordId: string,
+		isApproved: boolean
+	): Promise<boolean> {
+		try {
+			return await this.repository.updateApprovalStatus(
+				discordId,
+				isApproved
+			);
+		} catch (error) {
+			logger.error(
+				{ error, discordId, isApproved },
+				"Service error updating operator approval status"
+			);
+			// The repository already returns false if not found due to condition check
+			// If other errors occur, re-throw
 			throw error;
 		}
 	}

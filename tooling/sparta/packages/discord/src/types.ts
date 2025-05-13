@@ -12,6 +12,7 @@ export enum ModeratorSubcommandGroups {
 export enum ModeratorSubcommands {
 	IsInSet = "is-in-set",
 	IsAttesting = "is-attesting",
+	Approve = "approve",
 	Help = "help",
 }
 

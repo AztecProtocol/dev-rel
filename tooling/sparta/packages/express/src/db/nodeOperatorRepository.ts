@@ -96,6 +96,35 @@ export class NodeOperatorRepository {
 		}
 	}
 
+	async findByDiscordUsername(
+		discordUsername: string
+	): Promise<NodeOperator | undefined> {
+		try {
+			// Scan the table with a filter on the discordUsername field
+			const command = new ScanCommand({
+				TableName: this.tableName,
+				FilterExpression: "discordUsername = :discordUsername",
+				ExpressionAttributeValues: {
+					":discordUsername": discordUsername,
+				},
+			});
+			const response = await this.client.send(command);
+			
+			// Return the first matching item, if any
+			return response.Items && response.Items.length > 0
+				? (response.Items[0] as NodeOperator)
+				: undefined;
+		} catch (error) {
+			logger.error(
+				{ error, discordUsername, tableName: this.tableName },
+				"Error retrieving NodeOperator by Discord username in repository"
+			);
+			throw new Error(
+				"Repository failed to retrieve node operator by Discord username."
+			);
+		}
+	}
+
 	async findByWalletAddress(
 		walletAddress: string
 	): Promise<NodeOperator | undefined> {
@@ -144,12 +173,16 @@ export class NodeOperatorRepository {
 
 	async create(
 		discordId: string,
-		walletAddress: string
+		walletAddress: string,
+		discordUsername?: string,
+		isApproved?: boolean
 	): Promise<NodeOperator> {
 		const now = Date.now();
 		const newOperator: NodeOperator = {
 			discordId,
 			walletAddress, // Consider normalizing address before saving
+			...(discordUsername && { discordUsername }),
+			...(isApproved !== undefined && { isApproved }),
 			createdAt: now,
 			updatedAt: now,
 		};
@@ -162,13 +195,13 @@ export class NodeOperatorRepository {
 			});
 			await this.client.send(command);
 			logger.info(
-				{ discordId, walletAddress, tableName: this.tableName },
+				{ discordId, walletAddress, discordUsername, tableName: this.tableName },
 				"Created new NodeOperator in repository"
 			);
 			return newOperator;
 		} catch (error: any) {
 			logger.error(
-				{ error, discordId, walletAddress, tableName: this.tableName },
+				{ error, discordId, walletAddress, discordUsername, tableName: this.tableName },
 				"Error creating NodeOperator in repository"
 			);
 			// Re-throw specific error types if needed for service layer handling
@@ -219,6 +252,48 @@ export class NodeOperatorRepository {
 			}
 			throw new Error(
 				"Repository failed to update node operator wallet."
+			);
+		}
+	}
+
+	async updateApprovalStatus(
+		discordId: string,
+		isApproved: boolean
+	): Promise<boolean> {
+		try {
+			const command = new UpdateCommand({
+				TableName: this.tableName,
+				Key: { discordId },
+				UpdateExpression:
+					"SET isApproved = :isApproved, updatedAt = :updatedAt",
+				ConditionExpression: "attribute_exists(discordId)",
+				ExpressionAttributeValues: {
+					":isApproved": isApproved,
+					":updatedAt": Date.now(),
+				},
+				ReturnValues: "NONE",
+			});
+			await this.client.send(command);
+			logger.info(
+				{ discordId, isApproved, tableName: this.tableName },
+				"Updated NodeOperator approval status in repository"
+			);
+			return true;
+		} catch (error: any) {
+			logger.error(
+				{
+					error,
+					discordId,
+					isApproved,
+					tableName: this.tableName,
+				},
+				"Error updating NodeOperator approval status in repository"
+			);
+			if (error.name === "ConditionalCheckFailedException") {
+				return false; // Operator not found
+			}
+			throw new Error(
+				"Repository failed to update node operator approval status."
 			);
 		}
 	}

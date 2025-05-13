@@ -13,6 +13,7 @@ import { isOperatorInSet } from "./operator-in-set.js";
 import { isOperatorAttesting } from "./operator-attesting.js";
 import { showModeratorHelp } from "./help.js";
 import { checkModeratorPermissions } from "../../utils/index.js";
+import { approveUser } from "./operator-approve.js";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -44,6 +45,17 @@ export default {
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
+				.setName(ModeratorSubcommands.Approve)
+				.setDescription("Approve a user to join the validator set")
+				.addStringOption((option) =>
+					option
+						.setName("user")
+						.setDescription("The Discord username of the user to approve")
+						.setRequired(true)
+				)
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
 				.setName(ModeratorSubcommands.Help)
 				.setDescription("Display help for moderator commands")
 		),
@@ -67,6 +79,9 @@ export default {
 					break;
 				case ModeratorSubcommands.IsAttesting:
 					await isOperatorAttesting(interaction);
+					break;
+				case ModeratorSubcommands.Approve:
+					await approveUser(interaction);
 					break;
 				case ModeratorSubcommands.Help:
 					await showModeratorHelp(interaction);

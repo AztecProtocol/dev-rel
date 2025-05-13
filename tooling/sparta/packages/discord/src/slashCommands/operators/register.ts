@@ -69,7 +69,7 @@ export async function registerValidator(
 					try {
 						// Step 1: Check if operator exists with this discordId
 						const { data: operatorData } =
-							await client.getOperatorByDiscordId({
+							await client.getOperator({
 								discordId,
 							});
 
@@ -78,7 +78,7 @@ export async function registerValidator(
 							operatorData.walletAddress !== address
 						) {
 							// Update wallet if it's a different address
-							await client.updateOperatorWallet(
+							await client.updateOperator(
 								{
 									discordId: operatorData.discordId,
 								},
@@ -96,6 +96,7 @@ export async function registerValidator(
 							await client.createOperator(null, {
 								discordId,
 								walletAddress: address,
+								discordUsername: interaction.user.username,
 							});
 							operationResult = "created";
 						} else {

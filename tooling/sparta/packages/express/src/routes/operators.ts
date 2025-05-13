@@ -25,6 +25,10 @@ import { apiKeyMiddleware } from "../middlewares/auth.js";
  *           type: string
  *           description: The Ethereum wallet address associated with the node operator.
  *           example: "0x1234567890abcdef1234567890abcdef12345678"
+ *         discordUsername:
+ *           type: string
+ *           description: The Discord username of the node operator.
+ *           example: "user#1234"
  *         createdAt:
  *           type: number
  *           description: Timestamp (milliseconds since epoch) when the operator was created.
@@ -88,15 +92,15 @@ const router: Router = express.Router();
 // Apply API key middleware to all operator routes
 router.use(apiKeyMiddleware);
 
-// GET /api/operator - returns all operators
+// GET /api/operator/operators - returns paginated list of operators
 /**
  * @swagger
- * /api/operator:
+ * /api/operator/operators:
  *   get:
  *     summary: Get node operators
  *     description: Retrieves a list of registered node operators.
  *     tags: [NodeOperator]
- *     operationId: getAllOperators
+ *     operationId: getOperators
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
@@ -135,10 +139,92 @@ router.use(apiKeyMiddleware);
  *             schema:
  *               $ref: '#/components/schemas/OperatorError'
  */
-router.get("/", async (_req: Request, res: Response) => {
+router.get("/operators", async (_req: Request, res: Response) => {
 	const pageToken = _req.query.pageToken as string | undefined;
 	const { operators, nextPageToken } = await nodeOperatorService.getAllOperators(pageToken);
 	res.status(200).json({ operators, nextPageToken });
+	return;
+});
+
+// GET /api/operator with query parameters - returns a specific operator
+/**
+ * @swagger
+ * /api/operator:
+ *   get:
+ *     summary: Get a specific node operator
+ *     description: Retrieves a specific node operator using either their Discord ID or username.
+ *     tags: [NodeOperator]
+ *     operationId: getOperator
+ *     security:
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: discordId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord ID of the operator to retrieve.
+ *       - in: query
+ *         name: discordUsername
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord username of the operator to retrieve.
+ *     responses:
+ *       200:
+ *         description: The requested node operator.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NodeOperator'
+ *       400:
+ *         description: Bad Request - Missing query parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       404:
+ *         description: Operator not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ */
+router.get("/", async (req: Request, res: Response) => {
+	const discordId = req.query.discordId as string | undefined;
+	const discordUsername = req.query.discordUsername as string | undefined;
+	
+	if (!discordId && !discordUsername) {
+		return res
+			.status(400)
+			.json({ error: "Missing discordId or discordUsername parameter" });
+	}
+	
+	let operator: any = undefined;
+	
+	if (discordId) {
+		operator = await nodeOperatorService.getOperatorByDiscordId(discordId);
+	} else if (discordUsername) {
+		operator = await nodeOperatorService.getOperatorByDiscordUsername(discordUsername);
+	}
+	
+	if (operator) {
+		res.status(200).json(operator);
+	} else {
+		res.status(404).json({ error: "Operator not found" });
+	}
 	return;
 });
 
@@ -197,76 +283,6 @@ router.get("/stats", async (_req: Request, res: Response) => {
 	} catch (error) {
 		logger.error(error, "Error retrieving operator statistics");
 		res.status(500).json({ error: "Failed to retrieve operator statistics" });
-	}
-	return;
-});
-
-// GET /api/operator/discord/:discordId - returns the operator by discordId
-/**
- * @swagger
- * /api/operator/discord/{discordId}:
- *   get:
- *     summary: Get operator by Discord ID
- *     description: Retrieves a specific node operator using their Discord ID.
- *     tags: [NodeOperator]
- *     operationId: getOperatorByDiscordId
- *     security:
- *       - ApiKeyAuth: []
- *     parameters:
- *       - in: path
- *         name: discordId
- *         schema:
- *           type: string
- *         required: true
- *         description: The Discord ID of the operator to retrieve.
- *     responses:
- *       200:
- *         description: The requested node operator.
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/NodeOperator'
- *       400:
- *         description: Bad Request - Missing discordId parameter
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/OperatorError'
- *       401:
- *         description: Unauthorized - Invalid or missing API key
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/OperatorError'
- *       404:
- *         description: Operator not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/OperatorError'
- *       500:
- *         description: Internal Server Error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/OperatorError'
- */
-router.get(
-	"/discord/:discordId",
-	async (req: Request, res: Response) => {
-		const { discordId } = req.params;
-		if (!discordId) {
-			return res
-				.status(400)
-				.json({ error: "Missing discordId parameter" });
-		}
-		const operator = await nodeOperatorService.getOperatorByDiscordId(
-			discordId
-		);
-		if (operator) {
-			res.status(200).json(operator);
-		} else {
-		res.status(404).json({ error: "Operator not found" });
 	}
 	return;
 });
@@ -361,7 +377,20 @@ router.get(
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/OperatorInput'
+ *             type: object
+ *             properties:
+ *               discordId:
+ *                 type: string
+ *                 description: The Discord user ID.
+ *               walletAddress:
+ *                 type: string
+ *                 description: The Ethereum wallet address.
+ *               discordUsername:
+ *                 type: string
+ *                 description: The Discord username.
+ *             required:
+ *               - discordId
+ *               - walletAddress
  *     responses:
  *       201:
  *         description: Node operator created successfully.
@@ -397,7 +426,7 @@ router.get(
 router.post(
 	"/",
 	async (req: Request, res: Response) => {
-		const { discordId, walletAddress } = req.body;
+		const { discordId, walletAddress, discordUsername } = req.body;
 		if (!discordId || !walletAddress) {
 			return res.status(400).json({
 				error: "Missing discordId or walletAddress parameter",
@@ -413,9 +442,22 @@ router.post(
 			});
 		}
 
+		// If discord username is provided, check if it already exists
+		if (discordUsername) {
+			const existingOperatorByUsername = 
+				await nodeOperatorService.getOperatorByDiscordUsername(discordUsername);
+			if (existingOperatorByUsername) {
+				return res.status(409).json({
+					error: "Operator with this Discord username already exists",
+				});
+			}
+		}
+
 		const newOperator = await nodeOperatorService.createOperator(
 			discordId,
-			walletAddress
+			walletAddress,
+			discordUsername,
+			false
 		);
 
 		if (!newOperator) {
@@ -427,29 +469,35 @@ router.post(
 		return res.status(201).json(newOperator);
 	});
 
-// DELETE /api/operator/discord/:discordId - deletes the operator by discordId
+// DELETE /api/operator - deletes an operator by discordId or discordUsername
 /**
  * @swagger
- * /api/operator/discord/{discordId}:
+ * /api/operator:
  *   delete:
- *     summary: Delete an operator by Discord ID
- *     description: Removes a node operator registration using their Discord ID.
+ *     summary: Delete an operator by Discord ID or username
+ *     description: Removes a node operator registration using either their Discord ID or username.
  *     tags: [NodeOperator]
- *     operationId: deleteOperatorByDiscordId
+ *     operationId: deleteOperator
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
- *       - in: path
+ *       - in: query
  *         name: discordId
  *         schema:
  *           type: string
- *         required: true
+ *         required: false
  *         description: The Discord ID of the operator to delete.
+ *       - in: query
+ *         name: discordUsername
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord username of the operator to delete.
  *     responses:
  *       204:
  *         description: Operator deleted successfully (No Content).
  *       400:
- *         description: Bad Request - Missing discordId parameter
+ *         description: Bad Request - Missing discordId or discordUsername parameter
  *         content:
  *           application/json:
  *             schema:
@@ -474,28 +522,36 @@ router.post(
  *               $ref: '#/components/schemas/OperatorError'
  */
 router.delete(
-	"/discord/:discordId",
+	"/",
 	async (req: Request, res: Response) => {
-		const { discordId } = req.params;
-		if (!discordId) {
+		const discordId = req.query.discordId as string | undefined;
+		const discordUsername = req.query.discordUsername as string | undefined;
+		
+		if (!discordId && !discordUsername) {
 			return res
 				.status(400)
-				.json({ error: "Missing discordId parameter" });
+				.json({ error: "Missing discordId or discordUsername parameter" });
 		}
-		logger.info("operator");
-
-		// Check if operator exists first
-		const existingOperator =
-			await nodeOperatorService.getOperatorByDiscordId(discordId);
-		if (!existingOperator) {
+		
+		let operatorToDelete: any = undefined;
+		let idToDelete: string | undefined = discordId;
+		
+		if (discordId) {
+			operatorToDelete = await nodeOperatorService.getOperatorByDiscordId(discordId);
+		} else if (discordUsername) {
+			operatorToDelete = await nodeOperatorService.getOperatorByDiscordUsername(discordUsername);
+			if (operatorToDelete) {
+				idToDelete = operatorToDelete.discordId;
+			}
+		}
+		
+		if (!operatorToDelete || !idToDelete) {
 			return res.status(404).json({
-				error: "Operator with this Discord ID does not exist",
+				error: "Operator not found",
 			});
 		}
 
-		const deleted = await nodeOperatorService.deleteOperatorByDiscordId(
-			discordId
-		);
+		const deleted = await nodeOperatorService.deleteOperatorByDiscordId(idToDelete);
 		if (deleted) {
 			return res.status(204).send();
 		} else {
@@ -505,30 +561,42 @@ router.delete(
 		}
 	});
 
-// PUT /api/operator/discord/:discordId - updates the operator with a new wallet
+// PUT /api/operator - updates the operator with a new wallet
 /**
  * @swagger
- * /api/operator/discord/{discordId}:
+ * /api/operator:
  *   put:
  *     summary: Update operator's wallet address
- *     description: Updates the wallet address for a specific node operator using their Discord ID.
+ *     description: Updates the wallet address for a specific node operator using their Discord ID or username.
  *     tags: [NodeOperator]
- *     operationId: updateOperatorWallet
+ *     operationId: updateOperator
  *     security:
  *       - ApiKeyAuth: []
  *     parameters:
- *       - in: path
+ *       - in: query
  *         name: discordId
  *         schema:
  *           type: string
- *         required: true
+ *         required: false
  *         description: The Discord ID of the operator to update.
+ *       - in: query
+ *         name: discordUsername
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord username of the operator to update.
  *     requestBody:
  *       required: true
  *       content:
  *         application/json:
  *           schema:
- *             $ref: '#/components/schemas/OperatorUpdateInput'
+ *             type: object
+ *             properties:
+ *               walletAddress:
+ *                 type: string
+ *                 description: The new wallet address.
+ *             required:
+ *               - walletAddress
  *     responses:
  *       200:
  *         description: Operator updated successfully. Returns the updated operator.
@@ -537,7 +605,7 @@ router.delete(
  *             schema:
  *               $ref: '#/components/schemas/NodeOperator'
  *       400:
- *         description: Bad Request - Missing discordId parameter or invalid/missing walletAddress in body
+ *         description: Bad Request - Missing parameters
  *         content:
  *           application/json:
  *             schema:
@@ -562,43 +630,160 @@ router.delete(
  *               $ref: '#/components/schemas/OperatorError'
  */
 router.put(
-	"/discord/:discordId",
+	"/",
 	async (req: Request, res: Response) => {
-		const { discordId } = req.params;
+		const discordId = req.query.discordId as string | undefined;
+		const discordUsername = req.query.discordUsername as string | undefined;
 		const { walletAddress } = req.body;
-		if (!discordId) {
-			return res
-				.status(400)
-				.json({ error: "Missing discordId parameter" });
+		
+		if (!discordId && !discordUsername) {
+			return res.status(400).json({ 
+				error: "Missing discordId or discordUsername query parameter" 
+			});
 		}
+		
 		if (!walletAddress) {
-			return res
-				.status(400)
-				.json({ error: "Missing walletAddress parameter" });
+			return res.status(400).json({ 
+				error: "Request must include walletAddress to update" 
+			});
 		}
-
-		// Check if operator exists first
-		const existingOperator =
-			await nodeOperatorService.getOperatorByDiscordId(discordId);
-		if (!existingOperator) {
+		
+		let operatorToUpdate: any = undefined;
+		let idToUpdate: string | undefined = discordId;
+		
+		// Find the operator
+		if (discordId) {
+			operatorToUpdate = await nodeOperatorService.getOperatorByDiscordId(discordId);
+		} else if (discordUsername) {
+			operatorToUpdate = await nodeOperatorService.getOperatorByDiscordUsername(discordUsername);
+			if (operatorToUpdate) {
+				idToUpdate = operatorToUpdate.discordId;
+			}
+		}
+		
+		if (!operatorToUpdate || !idToUpdate) {
 			return res.status(404).json({
-				error: "Operator with this Discord ID does not exist",
+				error: "Operator not found",
+			});
+		}
+		
+		// Update wallet address
+		const updated = await nodeOperatorService.updateOperatorWallet(
+			idToUpdate,
+			walletAddress
+		);
+		
+		if (!updated) {
+			return res.status(500).json({
+				error: "Failed to update operator wallet",
 			});
 		}
 
-		const updated = await nodeOperatorService.updateOperatorWallet(
-			discordId,
-			walletAddress
+		// Fetch the updated operator to return
+		const updatedOperator = await nodeOperatorService.getOperatorByDiscordId(idToUpdate);
+		return res.status(200).json(updatedOperator);
+	});
+
+// PUT /api/operator/approve - approves an operator
+/**
+ * @swagger
+ * /api/operator/approve:
+ *   put:
+ *     summary: Approve a node operator
+ *     description: Approves a node operator using their Discord ID or username.
+ *     tags: [NodeOperator]
+ *     operationId: approveOperator
+ *     security:
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: discordId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord ID of the operator to approve.
+ *       - in: query
+ *         name: discordUsername
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord username of the operator to approve.
+ *     responses:
+ *       200:
+ *         description: Operator approved successfully. Returns the updated operator.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NodeOperator'
+ *       400:
+ *         description: Bad Request - Missing parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       404:
+ *         description: Operator not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ */
+router.put(
+	"/approve",
+	async (req: Request, res: Response) => {
+		const discordId = req.query.discordId as string | undefined;
+		const discordUsername = req.query.discordUsername as string | undefined;
+		
+		if (!discordId && !discordUsername) {
+			return res
+				.status(400)
+				.json({ error: "Missing discordId or discordUsername parameter" });
+		}
+		
+		let operatorToApprove: any = undefined;
+		let idToApprove: string | undefined = discordId;
+		
+		// Find the operator
+		if (discordId) {
+			operatorToApprove = await nodeOperatorService.getOperatorByDiscordId(discordId);
+		} else if (discordUsername) {
+			operatorToApprove = await nodeOperatorService.getOperatorByDiscordUsername(discordUsername);
+			if (operatorToApprove) {
+				idToApprove = operatorToApprove.discordId;
+			}
+		}
+		
+		if (!operatorToApprove || !idToApprove) {
+			return res.status(404).json({
+				error: "Operator not found",
+			});
+		}
+
+		const updated = await nodeOperatorService.updateApprovalStatus(
+			idToApprove,
+			true
 		);
 
 		if (updated) {
 			// Fetch the updated operator to return
 			const updatedOperator =
-				await nodeOperatorService.getOperatorByDiscordId(discordId);
+				await nodeOperatorService.getOperatorByDiscordId(idToApprove);
 			return res.status(200).json(updatedOperator);
 		} else {
 			return res.status(500).json({
-				error: "Failed to update operator",
+				error: "Failed to approve operator",
 			});
 		}
 	});

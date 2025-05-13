@@ -251,7 +251,7 @@ resource "aws_iam_role" "api_task_role" {
 # IAM Policy allowing API Task Role to access DynamoDB
 resource "aws_iam_policy" "dynamodb_access_policy" {
   name        = "${local.resource_prefix}-dynamodb-access-policy"
-  description = "Policy for accessing DynamoDB users tables"
+  description = "Policy for accessing DynamoDB node operators table"
 
   policy = jsonencode({
     Version = "2012-10-17",
@@ -269,9 +269,6 @@ resource "aws_iam_policy" "dynamodb_access_policy" {
         ],
         # Grant access to both tables and their indexes
         Resource = [
-          # Users table (referenced via Terraform resource)
-          aws_dynamodb_table.sparta_users.arn,
-          "${aws_dynamodb_table.sparta_users.arn}/index/*",
           # Node Operators table
           aws_dynamodb_table.sparta_node_operators.arn,
           "${aws_dynamodb_table.sparta_node_operators.arn}/index/*"
@@ -292,54 +289,6 @@ resource "aws_iam_role_policy_attachment" "api_dynamodb_policy_attachment" {
 # =============================================================================
 # Database (DynamoDB)
 # =============================================================================
-
-# Add the 'users' table definition
-resource "aws_dynamodb_table" "sparta_users" {
-  name           = "${local.resource_prefix}-users" # Use prefix for consistency
-  billing_mode   = "PAY_PER_REQUEST"          # Use pay-per-request like sessions table
-
-  # Define attributes used in keys/indexes
-  attribute {
-    name = "discordUserId"
-    type = "S"
-  }
-  attribute {
-    name = "walletAddress"
-    type = "S"
-  }
-  attribute {
-    name = "verificationId"
-    type = "S"
-  }
-
-  # Define the primary hash key
-  hash_key = "discordUserId"
-
-  # Define Global Secondary Indexes
-  global_secondary_index {
-    name            = "walletAddress-index"
-    hash_key        = "walletAddress"
-    projection_type = "INCLUDE"
-    non_key_attributes = ["discordUserId", "discordUsername"] # Attributes to include
-    # PAY_PER_REQUEST billing mode applies to GSIs as well
-  }
-
-  global_secondary_index {
-    name            = "verificationId-index"
-    hash_key        = "verificationId"
-    projection_type = "ALL" # Project all attributes
-    # PAY_PER_REQUEST billing mode applies to GSIs as well
-  }
-
-  # Enable Point-in-Time Recovery for backups (Recommended)
-  point_in_time_recovery {
-    enabled = true
-  }
-
-  tags = merge(local.common_tags, {
-    Name = "${local.resource_prefix}-users-table"
-  })
-}
 
 # Add the 'node operators' table definition
 resource "aws_dynamodb_table" "sparta_node_operators" {
@@ -488,7 +437,6 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "LOG_PRETTY_PRINT", value = var.log_pretty_print ? "true" : "false" },
         { name = "VITE_APP_API_URL", value = "http://${aws_lb.sparta_alb.dns_name}" },
         { name = "CORS_ALLOWED_ORIGINS", value = "http://${aws_lb.sparta_alb.dns_name}" },
-        { name = "USERS_TABLE_NAME", value = aws_dynamodb_table.sparta_users.name },
         { name = "NODE_OPERATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_node_operators.name }
       ]
       # secrets = [ # Example using Secrets Manager
@@ -728,11 +676,6 @@ output "ecs_cluster_name" {
   description = "The name of the ECS cluster"
   value       = aws_ecs_cluster.sparta_cluster.name
 }
-
-output "users_table_name" {
-  description = "The name of the DynamoDB table for users"
-  value       = aws_dynamodb_table.sparta_users.name
-} 
 
 output "node_operators_table_name" {
   description = "The name of the DynamoDB table for node operators"
