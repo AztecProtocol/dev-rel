@@ -50,13 +50,13 @@ export async function showModeratorHelp(
 					inline: false,
 				},
 				{
-					name: `/mod ${ModeratorSubcommands.IsInSet}`,
-					value: "Check if an address is in the current validator set\n`address` - The validator address to check (required)",
+					name: `/mod ${ModeratorSubcommands.Info}`,
+					value: "Get comprehensive information about a node operator\n`username` - The Discord username of the operator (required)\n\nThis command shows:\n• Operator details (wallet, approval status)\n• Validator information (in set, attesting status, miss percentage)",
 					inline: false,
 				},
 				{
-					name: `/mod ${ModeratorSubcommands.IsAttesting}`,
-					value: "Check if an address is actively attesting\n`address` - The validator address to check (required)",
+					name: `/mod ${ModeratorSubcommands.Approve}`,
+					value: "Approve a user to join the validator set\n`user` - The Discord username of the user to approve (required)",
 					inline: false,
 				},
 			])

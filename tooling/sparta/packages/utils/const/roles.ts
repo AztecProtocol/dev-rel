@@ -17,6 +17,7 @@ export const MODERATOR_ROLES: Record<string, Role> = {
  */
 export const NODE_OPERATOR_ROLES: Record<string, Role> = {
 	APPRENTICE: { name: "Apprentice", id: "1366916508072148992" },
+	GUARDIAN: { name: "Guardian", id: "1366921013350371328" },
 };
 
 /**
@@ -24,11 +25,4 @@ export const NODE_OPERATOR_ROLES: Record<string, Role> = {
  */
 export const DEVELOPER_ROLES: Record<string, Role> = {
 	DEVELOPER: { name: "Developer", id: "1367015094638346271" },
-};
-
-/**
- * User role definitions mapping role names to their Discord IDs
- */
-export const USER_ROLES: Record<string, Role> = {
-	VERIFIED_PLUS: { name: "Verified+", id: "1364982673604345886" },
 };

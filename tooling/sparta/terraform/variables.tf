@@ -62,6 +62,22 @@ variable "l1_chain_id" {
   type        = string
 }
 
+variable "sparta_private_key" {
+  description = "Ethereum private key for the sparta account"
+  type        = string
+  sensitive   = true
+}
+
+variable "sparta_address" {
+  description = "Ethereum address for the sparta account"
+  type        = string
+}
+
+
+
+
+
+
 
 # -----------------------------------------------------------------------------
 # DynamoDB Configuration

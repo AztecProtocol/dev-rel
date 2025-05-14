@@ -90,3 +90,62 @@ To build and run in production:
 bun run build
 bun run start
 ```
+
+## Validator Migration Guide
+
+### Background
+The express service has been updated to use a new data structure for validators. Previously, validators were stored as an array within each NodeOperator object. The new design creates a separate "validators" table with a one-to-many relationship to node operators, which offers better query capabilities and data integrity.
+
+### Migration Process
+To migrate the system from the old structure to the new one, follow these steps:
+
+1. Deploy the updated code to your environment
+2. Run the migration script from the Sparta scripts directory:
+
+```bash
+# Run all migrations in sequence
+cd tooling/sparta/scripts
+./run-migrations.sh
+
+# Or run just the validator migration
+node migrations/01_migrate_validators.js
+```
+
+The complete migration logic is now contained in the scripts directory at `tooling/sparta/scripts/migrations/01_migrate_validators.js`, making it easier to run and maintain.
+
+### What the Migration Does
+1. Creates a new DynamoDB table (`sparta-validators-dev` by default) with appropriate indexes
+2. Reads all node operators from the existing table
+3. For each node operator with validators, creates new entries in the validators table
+4. Maintains all existing relationships between validators and operators
+
+### Post-Migration Verification
+After running the migration, you can verify the success by:
+
+1. Checking the API endpoints that return validators
+2. Viewing logs from the migration process
+3. Directly querying the validators table in DynamoDB
+
+### Environment Variables
+The migration process uses the following environment variables:
+
+- `VALIDATORS_TABLE_NAME`: Name of the new validators table (default: `sparta-validators-dev`)
+- `NODE_OPERATORS_TABLE_NAME`: Name of the existing node operators table (default: `sparta-node-operators-dev`)
+- `AWS_REGION`: AWS region for DynamoDB (default: `us-east-1`)
+- `IS_LOCAL`: Whether to use local DynamoDB (default: true)
+- `DYNAMODB_LOCAL_ENDPOINT`: Endpoint for local DynamoDB (default: http://localhost:8000)
+
+### Reverting (If Needed)
+If you need to revert the migration:
+
+1. Roll back to the previous code version
+2. Delete the validators table (note: this will lose any new validators added after migration)
+
+### Data Schema Changes
+The new Validator schema includes:
+- `validatorAddress`: Primary key (string)
+- `nodeOperatorId`: Foreign key to node operators (string)
+- `createdAt`: Timestamp of creation (number)
+- `updatedAt`: Timestamp of last update (number)
+
+The NodeOperator schema has been updated to remove the `validators` array field.

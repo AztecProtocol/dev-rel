@@ -26,9 +26,15 @@ export async function approveUser(
             
             // Call the approve endpoint with the Discord username as query parameter
             try {
-                await client.approveOperator({
-                    discordUsername: discordUsername
-                });
+                // The OpenAPI client is correctly configured to handle query parameters
+                // The endpoint is documented in the OpenAPI spec as /api/operator/approve
+                // The approveOperator operation expects query parameters, not body
+                await client.approveOperator(
+                    { 
+                        discordUsername: discordUsername 
+                    },
+                    null // No body data
+                );
                 
                 const embed = new EmbedBuilder()
                     .setTitle("✅ OPERATOR APPROVED")
@@ -44,6 +50,7 @@ export async function approveUser(
                 await interaction.editReply({ embeds: [embed] });
                 return "APPROVED";
             } catch (approvalError: any) {
+                console.log(approvalError);
                 logger.error("Error approving operator:", approvalError);
                 
                 // If 404, operator not found

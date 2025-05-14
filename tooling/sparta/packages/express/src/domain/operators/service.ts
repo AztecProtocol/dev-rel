@@ -3,11 +3,13 @@ import {
 	nodeOperatorRepository, // Import the repository instance
 	NodeOperatorRepository, // Import the repository type if needed for dependency injection
 } from "../../db/nodeOperatorRepository"; // Corrected relative path from service to db
+import { validatorService } from "../validators/service";
 
 export interface NodeOperator {
 	discordId: string; // Primary Key
 	walletAddress: string; // GSI Partition Key: WalletAddressIndex
 	discordUsername?: string; // Optional Discord username
+	isApproved?: boolean; // Whether the operator is approved
 	createdAt: number;
 	updatedAt: number;
 }
@@ -208,7 +210,92 @@ class NodeOperatorService {
 			throw error;
 		}
 	}
+
+	/**
+	 * Adds a validator to an operator using the validator service.
+	 * @param discordId The Discord ID of the operator.
+	 * @param validatorAddress The validator address to add.
+	 * @returns True if the update was successful, false otherwise.
+	 */
+	public async addValidatorToOperator(
+		discordId: string,
+		validatorAddress: string
+	): Promise<boolean> {
+		try {
+			const operator = await this.repository.findByDiscordId(discordId);
+			
+			if (!operator) {
+				return false;
+			}
+			
+			// Check if the validator already exists
+			const existingValidator = await validatorService.getValidatorByAddress(validatorAddress);
+			if (existingValidator) {
+				// If it exists but belongs to a different operator, update it
+				if (existingValidator.nodeOperatorId !== discordId) {
+					return await validatorService.updateValidatorOperator(validatorAddress, discordId);
+				}
+				// If it's already associated with this operator, return success
+				return true;
+			}
+			
+			// Create a new validator associated with this operator
+			const validator = await validatorService.createValidator(validatorAddress, discordId);
+			return !!validator;
+		} catch (error) {
+			logger.error(
+				{ error, discordId, validatorAddress },
+				"Service error adding validator to operator"
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * Updates the complete list of validators for an operator.
+	 * @param discordId The Discord ID of the operator.
+	 * @param validators Array of validator addresses to set.
+	 * @returns True if the update was successful, false otherwise.
+	 */
+	public async updateValidatorsList(
+		discordId: string,
+		validators: string[]
+	): Promise<boolean> {
+		try {
+			// First, check if the operator exists
+			const operator = await this.repository.findByDiscordId(discordId);
+			if (!operator) {
+				return false;
+			}
+			
+			// Get all current validators for this operator
+			const currentValidators = await validatorService.getValidatorsByNodeOperator(discordId);
+			const currentAddresses = currentValidators.map(v => v.validatorAddress);
+			
+			// Determine which validators to add and which to remove
+			const validatorsToAdd = validators.filter(addr => !currentAddresses.includes(addr));
+			const validatorsToRemove = currentAddresses.filter(addr => !validators.includes(addr));
+			
+			// Remove validators not in the new list
+			for (const addr of validatorsToRemove) {
+				await validatorService.deleteValidator(addr);
+			}
+			
+			// Add new validators
+			for (const addr of validatorsToAdd) {
+				await validatorService.createValidator(addr, discordId);
+			}
+			
+			return true;
+		} catch (error) {
+			logger.error(
+				{ error, discordId },
+				"Service error updating validators list"
+			);
+			throw error;
+		}
+	}
 }
 
-// Export a singleton instance of the service
 export const nodeOperatorService = new NodeOperatorService();
+export default nodeOperatorService;

@@ -5,9 +5,10 @@ import {
 	NodeOperatorSubcommandGroups,
 	NodeOperatorSubcommands,
 } from "../../types.js";
-import { getValidatorStats } from "./my-info.js";
+import { getNodeOperatorInfo } from "./my-stats.js";
 import { registerValidator } from "./register.js";
-import { showRegistrationHelp } from "./help.js";
+import { showOperatorHelp } from "./help.js";
+import { addValidator } from "./add-validator.js";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -16,13 +17,7 @@ export default {
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName(NodeOperatorSubcommands.MyStats)
-				.setDescription("Check your validator stats")
-				.addStringOption((option) =>
-					option
-						.setName("address")
-						.setDescription("The validator address to check")
-						.setRequired(true)
-				)
+				.setDescription("Check your node operator status and validator stats")
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
@@ -54,6 +49,17 @@ export default {
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
+				.setName(NodeOperatorSubcommands.AddValidator)
+				.setDescription("Add a new validator to your account")
+				.addStringOption((option) =>
+					option
+						.setName("validator-address")
+						.setDescription("The validator address to add")
+						.setRequired(true)
+				)
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
 				.setName(NodeOperatorSubcommands.Help)
 				.setDescription("Display help information for node operators")
 		),
@@ -62,7 +68,7 @@ export default {
 			const subcommand = interaction.options.getSubcommand();
 			switch (subcommand) {
 				case NodeOperatorSubcommands.MyStats:
-					await getValidatorStats(interaction);
+					await getNodeOperatorInfo(interaction);
 					break;
 				case NodeOperatorSubcommands.ChainInfo:
 					await getChainInfo(interaction);
@@ -71,7 +77,10 @@ export default {
 					await registerValidator(interaction);
 					break;
 				case NodeOperatorSubcommands.Help:
-					await showRegistrationHelp(interaction);
+					await showOperatorHelp(interaction);
+					break;
+				case NodeOperatorSubcommands.AddValidator:
+					await addValidator(interaction);
 					break;
 				default:
 					await interaction.editReply({

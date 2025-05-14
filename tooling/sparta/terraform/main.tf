@@ -271,7 +271,10 @@ resource "aws_iam_policy" "dynamodb_access_policy" {
         Resource = [
           # Node Operators table
           aws_dynamodb_table.sparta_node_operators.arn,
-          "${aws_dynamodb_table.sparta_node_operators.arn}/index/*"
+          "${aws_dynamodb_table.sparta_node_operators.arn}/index/*",
+          # Validators table
+          aws_dynamodb_table.sparta_validators.arn,
+          "${aws_dynamodb_table.sparta_validators.arn}/index/*"
         ]
       }
       # Add statements here if the API needs access to other AWS resources
@@ -325,6 +328,46 @@ resource "aws_dynamodb_table" "sparta_node_operators" {
     Name = "${local.resource_prefix}-node-operators-table"
   })
 }
+
+# Add the 'validators' table definition
+resource "aws_dynamodb_table" "sparta_validators" {
+  name           = "${local.resource_prefix}-validators" # Use prefix for consistency
+  billing_mode   = "PAY_PER_REQUEST"                    # Use pay-per-request
+
+  # Define attributes used in keys/indexes
+  attribute {
+    name = "validatorAddress"
+    type = "S"
+  }
+  attribute {
+    name = "nodeOperatorId"
+    type = "S"
+  }
+
+  # Define the primary hash key
+  hash_key = "validatorAddress"
+
+  # Define Global Secondary Indexes
+  global_secondary_index {
+    name            = "NodeOperatorIndex"
+    hash_key        = "nodeOperatorId"
+    projection_type = "ALL" # Project all attributes
+    # PAY_PER_REQUEST billing mode applies to GSIs as well
+  }
+
+  # Enable Point-in-Time Recovery for backups (Recommended)
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-validators-table"
+  })
+}
+
+
+
+
 
 # =============================================================================
 # Backend Service (API - Express App)
@@ -437,11 +480,11 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "LOG_PRETTY_PRINT", value = var.log_pretty_print ? "true" : "false" },
         { name = "VITE_APP_API_URL", value = "http://${aws_lb.sparta_alb.dns_name}" },
         { name = "CORS_ALLOWED_ORIGINS", value = "http://${aws_lb.sparta_alb.dns_name}" },
-        { name = "NODE_OPERATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_node_operators.name }
+        { name = "NODE_OPERATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_node_operators.name },
+        { name = "VALIDATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_validators.name },
+        { name = "SPARTA_PRIVATE_KEY", value = var.sparta_private_key },
+        { name = "SPARTA_ADDRESS", value = var.sparta_address }
       ]
-      # secrets = [ # Example using Secrets Manager
-      #   { name = "BOT_TOKEN", valueFrom = "<ARN of Secrets Manager secret for BOT_TOKEN>" }
-      # ]
     }
   ])
 
@@ -680,4 +723,9 @@ output "ecs_cluster_name" {
 output "node_operators_table_name" {
   description = "The name of the DynamoDB table for node operators"
   value       = aws_dynamodb_table.sparta_node_operators.name
+}
+
+output "validators_table_name" {
+  description = "The name of the DynamoDB table for validators"
+  value       = aws_dynamodb_table.sparta_validators.name
 }

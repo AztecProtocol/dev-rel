@@ -4,7 +4,6 @@
 	"references": [
 		{ "path": "./packages/utils" },
 		{ "path": "./packages/express" },
-		{ "path": "./packages/vite" },
 		{ "path": "./packages/ethereum" }
 	],
 	"extends": "./tsconfig.base.json"

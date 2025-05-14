@@ -17,39 +17,6 @@ else
   echo "DynamoDB local started on port 8000"
 fi
 
-# Create the users table with the required schema
-echo "Creating users table..."
-aws dynamodb create-table \
-  --table-name users \
-  --attribute-definitions \
-    AttributeName=discordUserId,AttributeType=S \
-    AttributeName=walletAddress,AttributeType=S \
-    AttributeName=verificationId,AttributeType=S \
-  --key-schema AttributeName=discordUserId,KeyType=HASH \
-  --global-secondary-indexes '[
-    {
-      "IndexName": "walletAddress-index",
-      "KeySchema": [{"AttributeName": "walletAddress", "KeyType": "HASH"}],
-      "Projection": {"ProjectionType": "INCLUDE", "NonKeyAttributes": ["discordUserId", "discordUsername"]},
-      "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5}
-    },
-    {
-      "IndexName": "verificationId-index",
-      "KeySchema": [{"AttributeName": "verificationId", "KeyType": "HASH"}],
-      "Projection": {"ProjectionType": "ALL"},
-      "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5}
-    }
-  ]' \
-  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
-  --endpoint-url http://localhost:8000
-
-# Check if users table creation was successful
-if [ $? -eq 0 ]; then
-  echo "Table users created successfully"
-else
-  echo "Table users may already exist, trying to use existing table"
-fi
-
 # Create the node operators table with the required schema
 echo "Creating node operators table..."
 aws dynamodb create-table \
@@ -76,9 +43,35 @@ else
   echo "Table sparta-node-operators-dev may already exist, trying to use existing table"
 fi
 
+# Create the validators table with the required schema
+echo "Creating validators table..."
+aws dynamodb create-table \
+  --table-name sparta-validators-dev \
+  --attribute-definitions \
+    AttributeName=validatorAddress,AttributeType=S \
+    AttributeName=nodeOperatorId,AttributeType=S \
+  --key-schema AttributeName=validatorAddress,KeyType=HASH \
+  --global-secondary-indexes '[
+    {
+      "IndexName": "NodeOperatorIndex",
+      "KeySchema": [{"AttributeName": "nodeOperatorId", "KeyType": "HASH"}],
+      "Projection": {"ProjectionType": "ALL"},
+      "ProvisionedThroughput": {"ReadCapacityUnits": 5, "WriteCapacityUnits": 5}
+    }
+  ]' \
+  --provisioned-throughput ReadCapacityUnits=5,WriteCapacityUnits=5 \
+  --endpoint-url http://localhost:8000
+
+# Check if validators table creation was successful
+if [ $? -eq 0 ]; then
+  echo "Table sparta-validators-dev created successfully"
+else
+  echo "Table sparta-validators-dev may already exist, trying to use existing table"
+fi
+
 # List tables to confirm
 echo "Available tables in local DynamoDB:"
 aws dynamodb list-tables --endpoint-url http://localhost:8000
 
 echo "DynamoDB local setup complete. You can now run your application with:"
-echo "IS_LOCAL=true DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000 USER_TABLE_NAME=users NODE_OPERATORS_TABLE_NAME=sparta-node-operators-dev npm run dev" 
+echo "LOCAL_DYNAMO_DB=true DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000 NODE_OPERATORS_TABLE_NAME=sparta-node-operators-dev VALIDATORS_TABLE_NAME=sparta-validators-dev npm run dev" 

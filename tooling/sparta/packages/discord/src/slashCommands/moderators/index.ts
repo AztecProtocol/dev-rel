@@ -9,11 +9,10 @@ import {
 	ModeratorSubcommandGroups,
 	ModeratorSubcommands,
 } from "../../types.js";
-import { isOperatorInSet } from "./operator-in-set.js";
-import { isOperatorAttesting } from "./operator-attesting.js";
 import { showModeratorHelp } from "./help.js";
 import { checkModeratorPermissions } from "../../utils/index.js";
 import { approveUser } from "./operator-approve.js";
+import { getOperatorInfo } from "./operator-info.js";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -21,25 +20,12 @@ export default {
 		.setDescription("Moderator commands")
 		.addSubcommand((subcommand) =>
 			subcommand
-				.setName(ModeratorSubcommands.IsInSet)
-				.setDescription(
-					"Get whether an address is in the validator set"
-				)
+				.setName(ModeratorSubcommands.Info)
+				.setDescription("Get comprehensive information about a node operator")
 				.addStringOption((option) =>
 					option
-						.setName("address")
-						.setDescription("The validator address to check")
-						.setRequired(true)
-				)
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName(ModeratorSubcommands.IsAttesting)
-				.setDescription("Get whether an address is attesting")
-				.addStringOption((option) =>
-					option
-						.setName("address")
-						.setDescription("The validator address to check")
+						.setName("username")
+						.setDescription("The Discord username of the operator")
 						.setRequired(true)
 				)
 		)
@@ -70,15 +56,14 @@ export default {
 
 			// Defer the reply after permission check to avoid timeout issues
 			// For commands that might take longer to process
-			await interaction.deferReply();
+			await interaction.deferReply({
+				flags: MessageFlags.Ephemeral,
+			});
 
 			const subcommand = interaction.options.getSubcommand();
 			switch (subcommand) {
-				case ModeratorSubcommands.IsInSet:
-					await isOperatorInSet(interaction);
-					break;
-				case ModeratorSubcommands.IsAttesting:
-					await isOperatorAttesting(interaction);
+				case ModeratorSubcommands.Info:
+					await getOperatorInfo(interaction);
 					break;
 				case ModeratorSubcommands.Approve:
 					await approveUser(interaction);

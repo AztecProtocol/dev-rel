@@ -248,11 +248,13 @@ export class NodeOperatorRepository {
 				"Error updating NodeOperator wallet address in repository"
 			);
 			if (error.name === "ConditionalCheckFailedException") {
-				return false; // Operator not found
+				logger.warn(
+					{ discordId },
+					"NodeOperator not found for update wallet operation"
+				);
+				return false;
 			}
-			throw new Error(
-				"Repository failed to update node operator wallet."
-			);
+			throw error;
 		}
 	}
 
@@ -290,11 +292,13 @@ export class NodeOperatorRepository {
 				"Error updating NodeOperator approval status in repository"
 			);
 			if (error.name === "ConditionalCheckFailedException") {
-				return false; // Operator not found
+				logger.warn(
+					{ discordId },
+					"NodeOperator not found for update approval status operation"
+				);
+				return false;
 			}
-			throw new Error(
-				"Repository failed to update node operator approval status."
-			);
+			throw error;
 		}
 	}
 
@@ -304,7 +308,6 @@ export class NodeOperatorRepository {
 				TableName: this.tableName,
 				Key: { discordId },
 				ConditionExpression: "attribute_exists(discordId)",
-				ReturnValues: "NONE",
 			});
 			await this.client.send(command);
 			logger.info(
@@ -318,12 +321,16 @@ export class NodeOperatorRepository {
 				"Error deleting NodeOperator in repository"
 			);
 			if (error.name === "ConditionalCheckFailedException") {
-				return false; // Operator not found
+				logger.warn(
+					{ discordId },
+					"NodeOperator not found for delete operation"
+				);
+				return false;
 			}
-			throw new Error("Repository failed to delete node operator.");
+			throw error;
 		}
 	}
 }
 
-// Export a singleton instance of the repository
 export const nodeOperatorRepository = new NodeOperatorRepository();
+export default nodeOperatorRepository;

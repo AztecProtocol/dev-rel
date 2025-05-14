@@ -11,7 +11,7 @@ import {
 	MessageFlags,
 } from "discord.js";
 import { isAllowedChannel, getAllowedChannelsText } from "./channels";
-import { MODERATOR_ROLES } from "@sparta/utils/const/roles";
+import { MODERATOR_ROLES, NODE_OPERATOR_ROLES } from "@sparta/utils/const/roles";
 
 /**
  * Checks if the user has any of the specified moderator roles
@@ -28,6 +28,17 @@ export function hasModeratorRole(member: GuildMember): boolean {
 }
 
 /**
+ * Checks if the user has the Guardian role
+ * @param member The guild member to check
+ * @returns True if the user has the Guardian role, false otherwise
+ */
+export function hasGuardianRole(member: GuildMember): boolean {
+	return member.roles.cache.some((role) => 
+		role.id === NODE_OPERATOR_ROLES.GUARDIAN!.id
+	);
+}
+
+/**
  * Checks if the interaction user has moderator permissions and is in an allowed channel
  * @param interaction The Discord interaction
  * @returns True if the user has moderator permissions and is in an allowed channel, false otherwise
@@ -37,7 +48,6 @@ export async function checkModeratorPermissions(
 ): Promise<boolean> {
 	// Get the member from the interaction
 	const member = interaction.member as GuildMember;
-	const channel = interaction.channel as TextChannel;
 
 	if (!member) {
 		await interaction.reply({
@@ -48,14 +58,14 @@ export async function checkModeratorPermissions(
 		return false;
 	}
 
-	// Check if the channel is allowed
-	if (!channel || !isAllowedChannel(channel)) {
-		await interaction.reply({
-			content: `This command can only be used in ${getAllowedChannelsText()} channels.`,
-			flags: MessageFlags.Ephemeral,
-		});
-		return false;
-	}
+	// // Check if the channel is allowed
+	// if (!channel || !isAllowedChannel(channel)) {
+	// 	await interaction.reply({
+	// 		content: `This command can only be used in ${getAllowedChannelsText()} channels.`,
+	// 		flags: MessageFlags.Ephemeral,
+	// 	});
+	// 	return false;
+	// }
 
 	// Check if the member has moderator roles
 	if (!hasModeratorRole(member)) {
@@ -65,6 +75,40 @@ export async function checkModeratorPermissions(
 				Object.values(MODERATOR_ROLES)
 					.map((role) => `\`${role.name}\``)
 					.join(", "),
+			flags: MessageFlags.Ephemeral,
+		});
+		return false;
+	}
+
+	return true;
+}
+
+/**
+ * Checks if the interaction user has the Guardian role
+ * @param interaction The Discord interaction
+ * @returns True if the user has the Guardian role, false otherwise
+ */
+export async function checkGuardianPermissions(
+	interaction: ChatInputCommandInteraction
+): Promise<boolean> {
+	// Get the member from the interaction
+	const member = interaction.member as GuildMember;
+
+	if (!member) {
+		await interaction.reply({
+			content:
+				"Could not verify your server membership. Please try again.",
+			flags: MessageFlags.Ephemeral,
+		});
+		return false;
+	}
+
+	// Check if the member has the Guardian role
+	if (!hasGuardianRole(member)) {
+		await interaction.reply({
+			content:
+				"You don't have permission to use this command. This command requires the " +
+				`\`${NODE_OPERATOR_ROLES.GUARDIAN!.name}\` role.`,
 			flags: MessageFlags.Ephemeral,
 		});
 		return false;

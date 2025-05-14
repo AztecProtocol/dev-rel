@@ -69,9 +69,11 @@ export async function registerValidator(
 					try {
 						// Step 1: Check if operator exists with this discordId
 						const { data: operatorData } =
-							await client.getOperator({
-								discordId,
-							});
+							await client.getOperator(
+								{
+									discordId,
+								},
+							);
 
 						if (
 							operatorData &&
@@ -81,23 +83,26 @@ export async function registerValidator(
 							await client.updateOperator(
 								{
 									discordId: operatorData.discordId,
-								},
-								{
 									walletAddress: address,
-								}
+								},
+								{}
 							);
 							operationResult = "updated";
 						} else {
 							operationResult = "unchanged";
 						}
 					} catch (error: any) {
+						console.log(error)
 						// If 404, create new operator
 						if (error.response && error.response.status === 404) {
-							await client.createOperator(null, {
-								discordId,
-								walletAddress: address,
-								discordUsername: interaction.user.username,
-							});
+							await client.createOperator(
+								{
+									discordId,
+									walletAddress: address,
+									discordUsername: interaction.user.username,
+								},
+								{}
+							);
 							operationResult = "created";
 						} else {
 							// Rethrow for outer catch block

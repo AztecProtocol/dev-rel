@@ -10,8 +10,7 @@ export enum ModeratorSubcommandGroups {
 }
 
 export enum ModeratorSubcommands {
-	IsInSet = "is-in-set",
-	IsAttesting = "is-attesting",
+	Info = "info",
 	Approve = "approve",
 	Help = "help",
 }
@@ -26,6 +25,7 @@ export enum NodeOperatorSubcommands {
 	MyStats = "my-stats",
 	Start = "start",
 	Help = "help",
+	AddValidator = "add-validator",
 }
 
 // Other role-related enums

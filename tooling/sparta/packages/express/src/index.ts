@@ -86,28 +86,6 @@ app.get("/health", (_req, res) => {
 	res.json({ status: "ok" });
 });
 
-// SPA Fallback: Serve index.html for any other GET request that doesn't match static files or API routes
-app.get("*", (req, res, next) => {
-	// If the request is for an API route, let the API router handle it
-	if (req.originalUrl.startsWith("/api")) {
-		return next();
-	}
-	// If the request is likely for a static file that wasn't found (e.g., has an extension)
-	// or if the file actually exists, let express.static handle it (or return 404)
-	// Note: A more robust check might be needed depending on asset paths
-	if (req.originalUrl.includes(".")) {
-		return next();
-	}
-	// Otherwise, serve the index.html file
-	res.sendFile(viteIndexHtml, (err) => {
-		if (err) {
-			// Handle potential errors like file not found (e.g., if Vite hasn't built yet)
-			logger.error({ error: err }, "Error sending index.html");
-			res.status(500).send(err);
-		}
-	});
-});
-
 // Start server
 app.listen(process.env.API_PORT as unknown as number, "0.0.0.0", async () => {
 	console.log(`Server is running on port ${process.env.API_PORT}`);
