@@ -29,4 +29,4 @@ jobs:
         author_name: Josh Crites
         message: "noir-starter GitHub traffic"
         add: "./traffic/*"
-        ref: "noir-starter-traffic"
+        ref: "traffic-noir-starter"
