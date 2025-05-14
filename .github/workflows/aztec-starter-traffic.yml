@@ -28,7 +28,8 @@ jobs:
     - name: Commit changes
       uses: EndBug/add-and-commit@v4
       with:
-        author_name: Josh Crites
+        author_name: "Josh Crites"
+        author_email: "jc@joshcrites.com"
         message: "aztec-starter GitHub traffic"
         add: "./traffic/*"
         ref: "traffic-aztec-starter"
