@@ -69,7 +69,7 @@ export class NodeOperatorRepository {
 			};
 		} catch (error) {
 			logger.error(
-				{ error, tableName: this.tableName },
+				error,
 				"Error scanning NodeOperators table in repository"
 			);
 			throw new Error("Repository failed to retrieve node operators.");
@@ -101,18 +101,47 @@ export class NodeOperatorRepository {
 		discordUsername: string
 	): Promise<NodeOperator | undefined> {
 		try {
-			const command = new QueryCommand({
-				TableName: this.tableName,
-				IndexName: DISCORD_USERNAME_INDEX_NAME,
-				KeyConditionExpression: "discordUsername = :discordUsername",
-				ExpressionAttributeValues: {
-					":discordUsername": discordUsername,
-				},
-			});
-			const response = await this.client.send(command);
-			return response.Items && response.Items.length > 0
-				? (response.Items[0] as NodeOperator)
-				: undefined;
+			try {
+				// First try to use the index if it exists
+				const command = new QueryCommand({
+					TableName: this.tableName,
+					IndexName: DISCORD_USERNAME_INDEX_NAME,
+					KeyConditionExpression: "discordUsername = :discordUsername",
+					ExpressionAttributeValues: {
+						":discordUsername": discordUsername,
+					},
+				});
+				const response = await this.client.send(command);
+				return response.Items && response.Items.length > 0
+					? (response.Items[0] as NodeOperator)
+					: undefined;
+			} catch (indexError: any) {
+				// If the index doesn't exist yet, fall back to scan
+				if (indexError.name === "ValidationException" && 
+					indexError.message && 
+					indexError.message.includes("specified index")) {
+					logger.warn(
+						{ indexError, discordUsername, tableName: this.tableName },
+						"Index not ready, falling back to scan for Discord username lookup"
+					);
+					
+					// Fall back to scan
+					const scanCommand = new ScanCommand({
+						TableName: this.tableName,
+						FilterExpression: "discordUsername = :discordUsername",
+						ExpressionAttributeValues: {
+							":discordUsername": discordUsername,
+						},
+					});
+					const scanResponse = await this.client.send(scanCommand);
+					return scanResponse.Items && scanResponse.Items.length > 0
+						? (scanResponse.Items[0] as NodeOperator)
+						: undefined;
+				} else {
+					// Re-throw if it's a different error
+					throw indexError;
+				}
+			}
 		} catch (error) {
 			logger.error(
 				{ error, discordUsername, tableName: this.tableName },
