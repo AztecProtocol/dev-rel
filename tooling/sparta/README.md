@@ -1,375 +1,154 @@
 # Sparta Discord Bot
 
-A Discord bot for managing Aztec validators and community roles, built with Bun/TypeScript and deployed on AWS Elastic Beanstalk.
+A Discord bot for managing Aztec validators and community roles, built with Bun/TypeScript and deployed on AWS.
 
-## Overview
+## Project Overview
 
-Sparta is a Discord bot designed to manage and monitor Aztec validators and community roles within the Discord server. It provides:
+Sparta is a Discord bot designed to manage and monitor Aztec validators and community roles within a Discord server:
 
-- **Role Management**: Automatically assigns roles based on user scores from Google Sheets
-- **Validator Management**: Commands to add, remove, and check validators
-- **Chain Information**: Retrieves blockchain data like pending blocks, proven blocks, epochs, slots
-- **Discord Integration**: Full integration with Discord slash commands
+- **Validator Management**: Commands to register, remove, and monitor validators
+- **Role Management**: Assigns roles based on user scores
+- **Chain Monitoring**: Retrieves and displays blockchain data like blocks, epochs, slots
+- **API Integration**: RESTful API for integration with other services
 
-## Prerequisites
+## Architecture
 
-- [Bun](https://bun.sh) v1.0 or higher (used as runtime and package manager)
-- Node.js v18 or higher (for development tools)
-- AWS CLI configured with appropriate credentials
-- Terraform v1.0 or higher
-- Discord Bot Token and Application ID from [Discord Developer Portal](https://discord.com/developers/applications)
-- Ethereum node access (local or remote)
-- Google Sheets API access (for role management)
+The project follows a modular structure with several packages:
 
-## Security Notice
+```
+sparta/
+├── packages/
+│   ├── discord/     # Discord bot and command handling
+│   ├── ethereum/    # Ethereum blockchain integration
+│   ├── utils/       # Shared utilities
+│   ├── api/         # Express API server (package.json: @sparta/api)
+│   └── scheduler/   # Lambda-based validator monitoring
+├── terraform/       # Infrastructure as code
+└── scripts/         # Utility scripts
+```
 
-⚠️ **Important**: This project uses sensitive credentials that should never be committed to version control:
-- Discord bot tokens
-- Ethereum private keys
-- AWS credentials
-- Google Sheets API credentials
-- Environment variables
+### Key Components
 
-Always use:
-- `.env` files for local development (never commit these)
-- AWS Secrets Manager for production secrets
-- `terraform.tfvars` for Terraform variables (never commit this)
-- Ensure `.gitignore` includes all sensitive files
-- Use environment-specific configuration files
+- **Discord Bot** (@sparta/discord): Core Discord integration for slash commands and messaging
+- **Ethereum Client** (@sparta/ethereum): Blockchain interaction for validator management
+- **API Server** (@sparta/api): RESTful API for integration and validator management
+- **Scheduler** (@sparta/scheduler): AWS Lambda for automated validator monitoring
+- **Utils** (@sparta/utils): Shared utilities for logging, DynamoDB, and constants
 
 ## Local Development
 
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd sparta
-```
+### Prerequisites
 
-2. Install dependencies using Bun:
+- [Bun](https://bun.sh) v1.0+ (package manager and runtime)
+- Node.js v18+
+- AWS CLI configured
+- Discord Bot Token from [Discord Developer Portal](https://discord.com/developers/applications)
+
+### Setup
+
+1. Clone the repository
+2. Install dependencies:
 ```bash
-cd src
+cd sparta
 bun install
 ```
 
-3. Create a `.env` file in the `src` directory using `.env.example` as a template:
-```bash
-cp .env.example .env
-```
-
-4. Fill in the required environment variables in `.env`. Required variables include:
+3. Create a `.env` file with required environment variables:
 ```
 # Discord Bot Configuration
 BOT_TOKEN=your_discord_bot_token
 BOT_CLIENT_ID=your_discord_client_id
 GUILD_ID=your_discord_server_id
 
-# Verification Web App
+# API Configuration
+API_PORT=3000
 API_URL=http://localhost:3000
 
-# Session Storage
+# Ethereum Configuration
+ETHEREUM_HOST=your_ethereum_rpc_url
+L1_CHAIN_ID=11155111
+STAKING_ASSET_HANDLER_ADDRESS=your_contract_address
+
+# DynamoDB Configuration
 LOCAL_DYNAMO_DB=true
 DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000
 
-# RPC Configuration
-ETHEREUM_HOST=https://your-ethereum-rpc-url
-L1_CHAIN_ID=11155111 
-STAKING_ASSET_HANDLER_ADDRESS=your_staking_asset_handler_address
-
 # Logging
-LOG_LEVEL=info
+LOG_LEVEL=debug
 LOG_PRETTY_PRINT=true
 ```
 
-5. Start the bot in development mode with hot reloading:
+4. Start local DynamoDB:
 ```bash
+bun run scripts/start-local-dynamodb.sh
+```
+
+5. Run the project:
+```bash
+# Run API and Discord bot
 bun run dev
+
+# Run only API
+bun run dev:api
+
+# Run only scheduler
+bun run dev:scheduler
 ```
 
-6. For building a production version:
-```bash
-bun run build
-```
+## Deployment
 
-7. To start the production version:
-```bash
-bun run start
-```
+The project is deployed using Terraform to AWS services:
 
-## Building with Docker
+- **Discord Bot & API**: AWS Elastic Container Service (ECS)
+- **Validator Monitor**: AWS Lambda + EventBridge
+- **Database**: DynamoDB
+- **Infrastructure**: Load Balancer, IAM roles, Security Groups
 
-1. Build the Docker image:
-```bash
-docker build -t sparta-bot .
-```
+### Deployment Process
 
-2. Run the container:
-```bash
-docker run -d --name sparta-bot --env-file ./src/.env sparta-bot
-```
+1. Configure AWS credentials
+2. Update Terraform variables in `terraform/terraform.tfvars`
+3. Deploy using:
 
-## Deployment with Terraform
-
-The bot is deployed using Terraform to AWS Elastic Container Service (ECS). Follow these steps:
-
-1. Navigate to the terraform directory:
 ```bash
 cd terraform
-```
-
-2. Create `terraform.tfvars` using the example file:
-```bash
-cp terraform.tfvars.example terraform.tfvars
-```
-
-3. Fill in the required variables in `terraform.tfvars`.
-
-4. Initialize Terraform:
-```bash
 terraform init
-```
-
-5. Deploy:
-```bash
 terraform apply
 ```
 
-## Bot Functionality
+Alternatively, use the GitHub Actions workflow:
 
-### Role Management
-- Monitors Google Sheets for user scores
-- Assigns Discord roles based on score thresholds:
-  - Node Operator (base role): Default role
-  - Defender (middle role): Score > 5
-  - Sentinel (highest role): Score > 10
+1. Configure GitHub repository secrets
+2. Trigger the "Terraform Deploy" workflow
 
-### Validator Management
-- Add validators to the blockchain
-- Remove validators from the blockchain
-- Check validator status and information
+## Configuration
 
-### Chain Information
-- Get pending block number
-- Get proven block number
-- Check current epoch and slot
-- View committee members
+The application can be configured through environment variables and Terraform variables. See individual package READMEs for specific configuration options.
 
-## Available Commands
+## Development Workflow
 
-### Node Operator Commands
-- `/get-info`: Get chain information including pending block, proven block, current epoch, current slot, and proposer
-- `/validator check`: Check if an address is a validator
-- `/validator register`: Register a validator address
-- `/validator help`: Get help for validator commands
+1. Make changes to source code
+2. Run tests locally
+3. Create a pull request
+4. Upon approval, merge to main branch
+5. Deploy using Terraform
 
+## Terraform Workflow Details
 
-## Environment Variables
+The GitHub Actions workflow located in `.github/workflows/terraform-deploy.yml` handles automated deployment:
 
-### Development
-- Uses `.env` file for local configuration
-- Supports hot reloading through `bun run dev`
-- Environment-specific configurations (.env.local, .env.staging)
+1. Checks out code
+2. Sets up Terraform
+3. Initializes Terraform
+4. Validates configuration
+5. Deploys infrastructure
 
-### Production
-- Uses AWS Secrets Manager for secure configuration
-- Automatically loads secrets in production environment
-- Supports staging and production environments
+The workflow uses repository secrets for sensitive information.
 
-## Security Best Practices
+## Packages
 
-1. **Environment Variables**
-   - Never commit .env files
-   - Use different env files for different environments
-   - Rotate secrets regularly
-
-2. **AWS Security**
-   - Use IAM roles with least privilege
-   - Enable CloudWatch logging
-   - Use security groups to restrict access
-
-3. **Discord Security**
-   - Implement command permissions
-   - Use ephemeral messages for sensitive info
-   - Validate user inputs
-
-4. **Ethereum Security**
-   - Never expose private keys
-   - Use secure RPC endpoints
-   - Implement transaction signing safeguards
-
-## Monitoring and Logging
-
-- AWS CloudWatch for container logs
-- Discord command execution logging
-- Error tracking and reporting
-- Performance monitoring
-
-## Logging
-
-The application uses Pino for structured logging with the following features:
-
-- **Multiple log levels**: trace, debug, info, warn, error, fatal
-- **Colorful output**: Different colors for different log levels when pretty printing is enabled
-- **Timestamps**: Each log includes an ISO timestamp
-- **Request logging**: HTTP requests can be logged at the debug level
-- **Structured logging**: Logs are output in JSON format for easy parsing
-
-### Configuration
-
-Logging can be configured through environment variables:
-
-- `LOG_LEVEL`: Set the minimum log level (trace, debug, info, warn, error, fatal)
-- `LOG_PRETTY_PRINT`: Enable/disable colorful, human-readable logs (true/false)
-
-#### Example
-
-```sh
-# Set log level to debug and enable pretty printing
-export LOG_LEVEL=debug
-export LOG_PRETTY_PRINT=true
-npm run dev
-```
-
-### Terraform Configuration
-
-Logging can also be configured through Terraform variables:
-
-```hcl
-module "sparta" {
-  # ...
-  log_level        = "debug"
-  log_pretty_print = true
-}
-```
-
-## Contributing
-
-1. Create a feature branch
-2. Make your changes
-3. Submit a pull request
-
-## Support
-
-For support, please open an issue in the repository or contact the maintainers.
-
-## Monorepo Structure
-
-This project is now structured as a monorepo using Bun workspaces. Packages are located in the `packages/` directory. Dependencies are managed from the root `package.json`.
-
-To run commands within a specific package, use `bun run --filter <package-name> <script-name>`.
-
-## AWS DynamoDB Integration
-
-The application now uses AWS DynamoDB for session storage instead of in-memory storage. This provides several benefits:
-- Persistence across container restarts
-- Ability to scale horizontally with multiple instances
-- Improved reliability for session management
-
-### Local Development with DynamoDB
-
-For local development, you can use DynamoDB Local, which is provided by AWS as a downloadable version that simulates the DynamoDB service.
-
-1. Start the local DynamoDB instance:
-   ```
-   ./scripts/start-local-dynamodb.sh
-   ```
-
-2. Run your application with the appropriate environment variables:
-   ```
-   IS_LOCAL=true DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000 SESSION_TABLE_NAME=sparta-sessions npm run dev
-   ```
-
-### Environment Variables for DynamoDB
-
-The following environment variables are used to configure the DynamoDB connection:
-
-- `IS_LOCAL`: Set to "true" when using DynamoDB Local (default: "false")
-- `DYNAMODB_LOCAL_ENDPOINT`: The endpoint URL for DynamoDB Local (default: "http://localhost:8000")
-
-### AWS Deployment
-
-When deploying to AWS, the Terraform configuration will:
-1. Create the DynamoDB table
-2. Set up appropriate IAM permissions
-3. Configure the application to use the AWS DynamoDB service
-
-# Sparta Rollup Tools
-
-This repository contains tools for interacting with the Sparta Rollup, including a subgraph for The Graph and scripts for querying committee membership.
-
-## Subgraph
-
-The subgraph indexes committee membership data from the Sparta Rollup contract. It tracks:
-
-- Epochs and their timing
-- Committee membership for each epoch
-- Validators joining and leaving
-
-### Deployment Instructions
-
-1. Install dependencies:
-   ```
-   yarn install
-   ```
-
-2. Initialize the subgraph:
-   ```
-   cd subgraph
-   graph init --product hosted-service --from-example your-username/sparta-rollup
-   ```
-
-3. Authenticate with The Graph:
-   ```
-   graph auth --product hosted-service <your-access-token>
-   ```
-
-4. Deploy the subgraph:
-   ```
-   yarn deploy-subgraph
-   ```
-
-5. Update the `GRAPH_API_URL` in the .env file with your deployed subgraph URL.
-
-## Committee Membership Query Tool
-
-The `queryAttester.ts` script allows you to check if an address is a committee member in epochs active within a specified time window.
-
-### Usage
-
-```bash
-# Check committee membership for the last 2 hours (default)
-node scripts/queryAttester.js 0xYourAddress
-
-# Check committee membership for a specific time window (e.g., 6 hours)
-node scripts/queryAttester.js 0xYourAddress 6
-```
-
-### Output
-
-The script outputs:
-1. Console logs showing which epochs were checked and the membership status
-2. A JSON file containing detailed results, including:
-   - Epoch numbers
-   - Timestamps
-   - Committee membership status
-   - Full committee list for each epoch
-
-## Environment Variables
-
-Create a `.env` file in the `tooling/sparta` directory with:
-
-```
-GRAPH_API_URL=https://api.thegraph.com/subgraphs/name/your-username/sparta-rollup
-```
-
-## How It Works
-
-1. The subgraph indexes data from the Sparta Rollup contract on Sepolia
-2. It stores information about epochs and committee members in an organized format
-3. The query script uses The Graph API to retrieve this data efficiently
-4. Results are processed and presented in a user-friendly format
-
-## Requirements
-
-- Node.js 16+
-- Yarn or npm
-- The Graph CLI (for subgraph deployment)
+- **@sparta/utils**: Common utilities for logging, DynamoDB, constants, and OpenAPI
+- **@sparta/ethereum**: Ethereum blockchain connectivity and validator management
+- **@sparta/discord**: Discord bot integration and command handling
+- **@sparta/api**: Express API server for RESTful endpoints
+- **@sparta/scheduler**: AWS Lambda for scheduled validator monitoring

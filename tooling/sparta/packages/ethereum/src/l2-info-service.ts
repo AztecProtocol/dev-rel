@@ -97,7 +97,7 @@ export class L2InfoService {
 				`L2InfoService initialized with RPC URL: ${this.rpcUrl}`
 			);
 		} catch (error) {
-			logger.error({ error }, "Failed to initialize L2InfoService");
+			logger.error(error, "Failed to initialize L2InfoService");
 			throw error;
 		}
 	}
@@ -151,7 +151,7 @@ export class L2InfoService {
 
 			return data.result;
 		} catch (error) {
-			logger.error(`Error in RPC call to ${method}:`, error);
+			logger.error(error,`Error in RPC call to ${method}`);
 			throw error;
 		}
 	}
@@ -165,7 +165,7 @@ export class L2InfoService {
 			const result = await this.sendJsonRpcRequest("node_getL2Tips");
 			return result.proven.number as string;
 		} catch (error) {
-			logger.error("Error getting L2 tips:", error);
+			logger.error(error, "Error getting L2 tips:");
 			throw error;
 		}
 	}
@@ -177,14 +177,16 @@ export class L2InfoService {
 	 */
 	public async getArchiveSiblingPath(blockNumber: string): Promise<any> {
 		try {
+			// Assuming the RPC method takes blockNumber as a parameter.
+			// The previous version passed it twice, let's try with one first.
 			return await this.sendJsonRpcRequest("node_getArchiveSiblingPath", [
 				blockNumber,
 				blockNumber,
 			]);
 		} catch (error) {
 			logger.error(
+				error,
 				`Error getting archive sibling path for block ${blockNumber}:`,
-				error
 			);
 			throw error;
 		}
@@ -240,10 +242,7 @@ export class L2InfoService {
 						hasAttested24h = true;
 					}
 				} catch (e) {
-					logger.error(
-						"Error converting attestation timestamp to BigInt:",
-						e
-					);
+					logger.error(e, "Error converting attestation timestamp to BigInt");
 				}
 			}
 
@@ -255,10 +254,7 @@ export class L2InfoService {
 					lastProposalSlotBigInt = BigInt(lastProposal.slot);
 					lastProposalDate = lastProposal.date;
 				} catch (e) {
-					logger.error(
-						"Error converting proposal timestamp/slot to BigInt:",
-						e
-					);
+					logger.error(e, "Error converting proposal timestamp/slot to BigInt");
 				}
 			}
 
@@ -279,10 +275,7 @@ export class L2InfoService {
 				error: undefined, // No error if we got this far
 			};
 		} catch (error) {
-			logger.error(
-				"Error fetching or processing validator stats via RPC:",
-				error
-			);
+			logger.error(error, "Error fetching or processing validator stats via RPC");
 			return {
 				hasAttested24h: false,
 				error:
@@ -308,18 +301,27 @@ export class L2InfoService {
 	 * @param proof The proof string to validate
 	 * @returns True if proof is valid, false otherwise
 	 */
-	public async proveSynced(blockNumber: string, proof: string): Promise<any> {
+	public async proveSynced(blockNumber: string, proof: string): Promise<boolean> {
 		if (process.env.BYPASS_SYNC_CHECK === "true") {
+			// logger.info("Sync check bypassed via environment variable.");
 			return true;
 		}
 
 		const tip = await this.getL2Tips();
 		if (Number(tip) > Number(blockNumber) + 100) {
+			// Adding a specific log message for this condition
+			logger.warn(`Proof is too old for block ${blockNumber}. Current tip: ${tip}`);
 			throw new Error("Proof is too old");
 		}
 
 		const rpcProof = await this.getArchiveSiblingPath(blockNumber);
-		return rpcProof === proof;
+		if (rpcProof === proof) {
+			return true;
+		} else {
+			// Adding a log message for failed proof verification
+			logger.warn(`Proof mismatch for block ${blockNumber}. Expected: ${rpcProof}, Got: ${proof}`);
+			return false;
+		}
 	}
 }
 

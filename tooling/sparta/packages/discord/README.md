@@ -1,6 +1,16 @@
 # @sparta/discord
 
-This package provides Discord bot functionality for the Sparta project. It communicates with the backend API server using OpenAPI-generated clients instead of directly calling the database.
+Discord bot package for the Sparta project, providing Discord integration and command handling.
+
+## Overview
+
+This package provides the core Discord bot functionality for the Sparta project:
+
+- Discord client setup and configuration
+- Slash command registration and handling
+- Role management and assignment
+- User interaction through Discord channels
+- Webhook message delivery
 
 ## Features
 
@@ -21,9 +31,9 @@ The bot supports the following slash commands:
 | `/operator` | `my-stats`     | Check validator statistics                                                                       | `address` (required): The validator address to check                                                                                            |
 | `/operator` | `register`     | Register as a validator and get the Apprentice role                                              | `address` (optional): Your validator address<br>`block-number` (optional): Block number for verification<br>`proof` (optional): Your sync proof |
 | `/operator` | `help`         | Display operator commands and instructions                                                       | None                                                                                                                                            |
+| `/mod`      | `info`         | Get comprehensive information about a node operator                                                | `username` (required): The Discord username of the operator                                                                                     |
+| `/mod`      | `approve`      | Approve a user to join the validator set                                                         | `user` (required): The Discord username of the user to approve                                                                                  |
 | `/mod`      | `help`         | Display all moderator commands and their descriptions in a table                                 | None                                                                                                                                            |
-| `/mod`      | `is-in-set`    | Check if an address is in the validator set                                                      | `address` (required): The validator address to check                                                                                            |
-| `/mod`      | `is-attesting` | Check if an address is actively attesting                                                        | `address` (required): The validator address to check                                                                                            |
 
 ## Command Restrictions
 
@@ -50,33 +60,90 @@ Moderator commands (`/mod`) have the following restrictions:
 ```typescript
 import { getDiscordInstance, discordService } from '@sparta/discord';
 
-// Get a Discord instance
+// Get Discord instance
 const discord = await getDiscordInstance();
 
-// Use the Discord service to manage roles
-await discordService.assignRole(userId, roleName);
+// Send a message to a channel
+await discordService.sendMessage('channel-id', 'Hello from Sparta bot!');
+
+// Get Discord client for advanced usage
+const client = discord.getClient();
 ```
 
-## Environment Variables
+## Components
 
-The following environment variables are required:
+### Discord Client
+
+Main Discord client for interacting with the Discord API:
+
+```typescript
+import { getDiscordInstance } from '@sparta/discord';
+
+// Initialize Discord client
+const discord = await getDiscordInstance();
+
+// Get the underlying Discord.js client
+const client = discord.getClient();
+
+// Check if the client is ready
+if (client.isReady()) {
+  console.log(`Logged in as ${client.user.tag}`);
+}
+```
+
+### Discord Service
+
+Service for common Discord operations:
+
+```typescript
+import { discordService } from '@sparta/discord';
+
+// Send a message to a channel
+await discordService.sendMessage('channel-id', 'Hello world!');
+
+// Send an embed message
+await discordService.sendEmbed('channel-id', {
+  title: 'Validator Status',
+  description: 'All validators are operational',
+  color: 0x00ff00
+});
+
+// Assign a role to a user
+await discordService.assignRole('guild-id', 'user-id', 'role-id');
+```
+
+### Discord Webhook Service
+
+Service for sending messages via Discord webhooks:
+
+```typescript
+import { discordWebhookService } from '@sparta/discord';
+
+// Send a webhook message
+await discordWebhookService.sendMessage({
+  webhookUrl: 'https://discord.com/api/webhooks/...',
+  content: 'Alert: Validator offline!',
+  username: 'Sparta Monitoring'
+});
+```
+
+## Configuration
+
+The Discord client is configured through environment variables:
 
 - `BOT_TOKEN`: Discord bot token
-- `BOT_CLIENT_ID`: Discord client ID
-- `GUILD_ID`: Discord guild (server) ID
-- `API_URL`: API URL for verification links and API
-- `NODE_ENV`: Environment setting, affects command restrictions and behavior
+- `BOT_CLIENT_ID`: Discord application client ID
+- `GUILD_ID`: Discord server (guild) ID
 
 ## Development
 
-To build the package:
-
 ```bash
-pnpm build
-```
+# Build types
+bun run types
 
-To clean the build:
+# Run in development mode with hot reloading
+bun run dev
 
-```bash
-pnpm clean
+# Run in production mode
+bun run start
 ``` 
