@@ -3,11 +3,21 @@ import { type OpenAPIV3, OpenAPIClientAxios } from "openapi-client-axios";
 import spec from "../api-docs.json";
 import type { Client } from "../types";
 
+// Construct API URL from environment variables or use the provided API_URL directly
+const apiUrl = process.env.API_URL || 
+  `${process.env.API_PROTOCOL || 'http'}://${process.env.API_HOST || 'localhost'}:${process.env.API_PORT || '3000'}`;
+
+// Make sure we always have a proper API URL
+if (!apiUrl) {
+  console.warn("API_URL is not set. Defaulting to http://localhost:3000");
+}
+
+console.log("Initializing API client with baseURL:", apiUrl);
+
 const apiInstance = new OpenAPIClientAxios({
 	definition: spec as OpenAPIV3.Document,
-	// validate: false, // Invalid option, removed
 	axiosConfigDefaults: {
-		baseURL: process.env.API_URL,
+		baseURL: apiUrl,
 		timeout: 10_000,
 		headers: {
 			"Content-Type": "application/json",

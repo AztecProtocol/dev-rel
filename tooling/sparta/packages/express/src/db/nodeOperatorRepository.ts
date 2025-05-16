@@ -14,6 +14,7 @@ import DynamoDBService from "@sparta/utils/dynamo-db.js"; // Import the shared s
 const NODE_OPERATORS_TABLE_NAME =
 	process.env.NODE_OPERATORS_TABLE_NAME || "sparta-node-operators-dev";
 const WALLET_ADDRESS_INDEX_NAME = "WalletAddressIndex";
+const DISCORD_USERNAME_INDEX_NAME = "DiscordUsernameIndex";
 
 // Instantiate the shared service for the node operators table
 const dynamoDBService = new DynamoDBService(NODE_OPERATORS_TABLE_NAME);
@@ -100,17 +101,15 @@ export class NodeOperatorRepository {
 		discordUsername: string
 	): Promise<NodeOperator | undefined> {
 		try {
-			// Scan the table with a filter on the discordUsername field
-			const command = new ScanCommand({
+			const command = new QueryCommand({
 				TableName: this.tableName,
-				FilterExpression: "discordUsername = :discordUsername",
+				IndexName: DISCORD_USERNAME_INDEX_NAME,
+				KeyConditionExpression: "discordUsername = :discordUsername",
 				ExpressionAttributeValues: {
 					":discordUsername": discordUsername,
 				},
 			});
 			const response = await this.client.send(command);
-			
-			// Return the first matching item, if any
 			return response.Items && response.Items.length > 0
 				? (response.Items[0] as NodeOperator)
 				: undefined;

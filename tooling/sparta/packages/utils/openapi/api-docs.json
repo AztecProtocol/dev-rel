@@ -7,8 +7,14 @@
   },
   "servers": [
     {
-      "url": "http://localhost:3000",
-      "description": "Sparta API"
+      "url": "{serverUrl}",
+      "description": "Sparta API",
+      "variables": {
+        "serverUrl": {
+          "default": "http://localhost:3000",
+          "description": "API server URL"
+        }
+      }
     }
   ],
   "components": {

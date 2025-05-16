@@ -13,10 +13,18 @@ router.get("/api-docs.json", (_req, res) => {
 	res.send(apiDocs);
 });
 
+// Modify the API docs to use the correct server URL
+const modifiedApiDocs = JSON.parse(JSON.stringify(apiDocs));
+const apiUrl = process.env.API_URL || `${process.env.API_PROTOCOL || 'http'}://${process.env.API_HOST || 'localhost'}:${process.env.API_PORT || '3000'}`;
+
+if (modifiedApiDocs.servers && modifiedApiDocs.servers.length > 0) {
+	modifiedApiDocs.servers[0].variables.serverUrl.default = apiUrl;
+}
+
 router.use(
 	"/docs",
 	swaggerUi.serve,
-	swaggerUi.setup(apiDocs, {
+	swaggerUi.setup(modifiedApiDocs, {
 		explorer: true,
 		customCss: ".swagger-ui .topbar { display: none }", // Hide the top bar (optional)
 	})

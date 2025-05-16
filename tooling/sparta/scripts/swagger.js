@@ -6,6 +6,12 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+// Define default API URL with fallbacks
+const apiUrl = process.env.API_URL || 
+    `${process.env.API_PROTOCOL || 'http'}://${process.env.API_HOST || 'localhost'}:${process.env.API_PORT || '3000'}`;
+
+console.log(`Generating OpenAPI docs with base URL: ${apiUrl}`);
+
 // swaggerOptions.js
 export const swaggerDefinition = {
 	openapi: "3.0.0",
@@ -16,8 +22,14 @@ export const swaggerDefinition = {
 	},
 	servers: [
 		{
-			url: `${process.env.API_URL}`,
+			url: "{serverUrl}",
 			description: "Sparta API",
+			variables: {
+				serverUrl: {
+					default: apiUrl,
+					description: "API server URL"
+				}
+			}
 		},
 	],
 	components: {
