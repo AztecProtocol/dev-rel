@@ -65,3 +65,31 @@ output "alb_zone_id" {
 # output "alb_listener_arn" { ... } # REMOVED - No HTTPS listener
 
 # --- Frontend Outputs Removed ---
+
+# -----------------------------------------------------------------------------
+# Validator Monitor Lambda Function Outputs
+# -----------------------------------------------------------------------------
+output "validator_monitor_function_name" {
+  description = "Name of the validator monitor Lambda function"
+  value       = aws_lambda_function.validator_monitor.function_name
+}
+
+output "validator_monitor_function_arn" {
+  description = "ARN of the validator monitor Lambda function"
+  value       = aws_lambda_function.validator_monitor.arn
+}
+
+output "validator_monitor_log_group" {
+  description = "Name of the CloudWatch log group for the validator monitor Lambda function"
+  value       = aws_cloudwatch_log_group.validator_monitor_logs.name
+}
+
+output "hourly_rule_name" {
+  description = "Name of the EventBridge rule that triggers the validator monitor Lambda function"
+  value       = aws_cloudwatch_event_rule.hourly_validator_check.name
+}
+
+output "hourly_rule_arn" {
+  description = "ARN of the EventBridge rule that triggers the validator monitor Lambda function"
+  value       = aws_cloudwatch_event_rule.hourly_validator_check.arn
+}

@@ -7,10 +7,8 @@
 import {
 	ChatInputCommandInteraction,
 	GuildMember,
-	TextChannel,
 	MessageFlags,
 } from "discord.js";
-import { isAllowedChannel, getAllowedChannelsText } from "./channels";
 import { MODERATOR_ROLES, NODE_OPERATOR_ROLES } from "@sparta/utils/const/roles";
 
 /**
@@ -57,15 +55,6 @@ export async function checkModeratorPermissions(
 		});
 		return false;
 	}
-
-	// // Check if the channel is allowed
-	// if (!channel || !isAllowedChannel(channel)) {
-	// 	await interaction.reply({
-	// 		content: `This command can only be used in ${getAllowedChannelsText()} channels.`,
-	// 		flags: MessageFlags.Ephemeral,
-	// 	});
-	// 	return false;
-	// }
 
 	// Check if the member has moderator roles
 	if (!hasModeratorRole(member)) {

@@ -5,14 +5,15 @@
  */
 
 // Export API-related components
-export { ApiProvider } from "./api/apiProvider";
-export { clientPromise } from "./api/axios";
+export { ApiProvider } from "@sparta/utils/openapi/api/apiProvider";
+export { clientPromise } from "@sparta/utils/openapi/api/axios";
 
 // Export clients
 export { Discord, getDiscordInstance } from "./clients/discord";
 
 // Export services
 export { DiscordService, discordService } from "./services";
+export { DiscordWebhookService, discordWebhookService } from "./services/discord-webhook";
 
 // Export utils
 export { _handleUserRolesAssignment } from "./utils/roleAssigner";

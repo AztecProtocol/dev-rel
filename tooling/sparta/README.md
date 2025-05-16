@@ -64,7 +64,7 @@ BOT_CLIENT_ID=your_discord_client_id
 GUILD_ID=your_discord_server_id
 
 # Verification Web App
-VITE_APP_API_URL=http://localhost:3000
+API_URL=http://localhost:3000
 
 # Session Storage
 LOCAL_DYNAMO_DB=true

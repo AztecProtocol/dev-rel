@@ -71,40 +71,35 @@
                 "type": "array",
                 "description": "List of validator addresses",
                 "items": {
-                  "type": "string",
-                  "example": "0x1234567890abcdef1234567890abcdef12345678"
+                  "type": "string"
                 }
               },
               "forwardedValidators": {
                 "type": "array",
                 "description": "List of forwarded validator addresses",
                 "items": {
-                  "type": "string",
-                  "example": "0xabcdef1234567890abcdef1234567890abcdef12"
+                  "type": "string"
                 }
               },
               "committee": {
                 "type": "array",
                 "description": "Current committee members",
                 "items": {
-                  "type": "string",
-                  "example": "0x1234567890abcdef1234567890abcdef12345678"
+                  "type": "string"
                 }
               },
               "forwardedCommittee": {
                 "type": "array",
                 "description": "Forwarded committee members",
                 "items": {
-                  "type": "string",
-                  "example": "0xabcdef1234567890abcdef1234567890abcdef12"
+                  "type": "string"
                 }
               },
               "archive": {
                 "type": "array",
                 "description": "Archive node addresses",
                 "items": {
-                  "type": "string",
-                  "example": "0x2468013579abcdef2468013579abcdef24680135"
+                  "type": "string"
                 }
               },
               "currentEpoch": {
@@ -342,7 +337,7 @@
         "tags": [
           "Ethereum"
         ],
-        "operationId": "getAllValidators",
+        "operationId": "getAllValidatorsOnChain",
         "security": [
           {
             "ApiKeyAuth": []
@@ -1092,7 +1087,7 @@
         ],
         "responses": {
           "200": {
-            "description": "A list of validators.",
+            "description": "A list of validators from blockchain and known validators in the database.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1104,9 +1099,50 @@
                       "example": true
                     },
                     "data": {
-                      "type": "array",
-                      "items": {
-                        "$ref": "#/components/schemas/ValidatorResponse"
+                      "type": "object",
+                      "properties": {
+                        "blockchainValidators": {
+                          "type": "object",
+                          "properties": {
+                            "validators": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "description": "List of all validator addresses from the blockchain."
+                            },
+                            "stats": {
+                              "type": "object",
+                              "properties": {
+                                "totalValidators": {
+                                  "type": "number",
+                                  "description": "Total number of validators in the blockchain."
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "knownValidators": {
+                          "type": "object",
+                          "properties": {
+                            "validators": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "description": "List of validator addresses that have matching operators in the database."
+                            },
+                            "stats": {
+                              "type": "object",
+                              "properties": {
+                                "totalValidators": {
+                                  "type": "number",
+                                  "description": "Total number of validators with matching operators."
+                                }
+                              }
+                            }
+                          }
+                        }
                       }
                     }
                   }

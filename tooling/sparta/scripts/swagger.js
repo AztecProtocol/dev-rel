@@ -16,7 +16,7 @@ export const swaggerDefinition = {
 	},
 	servers: [
 		{
-			url: `${process.env.VITE_APP_API_URL}`,
+			url: `${process.env.API_URL}`,
 			description: "Sparta API",
 		},
 	],

@@ -5,7 +5,7 @@ import {
 	GuildMember,
 } from "discord.js";
 import { logger } from "@sparta/utils";
-import { clientPromise } from "../../api/axios";
+import { clientPromise } from "@sparta/utils/openapi/api/axios";
 import { hasGuardianRole } from "../../utils/roles";
 
 /**
@@ -51,6 +51,26 @@ export async function addValidator(
 		try {
 			// Get API client
 			const client = await clientPromise;
+			
+			// First, get the node operator to check if they already have validators
+			const operatorResponse = await client.getOperator({
+				discordId
+			});
+
+			// Check if the operator already has validators
+			const operatorData = operatorResponse.data;
+			if (operatorData && operatorData.validators && operatorData.validators.length > 0) {
+				// Create error embed for the case when operator already has validators
+				const errorEmbed = new EmbedBuilder()
+					.setTitle(`Validator Addition Failed`)
+					.setColor(0xff0000) // Red for failure
+					.setTimestamp()
+					.setFooter({ text: "Sparta Validator Registration" })
+					.setDescription("You already have one or more validators registered. Only one validator is allowed per operator.");
+				
+				await interaction.editReply({ embeds: [errorEmbed] });
+				return "Error: Operator already has validators";
+			}
 
 			// Call the POST /api/operator/validator endpoint
 			await client.addValidator(
@@ -108,7 +128,7 @@ export async function addValidator(
 						errorEmbed.setDescription("Invalid validator address format.");
 						break;
 					case 403:
-						errorEmbed.setDescription("Your account requires approval before adding validators. Please contact a moderator.");
+						errorEmbed.setDescription("Your account requires approval before adding validators.");
 						break;
 					case 404:
 						errorEmbed.setDescription("Node operator not found. Please register as an operator first.");

@@ -5,9 +5,8 @@ import {
 } from "discord.js";
 import { logger } from "@sparta/utils";
 import * as dotenv from "dotenv";
-import { clientPromise } from "../../api/axios";
-import { l2InfoService } from "../../services/l2-info-service";
-import { getEthereumInstance } from "@sparta/ethereum";
+import { clientPromise } from "@sparta/utils/openapi/api/axios";
+import { getEthereumInstance, l2InfoService } from "@sparta/ethereum";
 
 // Load environment variables
 dotenv.config();
@@ -49,7 +48,6 @@ export async function getNodeOperatorInfo(
 
 		// Get the user's Discord ID from the interaction
 		const discordId = interaction.user.id;
-		const discordUsername = interaction.user.username;
 
 		try {
 			const client = await clientPromise;

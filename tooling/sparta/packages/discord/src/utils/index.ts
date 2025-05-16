@@ -4,8 +4,6 @@
  * @module sparta/discord/utils
  */
 
-// Re-export channel utilities
-export * from "./channels";
 
 // Re-export role utilities
 export * from "./roles";

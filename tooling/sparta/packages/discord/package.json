@@ -3,6 +3,15 @@
     "version": "0.0.1",
     "description": "Discord package for Sparta project",
     "type": "module",
+    "files": [
+        "src"
+    ],
+    "exports": {
+        ".": {
+            "import": "./src/index.ts",
+            "require": "./src/index.ts"
+        }
+    },
     "scripts": {
         "types": "tsc",
         "dev": "bun --watch run src/index.ts",

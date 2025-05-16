@@ -1,6 +1,6 @@
 import express, { type Request, type Response, Router } from "express";
 import { nodeOperatorService } from "../domain/operators/service"; // Adjust path if necessary
-import { validatorService } from "../domain/validators/service"; // Add import for validator service
+import { validatorService, type Validator } from "../domain/validators/service"; // Add import for validator service
 import { logger } from "@sparta/utils"; // Assuming logger is accessible
 import { apiKeyMiddleware } from "../middlewares/auth.js";
 import { getEthereumInstance } from "@sparta/ethereum"; // Add import for ethereum
@@ -293,7 +293,6 @@ router.get("/", async (req: Request, res: Response) => {
  *                       type: number
  *                       description: Total number of registered operators.
  *                       example: 42
- *                     # Future stats can be added here
  *       401:
  *         description: Unauthorized - Invalid or missing API key
  *         content:
@@ -837,7 +836,7 @@ router.put(
  *       - ApiKeyAuth: []
  *     responses:
  *       200:
- *         description: A list of validators.
+ *         description: A list of validators from blockchain and known validators in the database.
  *         content:
  *           application/json:
  *             schema:
@@ -848,9 +847,36 @@ router.put(
  *                   description: Indicates if the request was successful.
  *                   example: true
  *                 data:
- *                   type: array
- *                   items:
- *                     $ref: '#/components/schemas/ValidatorResponse'
+ *                   type: object
+ *                   properties:
+ *                     blockchainValidators:
+ *                       type: object
+ *                       properties:
+ *                         validators:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                           description: List of all validator addresses from the blockchain.
+ *                         stats:
+ *                           type: object
+ *                           properties:
+ *                             totalValidators:
+ *                               type: number
+ *                               description: Total number of validators in the blockchain.
+ *                     knownValidators:
+ *                       type: object
+ *                       properties:
+ *                         validators:
+ *                           type: array
+ *                           items:
+ *                             type: string
+ *                           description: List of validator addresses that have matching operators in the database.
+ *                         stats:
+ *                           type: object
+ *                           properties:
+ *                             totalValidators:
+ *                               type: number
+ *                               description: Total number of validators with matching operators.
  *       401:
  *         description: Unauthorized - Invalid or missing API key
  *         content:
@@ -871,25 +897,55 @@ router.get("/validators", async (_req, res) => {
 		const rollupInfo = await ethereum.getRollupInfo();
 		const blockchainValidators = rollupInfo.validators;
 		
-		// Get all validators from the database with their associated node operators
-		const { validators } = await validatorService.getAllValidators();
+		// Get ALL validators from the database (handle pagination)
+		let allValidators: Validator[] = [];
+		let nextPageToken: string | undefined = undefined;
+		
+		do {
+			// Fetch page of validators
+			const result = await validatorService.getAllValidators(nextPageToken);
+			
+			// Add to our collection
+			allValidators = [...allValidators, ...result.validators];
+			
+			// Get next page token
+			nextPageToken = result.nextPageToken;
+			
+			// Log progress
+			logger.info(`Fetched ${result.validators.length} validators from database, total so far: ${allValidators.length}`);
+			
+		} while (nextPageToken); // Continue until no more pages
+		
+		// Log for debugging
+		logger.info(`Retrieved ${blockchainValidators.length} validators from blockchain and ${allValidators.length} total validators from database`);
 		
 		// For each validator in blockchain, find if it has an operator in our database
-		const validatorsWithOperators = blockchainValidators.map(address => {
-			const dbValidator = validators.find(v => v.validatorAddress === address);
-			
-			return {
-				address,
-				operatorId: dbValidator ? dbValidator.nodeOperatorId : null,
-			};
+		// Using case-insensitive comparison to match addresses
+		const validatorsWithOperators = blockchainValidators.filter(address => {
+			// Find a match in the database regardless of case
+			const dbValidator = allValidators.find(v => 
+				v.validatorAddress.toLowerCase() === address.toLowerCase()
+			);
+			return dbValidator;
 		});
+		
+		// Log for debugging
+		logger.info(`Found ${validatorsWithOperators.length} validators with matching operators in database`);
 		
 		return res.status(200).json({
 			success: true,
 			data: {
-				validators: validatorsWithOperators,
-				stats: {
-					totalValidators: blockchainValidators.length,
+				blockchainValidators: {
+					validators: blockchainValidators,
+					stats: {
+						totalValidators: blockchainValidators.length,
+					},
+				},
+				knownValidators: {
+					validators: validatorsWithOperators,
+					stats: {
+						totalValidators: validatorsWithOperators.length,
+					},
 				},
 			},
 		});
@@ -990,18 +1046,53 @@ router.get("/validator", async (req, res) => {
 		
 		// Case 1: Lookup by validator address
 		if (address) {
-			// Basic address validation
-			if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-				return res.status(400).json({ error: "Invalid address format" });
-			}
-			
 			// Check if address is a known validator
 			if (!rollupInfo.validators.includes(address)) {
-				return res.status(404).json({ error: "Validator not found" });
+				// Try case-insensitive check before failing
+				const foundValidator = rollupInfo.validators.find(v => 
+					v.toLowerCase() === address.toLowerCase()
+				);
+				
+				if (!foundValidator) {
+					return res.status(404).json({ error: "Validator not found" });
+				}
 			}
 			
 			// Find if this validator is associated with an operator
-			const dbValidator = await validatorService.getValidatorByAddress(address);
+			let dbValidator = await validatorService.getValidatorByAddress(address);
+			
+			// If not found by exact match, try case-insensitive match
+			if (!dbValidator) {
+				// Get ALL validators from the database (handle pagination) to find a case-insensitive match
+				let allValidators: any[] = [];
+				let nextPageToken: string | undefined = undefined;
+				
+				logger.info(`Validator not found by exact match, trying case-insensitive search for: ${address}`);
+				
+				do {
+					// Fetch page of validators
+					const result = await validatorService.getAllValidators(nextPageToken);
+					
+					// Add to our collection
+					allValidators = [...allValidators, ...result.validators];
+					
+					// Get next page token
+					nextPageToken = result.nextPageToken;
+					
+				} while (nextPageToken); // Continue until no more pages
+				
+				// Now search through all validators with case-insensitive comparison
+				const matchingValidator = allValidators.find(v => 
+					v.validatorAddress.toLowerCase() === address.toLowerCase()
+				);
+				
+				if (matchingValidator) {
+					logger.info(`Found case-insensitive match for ${address}: ${matchingValidator.validatorAddress}`);
+					dbValidator = matchingValidator;
+				} else {
+					logger.info(`No case-insensitive match found for ${address} in ${allValidators.length} validators`);
+				}
+			}
 			
 			// Get operator info if validator has an associated operator
 			let operatorInfo = null;
@@ -1195,7 +1286,7 @@ router.post("/validator", async (req, res) => {
 		if (!operator.isApproved) {
 			return res.status(403).json({
 				error: "Node operator is not approved",
-				message: "Your account requires approval before adding validators. Please contact a moderator."
+				message: "Your account requires approval before adding validators."
 			});
 		}
 		

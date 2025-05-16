@@ -35,6 +35,7 @@ COPY packages/express/package.json ./packages/express/
 COPY packages/utils/package.json ./packages/utils/
 COPY packages/discord/package.json ./packages/discord/
 COPY packages/ethereum/package.json ./packages/ethereum/
+COPY packages/scheduler/package.json ./packages/scheduler/
 # Add other packages if they exist and are needed
 
 # Install all dependencies for the monorepo using the lockfile
@@ -45,13 +46,9 @@ RUN bun install --frozen-lockfile
 COPY . .
 
 # Declare the build argument for the Vite frontend URL
-ARG VITE_APP_API_URL
+ARG API_URL
 
-ENV VITE_APP_API_URL=$VITE_APP_API_URL
-
-# Generate Swagger docs during build
-RUN bun run swagger
-RUN bun run prep
+ENV API_URL=$API_URL
 
 # Expose the port the Express server will listen on
 # Make sure this matches the PORT environment variable passed in Terraform (var.api_port)

@@ -32,7 +32,7 @@ export class ValidatorRepository {
 
 	async findAll(pageToken?: string): Promise<{ validators: Validator[]; nextPageToken?: string }> {
 		try {
-			const ITEMS_PER_PAGE = 10;
+			const ITEMS_PER_PAGE = 100;
 			
 			// Build the scan command
 			const scanParams: any = {
@@ -78,12 +78,37 @@ export class ValidatorRepository {
 		validatorAddress: string
 	): Promise<Validator | undefined> {
 		try {
+			// First try exact match
 			const command = new GetCommand({
 				TableName: this.tableName,
 				Key: { validatorAddress },
 			});
 			const response = await this.client.send(command);
-			return response.Item as Validator | undefined;
+			
+			// If found, return it
+			if (response.Item) {
+				return response.Item as Validator;
+			}
+			
+			// If exact match fails, try case-insensitive search
+			logger.debug(
+				{ validatorAddress },
+				"Exact match failed, trying case-insensitive search"
+			);
+			
+			// Get all validators and find one that matches case-insensitively
+			const scanCommand = new ScanCommand({
+				TableName: this.tableName,
+			});
+			const scanResponse = await this.client.send(scanCommand);
+			const validators = scanResponse.Items as Validator[] || [];
+			
+			// Find case-insensitive match
+			const matchingValidator = validators.find(v => 
+				v.validatorAddress.toLowerCase() === validatorAddress.toLowerCase()
+			);
+			
+			return matchingValidator;
 		} catch (error) {
 			logger.error(
 				{ error, validatorAddress, tableName: this.tableName },

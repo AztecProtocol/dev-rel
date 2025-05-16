@@ -295,6 +295,46 @@ declare namespace Paths {
     }
     namespace GetAllValidators {
         namespace Responses {
+            export interface $200 {
+                /**
+                 * Indicates if the request was successful.
+                 * example:
+                 * true
+                 */
+                success?: boolean;
+                data?: {
+                    blockchainValidators?: {
+                        /**
+                         * List of all validator addresses from the blockchain.
+                         */
+                        validators?: string[];
+                        stats?: {
+                            /**
+                             * Total number of validators in the blockchain.
+                             */
+                            totalValidators?: number;
+                        };
+                    };
+                    knownValidators?: {
+                        /**
+                         * List of validator addresses that have matching operators in the database.
+                         */
+                        validators?: string[];
+                        stats?: {
+                            /**
+                             * Total number of validators with matching operators.
+                             */
+                            totalValidators?: number;
+                        };
+                    };
+                };
+            }
+            export type $401 = Components.Schemas.OperatorError;
+            export type $500 = Components.Schemas.OperatorError;
+        }
+    }
+    namespace GetAllValidatorsOnChain {
+        namespace Responses {
             export type $200 = Components.Schemas.EthereumResponse;
             export type $401 = Components.Schemas.ErrorResponse;
             export type $500 = Components.Schemas.ErrorResponse;
@@ -488,15 +528,15 @@ export interface OperationMethods {
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.GetCurrentEpochCommittee.Responses.$200>
   /**
-   * getAllValidators - Get all validators
+   * getAllValidatorsOnChain - Get all validators
    * 
    * Retrieves the list of all attesters (validators) in the rollup system
    */
-  'getAllValidators'(
+  'getAllValidatorsOnChain'(
     parameters?: Parameters<UnknownParamsObject> | null,
     data?: any,
     config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.GetAllValidators.Responses.$200>
+  ): OperationResponse<Paths.GetAllValidatorsOnChain.Responses.$200>
   /**
    * getRollupStatus - Get comprehensive rollup status
    * 
@@ -654,7 +694,7 @@ export interface PathsDictionary {
   }
   ['/api/ethereum/rollup/validators']: {
     /**
-     * getAllValidators - Get all validators
+     * getAllValidatorsOnChain - Get all validators
      * 
      * Retrieves the list of all attesters (validators) in the rollup system
      */
@@ -662,7 +702,7 @@ export interface PathsDictionary {
       parameters?: Parameters<UnknownParamsObject> | null,
       data?: any,
       config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.GetAllValidators.Responses.$200>
+    ): OperationResponse<Paths.GetAllValidatorsOnChain.Responses.$200>
   }
   ['/api/ethereum/rollup/status']: {
     /**

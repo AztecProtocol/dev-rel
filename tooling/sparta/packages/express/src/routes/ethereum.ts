@@ -59,31 +59,26 @@ import { apiKeyMiddleware } from "../middlewares/auth.js";
  *               description: List of validator addresses
  *               items:
  *                 type: string
- *                 example: "0x1234567890abcdef1234567890abcdef12345678"
  *             forwardedValidators:
  *               type: array
  *               description: List of forwarded validator addresses
  *               items:
  *                 type: string
- *                 example: "0xabcdef1234567890abcdef1234567890abcdef12"
  *             committee:
  *               type: array
  *               description: Current committee members
  *               items:
  *                 type: string
- *                 example: "0x1234567890abcdef1234567890abcdef12345678"
  *             forwardedCommittee:
  *               type: array
  *               description: Forwarded committee members
  *               items:
  *                 type: string
- *                 example: "0xabcdef1234567890abcdef1234567890abcdef12"
  *             archive:
  *               type: array
  *               description: Archive node addresses
  *               items:
  *                 type: string
- *                 example: "0x2468013579abcdef2468013579abcdef24680135"
  *             currentEpoch:
  *               type: string
  *               description: Current epoch number
@@ -179,7 +174,7 @@ router.get("/rollup/committee", async (_req, res) => {
  *     summary: Get all validators
  *     description: Retrieves the list of all attesters (validators) in the rollup system
  *     tags: [Ethereum]
- *     operationId: getAllValidators
+ *     operationId: getAllValidatorsOnChain
  *     security:
  *       - ApiKeyAuth: []
  *     responses:

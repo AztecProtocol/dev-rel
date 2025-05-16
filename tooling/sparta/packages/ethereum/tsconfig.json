@@ -5,7 +5,9 @@
 		"rootDir": "./src",
 		"composite": true,
 		"declaration": true,
-		"declarationMap": true
+		"declarationMap": true,
+		"noUnusedLocals": false,
+		"noUnusedParameters": false
 	},
 	"include": ["src/**/*", "src/abis", "src/bytecode"],
 	"references": [{ "path": "../utils" }]

@@ -15,7 +15,7 @@ import {
 	Routes,
 } from "discord.js";
 import { logger } from "@sparta/utils";
-import { ApiProvider } from "../api/apiProvider";
+import { ApiProvider } from "@sparta/utils/openapi/api/apiProvider";
 import commands from "../slashCommands/index";
 
 // Command interface
@@ -198,7 +198,7 @@ export class Discord {
 				);
 
 				// Register commands in client
-				for (const [name, command] of Object.entries(commandsObj)) {
+				for (const [_, command] of Object.entries(commandsObj)) {
 					if (command && command.data && command.data.name) {
 						client.commands.set(
 							command.data.name,

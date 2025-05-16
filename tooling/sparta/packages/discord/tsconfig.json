@@ -7,8 +7,9 @@
 		"declaration": true,
 		"declarationMap": true,
 		"sourceMap": true,
-		"resolveJsonModule": true
+		"resolveJsonModule": true,
+		"esModuleInterop": true
 	},
-	"include": ["src/**/*"],
+	"include": ["src/**/*", "../ethereum/src/l2-info-service.ts", "../utils/openapi/api"],
 	"references": [{ "path": "../utils" }, { "path": "../ethereum" }]
 }

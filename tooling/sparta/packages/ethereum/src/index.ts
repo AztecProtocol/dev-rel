@@ -11,3 +11,5 @@ export {
 	DEPLOYER_ADDRESS,
 	type ChainInfo,
 } from "./ethereum";
+
+export { l2InfoService } from "./l2-info-service";

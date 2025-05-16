@@ -478,7 +478,7 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "L1_CHAIN_ID", value = var.l1_chain_id },
         { name = "LOG_LEVEL", value = var.log_level },
         { name = "LOG_PRETTY_PRINT", value = var.log_pretty_print ? "true" : "false" },
-        { name = "VITE_APP_API_URL", value = "http://${aws_lb.sparta_alb.dns_name}" },
+        { name = "API_URL", value = "http://${aws_lb.sparta_alb.dns_name}" },
         { name = "CORS_ALLOWED_ORIGINS", value = "http://${aws_lb.sparta_alb.dns_name}" },
         { name = "NODE_OPERATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_node_operators.name },
         { name = "VALIDATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_validators.name },
@@ -493,7 +493,7 @@ resource "aws_ecs_task_definition" "sparta_api" {
   })
 
   # Task definition implicitly depends on the external data source now because it uses its result.
-  # depends_on = [data.external.api_docker_build_push_digest] # Optional explicit dependency
+  depends_on = [data.external.api_docker_build_push_digest] # Optional explicit dependency
 }
 
 # Application Load Balancer (ALB) for the API
@@ -728,4 +728,110 @@ output "node_operators_table_name" {
 output "validators_table_name" {
   description = "The name of the DynamoDB table for validators"
   value       = aws_dynamodb_table.sparta_validators.name
+}
+
+# =============================================================================
+# Scheduler Lambda Function for Validator Monitoring
+# =============================================================================
+
+# Use external data source to build the Lambda package and get its hash
+data "external" "lambda_package" {
+  program = ["bash", "${path.module}/../scripts/build_lambda.sh"]
+}
+
+# IAM role for the validator monitor Lambda function
+resource "aws_iam_role" "validator_monitor_role" {
+  name = "${local.resource_prefix}-validator-monitor-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17",
+    Statement = [{
+      Action    = "sts:AssumeRole",
+      Effect    = "Allow",
+      Principal = { Service = "lambda.amazonaws.com" },
+    }]
+  })
+  tags = local.common_tags
+}
+
+# Policy allowing Lambda to write logs to CloudWatch
+resource "aws_iam_role_policy_attachment" "validator_monitor_logs_policy" {
+  role       = aws_iam_role.validator_monitor_role.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+# Policy allowing Lambda to access the DynamoDB tables
+resource "aws_iam_role_policy_attachment" "validator_monitor_dynamodb_policy" {
+  role       = aws_iam_role.validator_monitor_role.name
+  policy_arn = aws_iam_policy.dynamodb_access_policy.arn
+}
+
+# Lambda function for validator monitoring
+resource "aws_lambda_function" "validator_monitor" {
+  function_name    = "${local.resource_prefix}-validator-monitor"
+  role             = aws_iam_role.validator_monitor_role.arn
+  handler          = "dist/lambda.handler"
+  runtime          = "nodejs18.x"
+  filename         = "${path.module}/../packages/scheduler/lambda-package.zip"
+  source_code_hash = data.external.lambda_package.result.hash
+  timeout          = 300  # 5 minutes
+  memory_size      = 512  # MB
+  
+  environment {
+    variables = {
+      NODE_ENV                = var.environment
+      API_URL                 = "http://${aws_lb.sparta_alb.dns_name}"
+      BACKEND_API_KEY         = var.backend_api_key
+      LOG_LEVEL               = var.log_level
+      LOG_PRETTY_PRINT        = var.log_pretty_print ? "true" : "false"
+      NODE_OPERATORS_TABLE_NAME = aws_dynamodb_table.sparta_node_operators.name
+      VALIDATORS_TABLE_NAME   = aws_dynamodb_table.sparta_validators.name
+      BOT_TOKEN               = var.bot_token
+      BOT_CLIENT_ID           = var.bot_client_id
+      GUILD_ID                = var.guild_id
+      ETHEREUM_HOST           = var.ethereum_host
+      SPARTA_PRIVATE_KEY      = var.sparta_private_key
+      SPARTA_ADDRESS          = var.sparta_address
+    }
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-validator-monitor-lambda"
+  })
+}
+
+# CloudWatch Log Group for the Lambda function
+resource "aws_cloudwatch_log_group" "validator_monitor_logs" {
+  name              = "/aws/lambda/${aws_lambda_function.validator_monitor.function_name}"
+  retention_in_days = 30
+  
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-validator-monitor-logs"
+  })
+}
+
+# EventBridge rule to trigger Lambda every 12 hours
+resource "aws_cloudwatch_event_rule" "hourly_validator_check" {
+  name                = "${local.resource_prefix}-12-hour-validator-check"
+  description         = "Trigger validator monitoring every 12 hours"
+  schedule_expression = "rate(12 hours)"
+  state               = var.enable_validator_monitor_schedule ? "ENABLED" : "DISABLED"
+  
+  tags = local.common_tags
+}
+
+# Target the Lambda function with the EventBridge rule
+resource "aws_cloudwatch_event_target" "invoke_validator_monitor" {
+  rule      = aws_cloudwatch_event_rule.hourly_validator_check.name
+  target_id = "InvokeValidatorMonitor"
+  arn       = aws_lambda_function.validator_monitor.arn
+}
+
+# Permission for EventBridge to invoke Lambda
+resource "aws_lambda_permission" "allow_eventbridge_validator_monitor" {
+  statement_id  = "AllowExecutionFromEventBridge"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.validator_monitor.function_name
+  principal     = "events.amazonaws.com"
+  source_arn    = aws_cloudwatch_event_rule.hourly_validator_check.arn
 }

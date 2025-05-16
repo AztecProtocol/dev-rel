@@ -7,7 +7,7 @@
 import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { logger } from "@sparta/utils";
 import { ModeratorSubcommands } from "../../types.js";
-import { CHANNELS, getAllowedChannelsText } from "../../utils/index.js";
+import { getAllowedChannelsText } from "@sparta/utils";
 import { MODERATOR_ROLES } from "@sparta/utils/const/roles.js";
 /**
  * Display help information for all moderator commands

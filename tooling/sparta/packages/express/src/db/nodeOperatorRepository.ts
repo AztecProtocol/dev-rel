@@ -33,12 +33,12 @@ export class NodeOperatorRepository {
 
 	async findAll(pageToken?: string): Promise<{ operators: NodeOperator[]; nextPageToken?: string }> {
 		try {
-			const ITEMS_PER_PAGE = 10;
+			const ITEMS_PER_PAGE = 100;
 			
 			// Build the scan command
 			const scanParams: any = {
 				TableName: this.tableName,
-				Limit: ITEMS_PER_PAGE,
+				Limit: ITEMS_PER_PAGE
 			};
 			
 			// If we have a page token, use it as the ExclusiveStartKey

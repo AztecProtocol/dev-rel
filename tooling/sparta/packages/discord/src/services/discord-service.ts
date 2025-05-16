@@ -6,11 +6,10 @@
 
 import { getDiscordInstance } from "../clients/discord";
 import { logger } from "@sparta/utils";
-import { PassportRoles } from "../types";
-import type { Guild, GuildMember, Role as DiscordRole } from "discord.js";
+import type { Guild, GuildMember, Role as DiscordRole, TextChannel } from "discord.js";
 import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v10";
-import type { ApiProvider } from "../api/apiProvider";
+import type { ApiProvider } from "@sparta/utils/openapi/api/apiProvider";
 import type { Client as ApiClient } from "@sparta/utils/openapi/types";
 import type { Role } from "@sparta/utils/const/roles";
 
@@ -21,6 +20,7 @@ import type { Role } from "@sparta/utils/const/roles";
  * - Assign roles to Discord users
  * - Find Discord users by username or tag
  * - Manage role hierarchies
+ * - Send direct messages to users
  */
 export class DiscordService {
 	private static instance: DiscordService;
@@ -55,6 +55,33 @@ export class DiscordService {
 		} catch (error) {
 			logger.error({ error }, "Failed to initialize Discord service");
 			throw error;
+		}
+	}
+
+	/**
+	 * Shutdown the Discord client and clean up resources
+	 * This prevents unhandled promise rejections when the Lambda function exits
+	 */
+	public async shutdown(): Promise<void> {
+		try {
+			// Get the Discord instance
+			const discord = await getDiscordInstance();
+			const client = discord.getClient();
+			
+			// Destroy the client connection
+			if (client) {
+				logger.debug("Destroying Discord client connection");
+				await client.destroy();
+			}
+			
+			// Clear the singleton instance
+			DiscordService.instance = null as any;
+			this.apiProvider = null;
+			this.apiClient = null;
+			
+			logger.debug("Discord client resources released");
+		} catch (error) {
+			logger.error({ error }, "Error shutting down Discord client");
 		}
 	}
 
@@ -184,20 +211,6 @@ export class DiscordService {
 		await member!.roles.add(role!);
 		logger.info({ userId, roleName }, "Role assigned successfully");
 
-		// Update user role in API
-		try {
-			await this.apiClient.updateUser(
-				{ discordUserId: userId },
-				{ role: roleName }
-			);
-		} catch (apiError) {
-			logger.error(
-				{ error: apiError, userId, roleName },
-				"Failed to update user role in API"
-			);
-			// Continue since Discord role was already assigned
-		}
-
 		return true;
 	}
 
@@ -233,6 +246,144 @@ export class DiscordService {
 					interactionToken: interactionToken.substring(0, 10) + "...",
 				},
 				"Error updating interaction reply"
+			);
+			return false;
+		}
+	}
+
+	/**
+	 * Sends a direct message to a Discord user
+	 * @param userId The Discord user ID
+	 * @param message The message content to send
+	 * @returns Promise<boolean> indicating success or failure
+	 */
+	public async sendDirectMessage(
+		userId: string,
+		message: string
+	): Promise<boolean> {
+		try {
+			// Validate userId parameter
+			if (!userId) {
+				logger.error(
+					"Cannot send direct message - userId is null, undefined, or empty"
+				);
+				return false;
+			}
+
+			// Ensure API client is initialized
+			if (!this.apiClient) {
+				await this.init();
+				if (!this.apiClient) {
+					logger.error("API client not initialized");
+					return false;
+				}
+			}
+
+			const discord = await getDiscordInstance();
+			const client = discord.getClient();
+
+			try {
+				// Get the user
+				const user = await client.users.fetch(userId);
+				if (!user) {
+					logger.error(
+						{ userId },
+						"Failed to find Discord user for direct message"
+					);
+					return false;
+				}
+
+				// Send DM
+				await user.send(message);
+				logger.info(
+					{ userId, messageLength: message.length },
+					"Direct message sent successfully"
+				);
+				return true;
+			} catch (error) {
+				logger.error(
+					{ error, userId },
+					"Error sending direct message to Discord user"
+				);
+				return false;
+			}
+		} catch (error) {
+			logger.error(
+				{ error, userId },
+				"Error in sendDirectMessage method"
+			);
+			return false;
+		}
+	}
+
+	/**
+	 * Sends a message to a Discord channel
+	 * @param channelId The Discord channel ID
+	 * @param message The message content to send
+	 * @returns Promise<boolean> indicating success or failure
+	 */
+	public async sendChannelMessage(
+		channelId: string,
+		message: string
+	): Promise<boolean> {
+		try {
+			// Ensure API client is initialized
+			if (!this.apiClient) {
+				await this.init();
+				if (!this.apiClient) {
+					logger.error("API client not initialized");
+					return false;
+				}
+			}
+
+			const discord = await getDiscordInstance();
+			const client = discord.getClient();
+
+			try {
+				// Get the guild 
+				const guildId = process.env.GUILD_ID;
+				if (!guildId) {
+					logger.error("GUILD_ID not set in environment variables");
+					return false;
+				}
+
+				const guild = await client.guilds.fetch(guildId);
+				if (!guild) {
+					logger.error(
+						{ guildId },
+						"Failed to find Discord guild"
+					);
+					return false;
+				}
+
+				// Get the channel from the guild
+				const channel = await guild.channels.fetch(channelId) as TextChannel;
+				if (!channel || !channel.isTextBased()) {
+					logger.error(
+						{ channelId },
+						"Failed to find Discord text channel for message"
+					);
+					return false;
+				}
+
+				// Send channel message
+				await channel.send(message);
+				logger.info(
+					{ channelId, messageLength: message.length },
+					"Channel message sent successfully"
+				);
+				return true;
+			} catch (error) {
+				logger.error(
+					{ error, channelId },
+					"Error sending message to Discord channel"
+				);
+				return false;
+			}
+		} catch (error) {
+			logger.error(
+				{ error, channelId },
+				"Error in sendChannelMessage method"
 			);
 			return false;
 		}

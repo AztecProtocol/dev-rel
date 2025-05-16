@@ -1,7 +1,7 @@
 import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { logger } from "@sparta/utils";
 import * as dotenv from "dotenv";
-import { clientPromise } from "../../api/axios";
+import { clientPromise } from "@sparta/utils/openapi/api/axios";
 
 // Load environment variables
 dotenv.config();

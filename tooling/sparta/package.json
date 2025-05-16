@@ -20,11 +20,12 @@
     "swagger": "bun run scripts/swagger.js",
     "openapi": "bunx openapi-client-axios-typegen packages/utils/openapi/api-docs.json > packages/utils/openapi/types.d.ts",
     "prep": "bun run swagger && bun run openapi",
-    "build": "bun --filter='@sparta/webapp' run build",
+    "build": "bun run prep && bun --filter='@sparta/utils' --filter='@sparta/discord' run types && bun --filter='@sparta/scheduler' run build",
     "start": "bun run prep && bun run build && NODE_ENV='production' bun --filter='@sparta/api' --filter='@sparta/discord' run start",
-    "dev": "bun run prep && NODE_ENV='development' bun --env-file=.env --elide-lines=0 --filter='@sparta/api' --filter='@sparta/webapp' --filter='@sparta/discord' run dev",
+    "dev": "bun run prep && bun run build && NODE_ENV='development' bun --env-file=.env --elide-lines=0 --filter='@sparta/api' --filter='@sparta/discord' run dev",
     "dev:webapp": "bun --env-file=.env --elide-lines=0 --filter='@sparta/webapp' run dev",
-    "dev:api": "bun --env-file=.env --elide-lines=0 --filter='@sparta/api' run dev"
+    "dev:api": "bun --env-file=.env --elide-lines=0 --filter='@sparta/api' run dev",
+    "dev:scheduler": "bun run build && bun --env-file=.env --elide-lines=0 --filter='@sparta/scheduler' run dev"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.788.0",

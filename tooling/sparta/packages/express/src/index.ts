@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import apiRoutes from "./routes/api.js";
 // import { dynamoDB } from "@sparta/utils"; // Unused
-import { getDiscordInstance } from "@sparta/discord/src/clients/discord.js";
+import { getDiscordInstance } from "@sparta/discord";
 import { logger } from "@sparta/utils";
 import path from "path"; // Import path module
 import { fileURLToPath } from "url"; // Import fileURLToPath for ES modules
@@ -91,7 +91,7 @@ app.listen(process.env.API_PORT as unknown as number, "0.0.0.0", async () => {
 	console.log(`Server is running on port ${process.env.API_PORT}`);
 	console.log(`Allowing CORS for: ${allowedOrigins.join(", ")}`);
 	console.log(
-		`API Documentation available at: ${process.env.VITE_APP_API_URL}/api-docs`
+		`API Documentation available at: ${process.env.API_URL}/api-docs`
 	);
 
 	// Start Discord Bot and then the background processor

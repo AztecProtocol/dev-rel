@@ -177,6 +177,15 @@ variable "api_memory" {
   default     = "2048"
 }
 
+# -----------------------------------------------------------------------------
+# Validator Monitor Configuration
+# -----------------------------------------------------------------------------
+variable "enable_validator_monitor_schedule" {
+  description = "Enable or disable the 12-hour schedule for the validator monitor Lambda function"
+  type        = bool
+  default     = true
+}
+
 # =============================================================================
 # Outputs (Consider adding outputs for easy access to created resources)
 # =============================================================================

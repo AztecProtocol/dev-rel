@@ -4,8 +4,8 @@ import {
 	MessageFlags,
 } from "discord.js";
 import { logger } from "@sparta/utils";
-import { l2InfoService } from "../../services/l2-info-service";
-import { clientPromise } from "../../api/axios";
+import { l2InfoService } from "@sparta/ethereum";
+import { clientPromise } from "@sparta/utils/openapi/api/axios";
 import { NODE_OPERATOR_ROLES } from "@sparta/utils/const/roles";
 import { _handleNodeOperatorRoleAssignment } from "../../utils/roleAssigner";
 

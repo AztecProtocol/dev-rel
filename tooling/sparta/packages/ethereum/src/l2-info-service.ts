@@ -202,10 +202,6 @@ export class L2InfoService {
 			// Ensure address is lowercase for matching keys in the response
 			const lowerCaseAddress = targetAddress.toLowerCase();
 
-			logger.info(
-				`Fetching validator stats from ${this.rpcUrl} for ${lowerCaseAddress}...`
-			);
-
 			const data = (await this.sendJsonRpcRequest(
 				RPC_METHOD_VALIDATOR_STATS,
 				[]
