@@ -1,0 +1,1594 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Sparta API",
+    "version": "1.0.0",
+    "description": "…"
+  },
+  "servers": [
+    {
+      "url": "{serverUrl}",
+      "description": "Sparta API",
+      "variables": {
+        "serverUrl": {
+          "default": "http://localhost:3000",
+          "description": "API server URL"
+        }
+      }
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ApiKeyAuth": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "x-api-key",
+        "description": "API key for authenticating requests"
+      }
+    },
+    "schemas": {
+      "EthereumResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "data": {
+            "type": "array",
+            "description": "Array of data returned from the endpoint",
+            "items": {
+              "type": "string"
+            },
+            "example": [
+              "0x1234567890abcdef1234567890abcdef12345678",
+              "0xabcdef1234567890abcdef1234567890abcdef12"
+            ]
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "RollupStatusResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Indicates if the request was successful",
+            "example": true
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "pendingBlockNum": {
+                "type": "string",
+                "description": "Current pending block number",
+                "example": "123456"
+              },
+              "provenBlockNum": {
+                "type": "string",
+                "description": "Current proven block number",
+                "example": "123450"
+              },
+              "validators": {
+                "type": "array",
+                "description": "List of validator addresses",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "forwardedValidators": {
+                "type": "array",
+                "description": "List of forwarded validator addresses",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "committee": {
+                "type": "array",
+                "description": "Current committee members",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "forwardedCommittee": {
+                "type": "array",
+                "description": "Forwarded committee members",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "archive": {
+                "type": "array",
+                "description": "Archive node addresses",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "currentEpoch": {
+                "type": "string",
+                "description": "Current epoch number",
+                "example": "42"
+              },
+              "currentSlot": {
+                "type": "string",
+                "description": "Current slot number",
+                "example": "1024"
+              },
+              "proposerNow": {
+                "type": "string",
+                "description": "Current proposer address",
+                "example": "0x1234567890abcdef1234567890abcdef12345678"
+              }
+            }
+          }
+        },
+        "required": [
+          "success",
+          "data"
+        ]
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean",
+            "description": "Always false for error responses",
+            "example": false
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message describing what went wrong",
+            "example": "Failed to retrieve rollup status"
+          }
+        },
+        "required": [
+          "success",
+          "error"
+        ]
+      },
+      "NodeOperator": {
+        "type": "object",
+        "properties": {
+          "discordId": {
+            "type": "string",
+            "description": "The Discord user ID of the node operator.",
+            "example": "123456789012345678"
+          },
+          "walletAddress": {
+            "type": "string",
+            "description": "The Ethereum wallet address associated with the node operator.",
+            "example": "0x1234567890abcdef1234567890abcdef12345678"
+          },
+          "discordUsername": {
+            "type": "string",
+            "description": "The Discord username of the node operator.",
+            "example": "user#1234"
+          },
+          "createdAt": {
+            "type": "number",
+            "description": "Timestamp (milliseconds since epoch) when the operator was created.",
+            "example": 1678886400000
+          },
+          "updatedAt": {
+            "type": "number",
+            "description": "Timestamp (milliseconds since epoch) when the operator was last updated.",
+            "example": 1678887400000
+          },
+          "validators": {
+            "type": "array",
+            "description": "List of validators associated with this operator.",
+            "items": {
+              "type": "object",
+              "properties": {
+                "validatorAddress": {
+                  "type": "string",
+                  "description": "The Ethereum address of the validator.",
+                  "example": "0x1234567890abcdef1234567890abcdef12345678"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "discordId",
+          "walletAddress",
+          "createdAt",
+          "updatedAt"
+        ]
+      },
+      "OperatorInput": {
+        "type": "object",
+        "properties": {
+          "discordId": {
+            "type": "string",
+            "description": "The Discord user ID."
+          },
+          "walletAddress": {
+            "type": "string",
+            "description": "The Ethereum wallet address.",
+            "example": "0x1234567890abcdef1234567890abcdef12345678"
+          }
+        },
+        "required": [
+          "discordId",
+          "walletAddress"
+        ]
+      },
+      "OperatorUpdateInput": {
+        "type": "object",
+        "properties": {
+          "walletAddress": {
+            "type": "string",
+            "description": "The new Ethereum wallet address.",
+            "example": "0xabcdef1234567890abcdef1234567890abcdef12"
+          }
+        },
+        "required": [
+          "walletAddress"
+        ]
+      },
+      "OperatorError": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Error message describing the issue."
+          }
+        }
+      },
+      "OperatorResponse": {
+        "type": "object",
+        "properties": {
+          "discordId": {
+            "type": "string",
+            "description": "The Discord user ID of the node operator."
+          },
+          "walletAddress": {
+            "type": "string",
+            "description": "The Ethereum wallet address associated with the node operator."
+          },
+          "createdAt": {
+            "type": "number",
+            "description": "Timestamp when operator was created"
+          },
+          "updatedAt": {
+            "type": "number",
+            "description": "Timestamp when operator was last updated"
+          }
+        }
+      },
+      "ValidatorResponse": {
+        "type": "object",
+        "properties": {
+          "address": {
+            "type": "string",
+            "description": "The Ethereum address of the validator.",
+            "example": "0x1234567890abcdef1234567890abcdef12345678"
+          },
+          "operatorId": {
+            "type": "string",
+            "description": "The Discord ID of the operator who owns this validator.",
+            "example": "123456789012345678"
+          },
+          "stats": {
+            "type": "object",
+            "properties": {
+              "totalValidators": {
+                "type": "number",
+                "description": "Total number of validators in the system.",
+                "example": 42
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/ethereum/rollup/committee": {
+      "get": {
+        "summary": "Get current epoch committee",
+        "description": "Retrieves the list of committee members for the current epoch",
+        "tags": [
+          "Ethereum"
+        ],
+        "operationId": "getCurrentEpochCommittee",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved committee members",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EthereumResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error occurred while retrieving committee data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ethereum/rollup/validators": {
+      "get": {
+        "summary": "Get all validators",
+        "description": "Retrieves the list of all attesters (validators) in the rollup system",
+        "tags": [
+          "Ethereum"
+        ],
+        "operationId": "getAllValidatorsOnChain",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved validators",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EthereumResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error occurred while retrieving validators data",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ethereum/rollup/status": {
+      "get": {
+        "summary": "Get comprehensive rollup status",
+        "description": "Retrieves complete information about the rollup's current state including block numbers, validators, committee members, and other chain data",
+        "tags": [
+          "Ethereum"
+        ],
+        "operationId": "getRollupStatus",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved rollup status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RollupStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error occurred while retrieving rollup status",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operator/operators": {
+      "get": {
+        "summary": "Get node operators",
+        "description": "Retrieves a list of registered node operators.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "getOperators",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "pageToken",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "Token for pagination to get the next page of results."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of node operators with pagination token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "operators": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/NodeOperator"
+                      }
+                    },
+                    "nextPageToken": {
+                      "type": "string",
+                      "description": "Token to retrieve the next page of results. Not present on the last page.",
+                      "example": "eyJsYXN0S2V5IjoiMTIzNDU2Nzg5MCJ9"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operator": {
+      "get": {
+        "summary": "Get a specific node operator",
+        "description": "Retrieves a specific node operator using either their Discord ID or username.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "getOperator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord ID of the operator to retrieve."
+          },
+          {
+            "in": "query",
+            "name": "discordUsername",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord username of the operator to retrieve."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested node operator with associated validators.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeOperator"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Create a new node operator",
+        "description": "Registers a new node operator with their Discord ID and wallet address.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "createOperator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "The Discord user ID."
+          },
+          {
+            "in": "query",
+            "name": "walletAddress",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "The Ethereum wallet address."
+          },
+          {
+            "in": "query",
+            "name": "discordUsername",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord username."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Node operator created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeOperator"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing or invalid body parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - Operator with this Discord ID already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an operator by Discord ID or username",
+        "description": "Removes a node operator registration using either their Discord ID or username.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "deleteOperator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord ID of the operator to delete."
+          },
+          {
+            "in": "query",
+            "name": "discordUsername",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord username of the operator to delete."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Operator deleted successfully (No Content)."
+          },
+          "400": {
+            "description": "Bad Request - Missing discordId or discordUsername parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update operator's wallet address",
+        "description": "Updates the wallet address for a specific node operator using their Discord ID or username.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "updateOperator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord ID of the operator to update."
+          },
+          {
+            "in": "query",
+            "name": "discordUsername",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord username of the operator to update."
+          },
+          {
+            "in": "query",
+            "name": "walletAddress",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "The new wallet address."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operator updated successfully. Returns the updated operator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeOperator"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operator/stats": {
+      "get": {
+        "summary": "Get node operator statistics",
+        "description": "Retrieves statistics about registered node operators.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "getOperatorStats",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Node operator statistics.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "totalCount": {
+                          "type": "number",
+                          "description": "Total number of registered operators.",
+                          "example": 42
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operator/address/{address}": {
+      "get": {
+        "summary": "Get operator by wallet address",
+        "description": "Retrieves a specific node operator using their wallet address.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "getOperatorByAddress",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "address",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "The wallet address of the operator to retrieve."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested node operator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeOperator"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing or invalid address parameter",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operator/approve": {
+      "put": {
+        "summary": "Approve a node operator",
+        "description": "Approves a node operator using their Discord ID or username.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "approveOperator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord ID of the operator to approve."
+          },
+          {
+            "in": "query",
+            "name": "discordUsername",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord username of the operator to approve."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operator approved successfully. Returns the updated operator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeOperator"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operator/validators": {
+      "get": {
+        "summary": "Get all validators",
+        "description": "Retrieves a list of all validators in the system.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "getAllValidators",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of validators from blockchain and known validators in the database.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Indicates if the request was successful.",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "blockchainValidators": {
+                          "type": "object",
+                          "properties": {
+                            "validators": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "description": "List of all validator addresses from the blockchain."
+                            },
+                            "stats": {
+                              "type": "object",
+                              "properties": {
+                                "totalValidators": {
+                                  "type": "number",
+                                  "description": "Total number of validators in the blockchain."
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "knownValidators": {
+                          "type": "object",
+                          "properties": {
+                            "validators": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "description": "List of validator addresses that have matching operators in the database."
+                            },
+                            "stats": {
+                              "type": "object",
+                              "properties": {
+                                "totalValidators": {
+                                  "type": "number",
+                                  "description": "Total number of validators with matching operators."
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operator/validator": {
+      "get": {
+        "summary": "Get validator information",
+        "description": "Retrieves validator information either by validator address or by operator (discordId/username).",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "getValidator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "address",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The wallet address of the validator to retrieve."
+          },
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord ID of the operator to get validators for."
+          },
+          {
+            "in": "query",
+            "name": "discordUsername",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord username of the operator to get validators for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested validator information or validators for an operator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/ValidatorResponse"
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ValidatorResponse"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing or invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Validator or operator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a new validator",
+        "description": "Adds a new validator and associates it with an operator.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "addValidator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord ID of the operator to associate with this validator."
+          },
+          {
+            "in": "query",
+            "name": "discordUsername",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord username of the operator to associate with this validator."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "validatorAddress": {
+                    "type": "string",
+                    "description": "The validator address to add.",
+                    "example": "0x1234567890abcdef1234567890abcdef12345678"
+                  }
+                },
+                "required": [
+                  "validatorAddress"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Validator added successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ValidatorResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing or invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update validator's operator",
+        "description": "Transfers a validator from one operator to another.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "updateValidator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "validatorAddress": {
+                    "type": "string",
+                    "description": "The validator address to transfer.",
+                    "example": "0x1234567890abcdef1234567890abcdef12345678"
+                  },
+                  "fromDiscordId": {
+                    "type": "string",
+                    "description": "The Discord ID of the current operator.",
+                    "example": "123456789012345678"
+                  },
+                  "toDiscordId": {
+                    "type": "string",
+                    "description": "The Discord ID of the new operator to transfer to.",
+                    "example": "987654321098765432"
+                  }
+                },
+                "required": [
+                  "validatorAddress",
+                  "fromDiscordId",
+                  "toDiscordId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validator transferred successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ValidatorResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing or invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator or validator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove a validator",
+        "description": "Removes a validator from an operator's list of validators.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "removeValidator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "validatorAddress",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "The validator address to remove."
+          },
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "The Discord ID of the operator."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Validator removed successfully."
+          },
+          "400": {
+            "description": "Bad Request - Missing or invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator or validator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "tags": []
+}
