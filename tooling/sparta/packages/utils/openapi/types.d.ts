@@ -770,6 +770,16 @@ export interface OperationMethods {
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.UnslashOperator.Responses.$200>
   /**
+   * sendMessageToOperator - Send a direct message to an operator
+   * 
+   * Sends a direct message to a node operator via Discord.
+   */
+  'sendMessageToOperator'(
+    parameters?: Parameters<Paths.SendMessageToOperator.QueryParameters> | null,
+    data?: Paths.SendMessageToOperator.RequestBody,
+    config?: AxiosRequestConfig  
+  ): OperationResponse<Paths.SendMessageToOperator.Responses.$200>
+  /**
    * getAllValidators - Get all validators
    * 
    * Retrieves a list of all validators in the system.
@@ -819,16 +829,6 @@ export interface OperationMethods {
     data?: any,
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.RemoveValidator.Responses.$204>
-  /**
-   * sendMessageToOperator - Send a direct message to an operator
-   * 
-   * Sends a direct message to a node operator via Discord.
-   */
-  'sendMessageToOperator'(
-    parameters?: Parameters<Paths.SendMessageToOperator.QueryParameters> | null,
-    data?: Paths.SendMessageToOperator.RequestBody,
-    config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.SendMessageToOperator.Responses.$200>
 }
 
 export interface PathsDictionary {
@@ -992,7 +992,19 @@ export interface PathsDictionary {
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.UnslashOperator.Responses.$200>
   }
-  ['/api/operator/validators']: {
+  ['/api/operator/message']: {
+    /**
+     * sendMessageToOperator - Send a direct message to an operator
+     * 
+     * Sends a direct message to a node operator via Discord.
+     */
+    'post'(
+      parameters?: Parameters<Paths.SendMessageToOperator.QueryParameters> | null,
+      data?: Paths.SendMessageToOperator.RequestBody,
+      config?: AxiosRequestConfig  
+    ): OperationResponse<Paths.SendMessageToOperator.Responses.$200>
+  }
+  ['/api/validator/validators']: {
     /**
      * getAllValidators - Get all validators
      * 
@@ -1004,7 +1016,7 @@ export interface PathsDictionary {
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.GetAllValidators.Responses.$200>
   }
-  ['/api/operator/validator']: {
+  ['/api/validator']: {
     /**
      * getValidator - Get validator information
      * 
@@ -1045,18 +1057,6 @@ export interface PathsDictionary {
       data?: any,
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.RemoveValidator.Responses.$204>
-  }
-  ['/api/operator/message']: {
-    /**
-     * sendMessageToOperator - Send a direct message to an operator
-     * 
-     * Sends a direct message to a node operator via Discord.
-     */
-    'post'(
-      parameters?: Parameters<Paths.SendMessageToOperator.QueryParameters> | null,
-      data?: Paths.SendMessageToOperator.RequestBody,
-      config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.SendMessageToOperator.Responses.$200>
   }
 }
 

@@ -61,7 +61,6 @@ const corsOptions = {
 
 const app = express();
 const distDir = path.resolve(__dirname, "../../vite/dist");
-const viteIndexHtml = path.resolve(distDir, "index.html");
 
 // Serve static assets from distDir (like JS, CSS) - removing index: false
 app.use(express.static(distDir));

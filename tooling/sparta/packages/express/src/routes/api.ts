@@ -4,6 +4,8 @@ import swaggerUi from "swagger-ui-express";
 import operatorRouter from "./operators";
 import moderatorRouter from "./moderators";
 import ethereumRoutes from "./ethereum";
+import validatorRouter from "./validators";
+import { apiKeyMiddleware } from "../middlewares/auth.js";
 
 const router = express.Router();
 
@@ -31,7 +33,9 @@ router.use(
 	})
 );
 
+router.use(apiKeyMiddleware);
 router.use("/operator", operatorRouter);
+router.use("/validator", validatorRouter);
 router.use("/ethereum", ethereumRoutes);
 router.use("/moderator", moderatorRouter);
 export default router;

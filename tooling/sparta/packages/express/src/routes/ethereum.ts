@@ -7,7 +7,6 @@
 import { Router } from "express";
 import { logger } from "@sparta/utils/logger";
 import { getEthereumInstance } from "@sparta/ethereum";
-import { apiKeyMiddleware } from "../middlewares/auth.js";
 
 // --- Swagger Schemas ---
 /**
@@ -111,9 +110,6 @@ import { apiKeyMiddleware } from "../middlewares/auth.js";
  */
 
 const router = Router();
-
-// Apply API key middleware to all Ethereum routes
-router.use(apiKeyMiddleware);
 
 /**
  * @swagger

@@ -165,15 +165,14 @@ export async function addValidator(
 			let dmStatusMessage = "A direct message has been sent to the operator.";
 
 			try {
-				const messageApiResponse = await client.post(
-					"/api/operator/message",
-					{ message: dmContent, threadName: dmThreadName },
-					{ params: { discordUsername: targetDiscordUsername } }
+				const messageApiResponse = await client.sendMessageToOperator(
+					{ discordUsername: targetDiscordUsername },
+					{ message: dmContent, threadName: dmThreadName }
 				);
 				if (messageApiResponse.data.success) {
-					logger.info(`Successfully sent combined approval & add DM to ${targetDiscordUsername}. Thread ID: ${messageApiResponse.data.threadId}`);
+					logger.info(`Successfully sent combined approval & add DM to ${targetDiscordUsername}.`);
 				} else {
-					logger.error(`Failed to send combined DM to ${targetDiscordUsername} via API: ${messageApiResponse.data.error || 'Unknown API error'}`);
+					logger.error(`Failed to send combined DM to ${targetDiscordUsername} via API: ${messageApiResponse.data.message || 'Unknown API error'}`);
 					dmStatusMessage = "Attempted to send DM to operator, but it may have failed. See logs.";
 				}
 			} catch (dmError: any) {

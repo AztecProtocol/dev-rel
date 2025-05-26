@@ -70,23 +70,18 @@ export async function approveUser(
                 let dmStatusMessage = "A direct message with next steps has been initiated."; // Default optimistic message
 
                 try {
-                    const messageApiResponse = await client.post(
-                        "/api/operator/message", // Endpoint path
-                        { // Request body
+                    const messageApiResponse = await client.sendMessageToOperator(
+                        messageRecipientUsername ? { discordUsername: messageRecipientUsername } : null,
+                        {
                             message: spartanMessageContent,
                             threadName: approvalThreadName,
-                        },
-                        { // AxiosRequestConfig
-                            params: { // Query parameters
-                                discordUsername: messageRecipientUsername,
-                            },
                         }
                     );
 
                     if (messageApiResponse.data.success) {
-                        logger.info(`Successfully sent approval DM to ${messageRecipientUsername}. Thread ID: ${messageApiResponse.data.threadId}`);
+                        logger.info(`Successfully sent approval DM to ${messageRecipientUsername}.`);
                     } else {
-                        logger.error(`Failed to send approval DM to ${messageRecipientUsername} via API: ${messageApiResponse.data.error || 'Unknown API error'}`);
+                        logger.error(`Failed to send approval DM to ${messageRecipientUsername} via API: ${messageApiResponse.data.message || 'Unknown API error'}`);
                         dmStatusMessage = "Attempted to send DM, but it may have failed. See logs.";
                     }
                 } catch (dmError: any) {

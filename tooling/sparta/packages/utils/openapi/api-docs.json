@@ -1351,523 +1351,6 @@
         }
       }
     },
-    "/api/operator/validators": {
-      "get": {
-        "summary": "Get all validators",
-        "description": "Retrieves a list of all validators in the system.",
-        "tags": [
-          "NodeOperator"
-        ],
-        "operationId": "getAllValidators",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "A list of validators from blockchain and known validators in the database.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean",
-                      "description": "Indicates if the request was successful.",
-                      "example": true
-                    },
-                    "data": {
-                      "type": "object",
-                      "properties": {
-                        "blockchainValidators": {
-                          "type": "object",
-                          "properties": {
-                            "validators": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              },
-                              "description": "List of all validator addresses from the blockchain."
-                            },
-                            "stats": {
-                              "type": "object",
-                              "properties": {
-                                "totalValidators": {
-                                  "type": "number",
-                                  "description": "Total number of validators in the blockchain."
-                                }
-                              }
-                            }
-                          }
-                        },
-                        "knownValidators": {
-                          "type": "object",
-                          "properties": {
-                            "validators": {
-                              "type": "array",
-                              "items": {
-                                "type": "string"
-                              },
-                              "description": "List of validator addresses that have matching operators in the database."
-                            },
-                            "stats": {
-                              "type": "object",
-                              "properties": {
-                                "totalValidators": {
-                                  "type": "number",
-                                  "description": "Total number of validators with matching operators."
-                                }
-                              }
-                            }
-                          }
-                        }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/operator/validator": {
-      "get": {
-        "summary": "Get validator information",
-        "description": "Retrieves validator information either by validator address or by operator (discordId/username).",
-        "tags": [
-          "NodeOperator"
-        ],
-        "operationId": "getValidator",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "address",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The wallet address of the validator to retrieve."
-          },
-          {
-            "in": "query",
-            "name": "discordId",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord ID of the operator to get validators for."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord username of the operator to get validators for."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The requested validator information or validators for an operator.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "oneOf": [
-                        {
-                          "$ref": "#/components/schemas/ValidatorResponse"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/ValidatorResponse"
-                          }
-                        }
-                      ]
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Missing or invalid query parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Validator or operator not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "summary": "Add a new validator",
-        "description": "Adds a new validator and associates it with an operator.",
-        "tags": [
-          "NodeOperator"
-        ],
-        "operationId": "addValidator",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "discordId",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord ID of the operator to associate with this validator."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord username of the operator to associate with this validator."
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "validatorAddress": {
-                    "type": "string",
-                    "description": "The validator address to add.",
-                    "example": "0x1234567890abcdef1234567890abcdef12345678"
-                  },
-                  "skipOnChain": {
-                    "type": "boolean",
-                    "description": "Whether to skip adding the validator on-chain. If true, only adds to database.",
-                    "example": false,
-                    "default": false
-                  }
-                },
-                "required": [
-                  "validatorAddress"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Validator added successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/ValidatorResponse"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Missing or invalid parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Operator not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "summary": "Update validator's operator",
-        "description": "Transfers a validator from one operator to another.",
-        "tags": [
-          "NodeOperator"
-        ],
-        "operationId": "updateValidator",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "validatorAddress": {
-                    "type": "string",
-                    "description": "The validator address to transfer.",
-                    "example": "0x1234567890abcdef1234567890abcdef12345678"
-                  },
-                  "fromDiscordId": {
-                    "type": "string",
-                    "description": "The Discord ID of the current operator.",
-                    "example": "123456789012345678"
-                  },
-                  "toDiscordId": {
-                    "type": "string",
-                    "description": "The Discord ID of the new operator to transfer to.",
-                    "example": "987654321098765432"
-                  }
-                },
-                "required": [
-                  "validatorAddress",
-                  "fromDiscordId",
-                  "toDiscordId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Validator transferred successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/ValidatorResponse"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Missing or invalid parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Operator or validator not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Remove a validator",
-        "description": "Removes a validator from an operator's list of validators.",
-        "tags": [
-          "NodeOperator"
-        ],
-        "operationId": "removeValidator",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "validatorAddress",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "The validator address to remove."
-          },
-          {
-            "in": "query",
-            "name": "discordId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "The Discord ID of the operator."
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Validator removed successfully."
-          },
-          "400": {
-            "description": "Bad Request - Missing or invalid parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Operator or validator not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/operator/message": {
       "post": {
         "summary": "Send a direct message to an operator",
@@ -1989,6 +1472,523 @@
           },
           "500": {
             "description": "Internal Server Error or failed to send message",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/validator/validators": {
+      "get": {
+        "summary": "Get all validators",
+        "description": "Retrieves a list of all validators in the system.",
+        "tags": [
+          "Validator"
+        ],
+        "operationId": "getAllValidators",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A list of validators from blockchain and known validators in the database.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "description": "Indicates if the request was successful.",
+                      "example": true
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "blockchainValidators": {
+                          "type": "object",
+                          "properties": {
+                            "validators": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "description": "List of all validator addresses from the blockchain."
+                            },
+                            "stats": {
+                              "type": "object",
+                              "properties": {
+                                "totalValidators": {
+                                  "type": "number",
+                                  "description": "Total number of validators in the blockchain."
+                                }
+                              }
+                            }
+                          }
+                        },
+                        "knownValidators": {
+                          "type": "object",
+                          "properties": {
+                            "validators": {
+                              "type": "array",
+                              "items": {
+                                "type": "string"
+                              },
+                              "description": "List of validator addresses that have matching operators in the database."
+                            },
+                            "stats": {
+                              "type": "object",
+                              "properties": {
+                                "totalValidators": {
+                                  "type": "number",
+                                  "description": "Total number of validators with matching operators."
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/validator": {
+      "get": {
+        "summary": "Get validator information",
+        "description": "Retrieves validator information either by validator address or by operator (discordId/username).",
+        "tags": [
+          "Validator"
+        ],
+        "operationId": "getValidator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "address",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The wallet address of the validator to retrieve."
+          },
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord ID of the operator to get validators for."
+          },
+          {
+            "in": "query",
+            "name": "discordUsername",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord username of the operator to get validators for."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested validator information or validators for an operator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/ValidatorResponse"
+                        },
+                        {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/ValidatorResponse"
+                          }
+                        }
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing or invalid query parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Validator or operator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Add a new validator",
+        "description": "Adds a new validator and associates it with an operator.",
+        "tags": [
+          "Validator"
+        ],
+        "operationId": "addValidator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord ID of the operator to associate with this validator."
+          },
+          {
+            "in": "query",
+            "name": "discordUsername",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord username of the operator to associate with this validator."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "validatorAddress": {
+                    "type": "string",
+                    "description": "The validator address to add.",
+                    "example": "0x1234567890abcdef1234567890abcdef12345678"
+                  },
+                  "skipOnChain": {
+                    "type": "boolean",
+                    "description": "Whether to skip adding the validator on-chain. If true, only adds to database.",
+                    "example": false,
+                    "default": false
+                  }
+                },
+                "required": [
+                  "validatorAddress"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Validator added successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ValidatorResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing or invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update validator's operator",
+        "description": "Transfers a validator from one operator to another.",
+        "tags": [
+          "Validator"
+        ],
+        "operationId": "updateValidator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "validatorAddress": {
+                    "type": "string",
+                    "description": "The validator address to transfer.",
+                    "example": "0x1234567890abcdef1234567890abcdef12345678"
+                  },
+                  "fromDiscordId": {
+                    "type": "string",
+                    "description": "The Discord ID of the current operator.",
+                    "example": "123456789012345678"
+                  },
+                  "toDiscordId": {
+                    "type": "string",
+                    "description": "The Discord ID of the new operator to transfer to.",
+                    "example": "987654321098765432"
+                  }
+                },
+                "required": [
+                  "validatorAddress",
+                  "fromDiscordId",
+                  "toDiscordId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validator transferred successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "data": {
+                      "$ref": "#/components/schemas/ValidatorResponse"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing or invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator or validator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove a validator",
+        "description": "Removes a validator from an operator's list of validators.",
+        "tags": [
+          "Validator"
+        ],
+        "operationId": "removeValidator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "validatorAddress",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "The validator address to remove."
+          },
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "The Discord ID of the operator."
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Validator removed successfully."
+          },
+          "400": {
+            "description": "Bad Request - Missing or invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator or validator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
             "content": {
               "application/json": {
                 "schema": {

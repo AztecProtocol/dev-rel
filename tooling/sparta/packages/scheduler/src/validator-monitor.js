@@ -49,7 +49,7 @@ class ValidatorMonitorService {
                 }
             }
             
-            const { data: { data: validatorData } } = await this.client.getValidator(validator);
+            const { data: { data: validatorData } } = await this.client.getValidator({ validatorAddress: validator });
 
             if (!validatorData || !validatorData.operatorInfo?.discordUsername) {
                 logger.warn(`No operator info (discordUsername) found for validator ${validator}`);
@@ -82,9 +82,13 @@ class ValidatorMonitorService {
                 try {
                     recipient = this.dmOverrideRecipient ? this.dmOverrideRecipient : validatorData.operatorInfo?.discordUsername;
                     logger.info({ recipient }, "Recipient for DM");
-                    const response = await this.client.post("/api/operator/message", 
-                        { message: messageContent, validatorAddress: validator, threadName: "Validator Monitoring Alert" }, 
-                        { params: { discordUsername: recipient } }
+                    const response = await this.client.sendMessageToOperator(
+                        { discordUsername: recipient },
+                        { 
+                            message: messageContent, 
+                            validatorAddress: validator, 
+                            threadName: "Validator Monitoring Alert" 
+                        }
                     );
                     dmSent = response.data.success;
                     if (dmSent) {
@@ -246,7 +250,8 @@ class ValidatorMonitorService {
                     messageContent += `\n*End of summary (${totalPages} pages total)*`;
                 }
                 
-                const summaryPostResponse = await this.client.post("/api/moderator/message", 
+                const summaryPostResponse = await this.client.sendMessageToChannel(
+                    null,
                     {
                         message: messageContent,
                         channelId: this.summaryChannelId

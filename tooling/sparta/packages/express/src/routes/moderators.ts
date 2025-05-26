@@ -1,6 +1,5 @@
 import express, { type Request, type Response, Router } from "express";
 import { logger } from "@sparta/utils"; // Assuming logger is accessible
-import { apiKeyMiddleware } from "../middlewares/auth.js";
 import { discordWebhookService } from "@sparta/discord"; // Import Discord service
 
 // --- Swagger Schemas ---
@@ -34,9 +33,6 @@ import { discordWebhookService } from "@sparta/discord"; // Import Discord servi
  */
 
 const router: Router = express.Router();
-
-// Apply API key middleware to all moderator routes
-router.use(apiKeyMiddleware);
 
 // POST /api/moderator/message - sends a message to a specific channel
 /**
