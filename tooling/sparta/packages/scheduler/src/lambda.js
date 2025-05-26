@@ -13,12 +13,19 @@ exports.handler = async (event, context) => {
   // Prevent Lambda from waiting for event loop to empty before returning
   // Important for external connections like Discord API
   context.callbackWaitsForEmptyEventLoop = false;
+
+  if (process.env.SKIP_DMS) {
+    logger.info("Skipping DMs");
+  }
   
   try {
     // Initialize service if needed
     if (!validatorMonitor) {
-      // validatorMonitor = await ValidatorMonitorService.new("zkpedro", CHANNELS.BOT_TEST?.id);
-      validatorMonitor = await ValidatorMonitorService.new();
+      if (process.env.NODE_ENV === 'development') {
+        validatorMonitor = await ValidatorMonitorService.new("zkpedro", CHANNELS.BOT_TEST?.id);
+      } else {
+        validatorMonitor = await ValidatorMonitorService.new();
+      }
 
     }
 

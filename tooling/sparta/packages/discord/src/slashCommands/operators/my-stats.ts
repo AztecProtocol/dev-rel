@@ -88,6 +88,9 @@ export async function getNodeOperatorInfo(
 				let totalValidators = 0;
 				const validatorDetails: ValidatorDetail[] = [];
 				
+				// Fetch all validator stats at once for efficiency
+				const allValidatorStats = await l2InfoService.fetchValidatorStats() as Record<string, any>;
+				
 				// Process validator information if the operator has any
 				if (operator.validators && operator.validators.length > 0) {
 					hasValidators = true;
@@ -110,10 +113,10 @@ export async function getNodeOperatorInfo(
 							if (isInValidatorSet) {
 								validatorsInSet++;
 								
-								// Fetch attestation stats
-								const validatorStats = await l2InfoService.fetchValidatorStats(validatorAddress);
+								// Get attestation stats from pre-fetched data
+								const validatorStats = allValidatorStats[validatorAddress.toLowerCase()];
 								
-								if (validatorStats.totalSlots && validatorStats.missedAttestationsCount !== undefined) {
+								if (validatorStats && validatorStats.totalSlots && validatorStats.missedAttestationsCount !== undefined) {
 									const missed = (validatorStats.missedAttestationsCount / validatorStats.totalSlots) * 100;
 									missPercentage = missed.toFixed(2) + "%";
 									

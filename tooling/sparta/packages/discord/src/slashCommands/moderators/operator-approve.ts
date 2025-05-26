@@ -13,22 +13,29 @@ export async function approveUser(
     interaction: ChatInputCommandInteraction
 ) {
     try {
-        // Get Discord username from options
-        let discordUsername = interaction.options.getString("user");
+        // Get Discord username and user ID from options
+        let discordUsername = interaction.options.getString("username");
         const discordUserId = interaction.options.getString("user-id");
 
+        // Validate that at least one parameter is provided
         if (!discordUsername && !discordUserId) {
-            await interaction.editReply("Please provide a Discord username or ID.");
+            await interaction.editReply("Please provide either a Discord username or Discord ID.");
             return;
         }
 
+        // If no username but user ID provided, try to fetch username from Discord
         if (!discordUsername && discordUserId) {
-            const user = await interaction.guild?.members.fetch(discordUserId);
-            if (!user) {
-                await interaction.editReply("User not found.");
+            try {
+                const user = await interaction.guild?.members.fetch(discordUserId);
+                if (!user) {
+                    await interaction.editReply("User not found with the provided Discord ID.");
+                    return;
+                }
+                discordUsername = user.user.username;
+            } catch (fetchError) {
+                await interaction.editReply("Unable to fetch user information from the provided Discord ID.");
                 return;
             }
-            discordUsername = user.user.username;
         }
 
         try {
@@ -123,6 +130,40 @@ export async function approveUser(
         
                     await interaction.editReply({ embeds: [embed] });
                     return "NOT_FOUND";
+                }
+                
+                // If 403, check if it's due to slashing
+                if (approvalError.response && approvalError.response.status === 403) {
+                    const errorMessage = approvalError.response.data?.error || "";
+                    if (errorMessage.includes("slashed")) {
+                        const embed = new EmbedBuilder()
+                            .setTitle("❌ APPROVAL BLOCKED")
+                            .setColor(0xff0000) // Red for failure
+                            .setDescription(`Cannot approve operator with Discord username: \`${discordUsername}\``)
+                            .addFields([
+                                {
+                                    name: "Reason",
+                                    value: "This operator had a validator that was previously slashed.",
+                                }
+                            ]);
+            
+                        await interaction.editReply({ embeds: [embed] });
+                        return "SLASHED_OPERATOR";
+                    } else {
+                        const embed = new EmbedBuilder()
+                            .setTitle("❌ APPROVAL FAILED")
+                            .setColor(0xff0000) // Red for failure
+                            .setDescription(`Access denied when approving Discord username: \`${discordUsername}\``)
+                            .addFields([
+                                {
+                                    name: "Error",
+                                    value: "You may not have sufficient permissions for this operation.",
+                                }
+                            ]);
+            
+                        await interaction.editReply({ embeds: [embed] });
+                        return "ACCESS_DENIED";
+                    }
                 }
                 
                 // Other errors

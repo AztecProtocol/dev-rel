@@ -11,8 +11,8 @@ export enum ModeratorSubcommandGroups {
 
 export enum ModeratorSubcommands {
 	Info = "info",
-	ApproveByUsername = "approve",
-	ApproveById = "approve-id",
+	Approve = "approve",
+	Unapprove = "unapprove",
 	Help = "help",
 	AddValidator = "add-validator",
 }

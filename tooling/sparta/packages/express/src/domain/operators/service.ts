@@ -10,6 +10,7 @@ export interface NodeOperator {
 	walletAddress: string; // GSI Partition Key: WalletAddressIndex
 	discordUsername?: string; // Optional Discord username
 	isApproved?: boolean; // Whether the operator is approved
+	wasSlashed?: boolean; // Whether the operator had a validator that was slashed
 	createdAt: number;
 	updatedAt: number;
 }
@@ -33,6 +34,21 @@ class NodeOperatorService {
 			return await this.repository.findAll(pageToken);
 		} catch (error) {
 			logger.error(error, "Service error getting all operators");
+			// Re-throw or handle specific service-level errors
+			throw error; // Re-throwing the repository error for now
+		}
+	}
+
+	/**
+	 * Retrieves all node operators that have no associated validators with pagination.
+	 * @param pageToken Optional token for pagination
+	 * @returns Object containing array of NodeOperator objects without validators and optional nextPageToken.
+	 */
+	public async getOperatorsWithoutValidators(pageToken?: string): Promise<{ operators: NodeOperator[]; nextPageToken?: string }> {
+		try {
+			return await this.repository.findOperatorsWithoutValidators(pageToken);
+		} catch (error) {
+			logger.error(error, "Service error getting operators without validators");
 			// Re-throw or handle specific service-level errors
 			throw error; // Re-throwing the repository error for now
 		}
@@ -212,6 +228,32 @@ class NodeOperatorService {
 	}
 
 	/**
+	 * Updates the slashed status for a node operator.
+	 * @param discordId The Discord ID of the operator to update.
+	 * @param wasSlashed The slashed status to set.
+	 * @returns True if the update was successful, false otherwise (e.g., operator not found).
+	 */
+	public async updateSlashedStatus(
+		discordId: string,
+		wasSlashed: boolean
+	): Promise<boolean> {
+		try {
+			return await this.repository.updateSlashedStatus(
+				discordId,
+				wasSlashed
+			);
+		} catch (error) {
+			logger.error(
+				{ error, discordId, wasSlashed },
+				"Service error updating operator slashed status"
+			);
+			// The repository already returns false if not found due to condition check
+			// If other errors occur, re-throw
+			throw error;
+		}
+	}
+
+	/**
 	 * Adds a validator to an operator using the validator service.
 	 * @param discordId The Discord ID of the operator.
 	 * @param validatorAddress The validator address to add.
@@ -293,6 +335,38 @@ class NodeOperatorService {
 				"Service error updating validators list"
 			);
 			throw error;
+		}
+	}
+
+	/**
+	 * Checks if an operator was slashed.
+	 * @param discordId The Discord ID of the operator to check.
+	 * @returns True if the operator was slashed, false otherwise.
+	 */
+	public async isOperatorSlashed(discordId: string): Promise<boolean> {
+		try {
+			const operator = await this.repository.findByDiscordId(discordId);
+			return operator?.wasSlashed === true;
+		} catch (error) {
+			logger.error(
+				{ error, discordId },
+				"Service error checking if operator was slashed"
+			);
+			throw error;
+		}
+	}
+
+	/**
+	 * Counts all node operators that have no associated validators and are approved.
+	 * @returns The count of approved node operators without validators.
+	 */
+	public async countApprovedOperatorsWithoutValidators(): Promise<number> {
+		try {
+			return await this.repository.countApprovedOperatorsWithoutValidators();
+		} catch (error) {
+			logger.error(error, "Service error counting approved operators without validators");
+			// Re-throw or handle specific service-level errors
+			throw error; // Re-throwing the repository error for now
 		}
 	}
 }

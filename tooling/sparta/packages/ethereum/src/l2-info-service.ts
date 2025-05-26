@@ -194,21 +194,31 @@ export class L2InfoService {
 
 	/**
 	 * Fetches validator stats via RPC and checks recent attestation.
-	 * @param targetAddress Ethereum address to check (lowercase expected by RPC)
-	 * @returns Attestation status with details from RPC
+	 * @param targetAddress Optional Ethereum address to check (lowercase expected by RPC). If not provided, returns stats for all validators.
+	 * @returns Attestation status with details from RPC - single validator stats if targetAddress provided, all validator stats if not
 	 */
 	public async fetchValidatorStats(
-		targetAddress: string
-	): Promise<RpcAttestationResult> {
+		targetAddress?: string
+	): Promise<RpcAttestationResult | Record<string, RpcAttestationResult>> {
 		try {
-			// Ensure address is lowercase for matching keys in the response
-			const lowerCaseAddress = targetAddress.toLowerCase();
-
 			const data = (await this.sendJsonRpcRequest(
 				RPC_METHOD_VALIDATOR_STATS,
 				[]
 			)) as ValidatorsStatsResponse;
 
+			// If no target address specified, process and return all validator stats
+			if (!targetAddress) {
+				const allValidatorStats: Record<string, RpcAttestationResult> = {};
+				
+				for (const [address, validatorStats] of Object.entries(data.stats)) {
+					allValidatorStats[address] = this.processValidatorStats(address, validatorStats);
+				}
+				
+				return allValidatorStats;
+			}
+
+			// Process single validator (existing behavior)
+			const lowerCaseAddress = targetAddress.toLowerCase();
 			const validatorStats = data.stats[lowerCaseAddress];
 
 			if (!validatorStats) {
@@ -218,65 +228,12 @@ export class L2InfoService {
 				};
 			}
 
-			const lastAttestation = validatorStats.lastAttestation;
-			const lastProposal = validatorStats.lastProposal;
-			let hasAttested24h = false;
-			let lastAttestationTimestampBigInt: bigint | undefined = undefined;
-			let lastProposalTimestampBigInt: bigint | undefined = undefined;
-			let lastProposalSlotBigInt: bigint | undefined = undefined;
-			let lastProposalDate: string | undefined = undefined;
-
-			if (lastAttestation) {
-				try {
-					lastAttestationTimestampBigInt = BigInt(
-						lastAttestation.timestamp
-					);
-					const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
-					const twentyFourHoursAgoSeconds =
-						nowSeconds - BigInt(24 * 60 * 60);
-
-					if (
-						lastAttestationTimestampBigInt >=
-						twentyFourHoursAgoSeconds
-					) {
-						hasAttested24h = true;
-					}
-				} catch (e) {
-					logger.error(e, "Error converting attestation timestamp to BigInt");
-				}
-			}
-
-			if (lastProposal) {
-				try {
-					lastProposalTimestampBigInt = BigInt(
-						lastProposal.timestamp
-					);
-					lastProposalSlotBigInt = BigInt(lastProposal.slot);
-					lastProposalDate = lastProposal.date;
-				} catch (e) {
-					logger.error(e, "Error converting proposal timestamp/slot to BigInt");
-				}
-			}
-
-			return {
-				hasAttested24h,
-				lastAttestationSlot: lastAttestation
-					? BigInt(lastAttestation.slot)
-					: undefined,
-				lastAttestationTimestamp: lastAttestationTimestampBigInt,
-				lastAttestationDate: lastAttestation?.date,
-				lastProposalSlot: lastProposalSlotBigInt,
-				lastProposalTimestamp: lastProposalTimestampBigInt,
-				lastProposalDate: lastProposalDate,
-				missedAttestationsCount:
-					validatorStats.missedAttestations?.count,
-				missedProposalsCount: validatorStats.missedProposals?.count,
-				totalSlots: validatorStats.totalSlots,
-				error: undefined, // No error if we got this far
-			};
+			return this.processValidatorStats(lowerCaseAddress, validatorStats);
 		} catch (error) {
 			logger.error(error, "Error fetching or processing validator stats via RPC");
-			return {
+			
+			// Return error result - single validator format if targetAddress provided, empty object if not
+			const errorResult = {
 				hasAttested24h: false,
 				error:
 					error instanceof Error
@@ -292,7 +249,71 @@ export class L2InfoService {
 				missedProposalsCount: undefined,
 				totalSlots: undefined,
 			};
+			
+			return targetAddress ? errorResult : {};
 		}
+	}
+
+	/**
+	 * Helper method to process individual validator stats
+	 */
+	private processValidatorStats(address: string, validatorStats: any): RpcAttestationResult {
+		const lastAttestation = validatorStats.lastAttestation;
+		const lastProposal = validatorStats.lastProposal;
+		let hasAttested24h = false;
+		let lastAttestationTimestampBigInt: bigint | undefined = undefined;
+		let lastProposalTimestampBigInt: bigint | undefined = undefined;
+		let lastProposalSlotBigInt: bigint | undefined = undefined;
+		let lastProposalDate: string | undefined = undefined;
+
+		if (lastAttestation) {
+			try {
+				lastAttestationTimestampBigInt = BigInt(
+					lastAttestation.timestamp
+				);
+				const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
+				const twentyFourHoursAgoSeconds =
+					nowSeconds - BigInt(24 * 60 * 60);
+
+				if (
+					lastAttestationTimestampBigInt >=
+					twentyFourHoursAgoSeconds
+				) {
+					hasAttested24h = true;
+				}
+			} catch (e) {
+				logger.error(e, "Error converting attestation timestamp to BigInt");
+			}
+		}
+
+		if (lastProposal) {
+			try {
+				lastProposalTimestampBigInt = BigInt(
+					lastProposal.timestamp
+				);
+				lastProposalSlotBigInt = BigInt(lastProposal.slot);
+				lastProposalDate = lastProposal.date;
+			} catch (e) {
+				logger.error(e, "Error converting proposal timestamp/slot to BigInt");
+			}
+		}
+
+		return {
+			hasAttested24h,
+			lastAttestationSlot: lastAttestation
+				? BigInt(lastAttestation.slot)
+				: undefined,
+			lastAttestationTimestamp: lastAttestationTimestampBigInt,
+			lastAttestationDate: lastAttestation?.date,
+			lastProposalSlot: lastProposalSlotBigInt,
+			lastProposalTimestamp: lastProposalTimestampBigInt,
+			lastProposalDate: lastProposalDate,
+			missedAttestationsCount:
+				validatorStats.missedAttestations?.count,
+			missedProposalsCount: validatorStats.missedProposals?.count,
+			totalSlots: validatorStats.totalSlots,
+			error: undefined, // No error if we got this far
+		};
 	}
 
 	/**

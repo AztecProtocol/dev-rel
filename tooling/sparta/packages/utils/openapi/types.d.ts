@@ -541,6 +541,40 @@ declare namespace Paths {
             export type $500 = Components.Schemas.OperatorError;
         }
     }
+    namespace UnapproveOperator {
+        namespace Parameters {
+            export type DiscordId = string;
+            export type DiscordUsername = string;
+        }
+        export interface QueryParameters {
+            discordId?: Parameters.DiscordId;
+            discordUsername?: Parameters.DiscordUsername;
+        }
+        namespace Responses {
+            export type $200 = Components.Schemas.NodeOperator;
+            export type $400 = Components.Schemas.OperatorError;
+            export type $401 = Components.Schemas.OperatorError;
+            export type $404 = Components.Schemas.OperatorError;
+            export type $500 = Components.Schemas.OperatorError;
+        }
+    }
+    namespace UnslashOperator {
+        namespace Parameters {
+            export type DiscordId = string;
+            export type DiscordUsername = string;
+        }
+        export interface QueryParameters {
+            discordId?: Parameters.DiscordId;
+            discordUsername?: Parameters.DiscordUsername;
+        }
+        namespace Responses {
+            export type $200 = Components.Schemas.NodeOperator;
+            export type $400 = Components.Schemas.OperatorError;
+            export type $401 = Components.Schemas.OperatorError;
+            export type $404 = Components.Schemas.OperatorError;
+            export type $500 = Components.Schemas.OperatorError;
+        }
+    }
     namespace UpdateOperator {
         namespace Parameters {
             export type DiscordId = string;
@@ -715,6 +749,26 @@ export interface OperationMethods {
     data?: any,
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.ApproveOperator.Responses.$200>
+  /**
+   * unapproveOperator - Unapprove a node operator
+   * 
+   * Unapproves a node operator using their Discord ID or username.
+   */
+  'unapproveOperator'(
+    parameters?: Parameters<Paths.UnapproveOperator.QueryParameters> | null,
+    data?: any,
+    config?: AxiosRequestConfig  
+  ): OperationResponse<Paths.UnapproveOperator.Responses.$200>
+  /**
+   * unslashOperator - Remove slashed status from a node operator
+   * 
+   * Removes the wasSlashed flag from a node operator using their Discord ID or username.
+   */
+  'unslashOperator'(
+    parameters?: Parameters<Paths.UnslashOperator.QueryParameters> | null,
+    data?: any,
+    config?: AxiosRequestConfig  
+  ): OperationResponse<Paths.UnslashOperator.Responses.$200>
   /**
    * getAllValidators - Get all validators
    * 
@@ -915,6 +969,28 @@ export interface PathsDictionary {
       data?: any,
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.ApproveOperator.Responses.$200>
+    /**
+     * unapproveOperator - Unapprove a node operator
+     * 
+     * Unapproves a node operator using their Discord ID or username.
+     */
+    'delete'(
+      parameters?: Parameters<Paths.UnapproveOperator.QueryParameters> | null,
+      data?: any,
+      config?: AxiosRequestConfig  
+    ): OperationResponse<Paths.UnapproveOperator.Responses.$200>
+  }
+  ['/api/operator/slashed']: {
+    /**
+     * unslashOperator - Remove slashed status from a node operator
+     * 
+     * Removes the wasSlashed flag from a node operator using their Discord ID or username.
+     */
+    'delete'(
+      parameters?: Parameters<Paths.UnslashOperator.QueryParameters> | null,
+      data?: any,
+      config?: AxiosRequestConfig  
+    ): OperationResponse<Paths.UnslashOperator.Responses.$200>
   }
   ['/api/operator/validators']: {
     /**

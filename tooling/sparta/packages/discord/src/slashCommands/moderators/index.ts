@@ -12,6 +12,7 @@ import {
 import { showModeratorHelp } from "./help.js";
 import { checkModeratorPermissions } from "../../utils/index.js";
 import { approveUser } from "./operator-approve.js";
+import { unapproveUser } from "./operator-unapprove.js";
 import { getOperatorInfo } from "./operator-info.js";
 import { addValidator } from "./add-validator.js";
 
@@ -26,30 +27,48 @@ export default {
 				.addStringOption((option) =>
 					option
 						.setName("username")
-						.setDescription("The Discord username of the operator")
-						.setRequired(true)
+						.setDescription("The Discord username of the operator (preferred)")
+						.setRequired(false)
 				)
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName(ModeratorSubcommands.ApproveByUsername)
-				.setDescription("Approve a user to join the validator set")
-				.addStringOption((option) =>
-					option
-						.setName("user")
-						.setDescription("The Discord username of the user to approve")
-						.setRequired(true)
-				)
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName(ModeratorSubcommands.ApproveById)
-				.setDescription("Approve a user to join the validator set")
 				.addStringOption((option) =>
 					option
 						.setName("user-id")
-						.setDescription("The Discord ID of the user to approve")
-						.setRequired(true)
+						.setDescription("The Discord ID of the operator (alternative)")
+						.setRequired(false)
+				)
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName(ModeratorSubcommands.Approve)
+				.setDescription("Approve a user to join the validator set")
+				.addStringOption((option) =>
+					option
+						.setName("username")
+						.setDescription("The Discord username of the user to approve (preferred)")
+						.setRequired(false)
+				)
+				.addStringOption((option) =>
+					option
+						.setName("user-id")
+						.setDescription("The Discord ID of the user to approve (alternative)")
+						.setRequired(false)
+				)
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName(ModeratorSubcommands.Unapprove)
+				.setDescription("Unapprove a user from the validator set")
+				.addStringOption((option) =>
+					option
+						.setName("username")
+						.setDescription("The Discord username of the user to unapprove (preferred)")
+						.setRequired(false)
+				)
+				.addStringOption((option) =>
+					option
+						.setName("user-id")
+						.setDescription("The Discord ID of the user to unapprove (alternative)")
+						.setRequired(false)
 				)
 		)
 		.addSubcommand((subcommand) =>
@@ -58,15 +77,21 @@ export default {
 				.setDescription("Add a validator to the validator set")
 				.addStringOption((option) =>
 					option
-						.setName("user")
-						.setDescription("The Discord username of the user to add")
+						.setName("validator-address")
+						.setDescription("The validator address to add")
 						.setRequired(true)
 				)
 				.addStringOption((option) =>
 					option
-						.setName("validator-address")
-						.setDescription("The validator address to add")
-						.setRequired(true)
+						.setName("username")
+						.setDescription("The Discord username of the user to add (preferred)")
+						.setRequired(false)
+				)
+				.addStringOption((option) =>
+					option
+						.setName("user-id")
+						.setDescription("The Discord ID of the user to add (alternative)")
+						.setRequired(false)
 				)
 		)
 		.addSubcommand((subcommand) =>
@@ -94,11 +119,11 @@ export default {
 				case ModeratorSubcommands.Info:
 					await getOperatorInfo(interaction);
 					break;
-				case ModeratorSubcommands.ApproveByUsername:
+				case ModeratorSubcommands.Approve:
 					await approveUser(interaction);
 					break;
-				case ModeratorSubcommands.ApproveById:
-					await approveUser(interaction);
+				case ModeratorSubcommands.Unapprove:
+					await unapproveUser(interaction);
 					break;
 				case ModeratorSubcommands.Help:
 					await showModeratorHelp(interaction);

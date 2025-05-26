@@ -128,7 +128,12 @@ export async function addValidator(
 						errorEmbed.setDescription("Invalid validator address format.");
 						break;
 					case 403:
-						errorEmbed.setDescription("Your account requires approval before adding validators.");
+						// Check if it's a slashing error or approval error
+						if (apiError.response.data && apiError.response.data.error === "Operator was slashed") {
+							errorEmbed.setDescription("Your validator was slashed, so you are unable to re-add your validator.");
+						} else {
+							errorEmbed.setDescription("Your account requires approval before adding validators.");
+						}
 						break;
 					case 404:
 						errorEmbed.setDescription("Node operator not found. Please register as an operator first.");

@@ -18,9 +18,41 @@ export async function addValidator(
 	interaction: ChatInputCommandInteraction
 ): Promise<string | void> {
 
+	// Initialize variables outside try block for error handling
+	let targetDiscordUsername: string | null = null;
+
 	try {
-		const targetDiscordUsername = interaction.options.getString("user", true);
+		// Get Discord username and user ID from options
+		targetDiscordUsername = interaction.options.getString("username");
+		const targetDiscordUserId = interaction.options.getString("user-id");
 		const validatorAddress = interaction.options.getString("validator-address", true);
+
+		// Validate that at least one parameter is provided
+		if (!targetDiscordUsername && !targetDiscordUserId) {
+			await interaction.editReply("Please provide either a Discord username or Discord ID.");
+			return;
+		}
+
+		// If no username but user ID provided, try to fetch username from Discord
+		if (!targetDiscordUsername && targetDiscordUserId) {
+			try {
+				const user = await interaction.guild?.members.fetch(targetDiscordUserId);
+				if (!user) {
+					await interaction.editReply("User not found with the provided Discord ID.");
+					return;
+				}
+				targetDiscordUsername = user.user.username;
+			} catch (fetchError) {
+				await interaction.editReply("Unable to fetch user information from the provided Discord ID.");
+				return;
+			}
+		}
+
+		// At this point, targetDiscordUsername should be defined
+		if (!targetDiscordUsername) {
+			await interaction.editReply("Unable to determine Discord username.");
+			return;
+		}
 
 		// Validate validator address format
 		if (!/^^0x[a-fA-F0-9]{40}$/.test(validatorAddress)) {
@@ -170,7 +202,12 @@ export async function addValidator(
 							errorEmbed.setDescription(`Invalid validator address format provided for \`${targetDiscordUsername}\`: \`${validatorAddress}\`.`);
 							break;
 						case 403:
-							errorEmbed.setDescription(`Operation forbidden for operator \`${targetDiscordUsername}\` when attempting to add validator. They may have restrictions or require further actions.`);
+							// Check if it's a slashing error or other forbidden operation
+							if (addValidatorError.response.data && addValidatorError.response.data.error === "Operator was slashed") {
+								errorEmbed.setDescription(`The operator \`${targetDiscordUsername}\` was previously slashed and cannot add validators.`);
+							} else {
+								errorEmbed.setDescription(`Operation forbidden for operator \`${targetDiscordUsername}\` when attempting to add validator. They may have restrictions or require further actions.`);
+							}
 							break;
 						case 404: // This would be unusual if getOperator succeeded
 							errorEmbed.setDescription(`Operator \`${targetDiscordUsername}\` not found during validator addition. Please verify their status.`);
@@ -190,7 +227,7 @@ export async function addValidator(
 		}
 
 	} catch (error: any) {
-		logger.error(`Unexpected error in operatorAdd command for ${interaction.options.getString("user")}:`, error);
+		logger.error(`Unexpected error in operatorAdd command for ${targetDiscordUsername || 'unknown user'}:`, error);
 		await interaction.editReply({
 			content: "An unexpected error occurred. Please try again later or check the logs.",
 		});

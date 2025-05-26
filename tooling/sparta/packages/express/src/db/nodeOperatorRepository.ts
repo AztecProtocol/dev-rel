@@ -213,14 +213,14 @@ export class NodeOperatorRepository {
 
 	async countAll(): Promise<number> {
 		try {
-			// Use pagination to count all items instead of relying on the COUNT option
+			// Use DynamoDB's COUNT select to efficiently count items without transferring data
 			let totalCount = 0;
 			let lastEvaluatedKey: any = undefined;
 			
 			do {
 				const scanParams: any = {
 					TableName: this.tableName,
-					Limit: 1000,
+					Select: "COUNT", // Only return the count, not the items
 				};
 				
 				if (lastEvaluatedKey) {
@@ -230,16 +230,16 @@ export class NodeOperatorRepository {
 				const command = new ScanCommand(scanParams);
 				const response = await this.client.send(command);
 				
-				totalCount += response.Items?.length || 0;
+				totalCount += response.Count || 0;
 				lastEvaluatedKey = response.LastEvaluatedKey;
 				
 				logger.debug(
 					{ 
-						batchSize: response.Items?.length || 0,
+						batchCount: response.Count || 0,
 						runningTotal: totalCount,
 						hasMoreItems: !!lastEvaluatedKey
 					},
-					"Counting NodeOperators with pagination"
+					"Counting NodeOperators efficiently with COUNT select"
 				);
 			} while (lastEvaluatedKey);
 			
@@ -384,6 +384,50 @@ export class NodeOperatorRepository {
 		}
 	}
 
+	async updateSlashedStatus(
+		discordId: string,
+		wasSlashed: boolean
+	): Promise<boolean> {
+		try {
+			const command = new UpdateCommand({
+				TableName: this.tableName,
+				Key: { discordId },
+				UpdateExpression:
+					"SET wasSlashed = :wasSlashed, updatedAt = :updatedAt",
+				ConditionExpression: "attribute_exists(discordId)",
+				ExpressionAttributeValues: {
+					":wasSlashed": wasSlashed,
+					":updatedAt": Date.now(),
+				},
+				ReturnValues: "NONE",
+			});
+			await this.client.send(command);
+			logger.info(
+				{ discordId, wasSlashed, tableName: this.tableName },
+				"Updated NodeOperator slashed status in repository"
+			);
+			return true;
+		} catch (error: any) {
+			logger.error(
+				{
+					error,
+					discordId,
+					wasSlashed,
+					tableName: this.tableName,
+				},
+				"Error updating NodeOperator slashed status in repository"
+			);
+			if (error.name === "ConditionalCheckFailedException") {
+				logger.warn(
+					{ discordId },
+					"NodeOperator not found for update slashed status operation"
+				);
+				return false;
+			}
+			throw error;
+		}
+	}
+
 	async deleteByDiscordId(discordId: string): Promise<boolean> {
 		try {
 			const command = new DeleteCommand({
@@ -410,6 +454,113 @@ export class NodeOperatorRepository {
 				return false;
 			}
 			throw error;
+		}
+	}
+
+	/**
+	 * Retrieves all node operators that have empty validators arrays with pagination.
+	 * Uses DynamoDB FilterExpression for efficient filtering.
+	 * @param pageToken Optional token for pagination
+	 * @returns Object containing array of NodeOperator objects with empty validators arrays and optional nextPageToken.
+	 */
+	async findOperatorsWithoutValidators(
+		pageToken?: string
+	): Promise<{ operators: NodeOperator[]; nextPageToken?: string }> {
+		try {
+			const ITEMS_PER_PAGE = 100;
+			
+			// Build the scan command with filter for empty validators array
+			const scanParams: any = {
+				TableName: this.tableName,
+				Limit: ITEMS_PER_PAGE,
+				FilterExpression: "attribute_not_exists(validators) OR size(validators) = :emptySize",
+				ExpressionAttributeValues: {
+					":emptySize": 0
+				}
+			};
+			
+			// If we have a page token, use it as the ExclusiveStartKey
+			if (pageToken) {
+				try {
+					const decodedToken = JSON.parse(Buffer.from(pageToken, 'base64').toString());
+					scanParams.ExclusiveStartKey = decodedToken;
+				} catch (error) {
+					logger.error({ error, pageToken }, "Invalid page token format");
+				}
+			}
+			
+			const command = new ScanCommand(scanParams);
+			const response = await this.client.send(command);
+			
+			// Generate the next page token if LastEvaluatedKey exists
+			let nextPageToken: string | undefined = undefined;
+			if (response.LastEvaluatedKey) {
+				nextPageToken = Buffer.from(
+					JSON.stringify(response.LastEvaluatedKey)
+				).toString('base64');
+			}
+			
+			return {
+				operators: (response.Items ?? []) as NodeOperator[],
+				nextPageToken,
+			};
+		} catch (error) {
+			logger.error(
+				error,
+				"Error scanning NodeOperators table for operators without validators in repository"
+			);
+			throw new Error("Repository failed to retrieve node operators without validators.");
+		}
+	}
+
+	/**
+	 * Counts all node operators that have empty validators arrays and are approved.
+	 * Uses DynamoDB FilterExpression with COUNT select for efficient counting.
+	 * @returns The count of approved node operators with empty validators arrays.
+	 */
+	async countApprovedOperatorsWithoutValidators(): Promise<number> {
+		try {
+			let totalCount = 0;
+			let lastEvaluatedKey: any = undefined;
+			
+			do {
+				const scanParams: any = {
+					TableName: this.tableName,
+					Select: "COUNT", // Only return the count, not the items
+					FilterExpression: "(attribute_not_exists(validators) OR size(validators) = :emptySize) AND isApproved = :approved",
+					ExpressionAttributeValues: {
+						":emptySize": 0,
+						":approved": true
+					}
+				};
+				
+				if (lastEvaluatedKey) {
+					scanParams.ExclusiveStartKey = lastEvaluatedKey;
+				}
+				
+				const command = new ScanCommand(scanParams);
+				const response = await this.client.send(command);
+				
+				totalCount += response.Count || 0;
+				lastEvaluatedKey = response.LastEvaluatedKey;
+				
+				logger.debug(
+					{ 
+						batchCount: response.Count || 0,
+						runningTotal: totalCount,
+						hasMoreItems: !!lastEvaluatedKey
+					},
+					"Counting approved NodeOperators without validators efficiently"
+				);
+			} while (lastEvaluatedKey);
+			
+			return totalCount;
+		} catch (error) {
+			logger.error(
+				error,
+				"Error counting approved NodeOperators without validators in repository"
+			);
+			throw new Error("Repository failed to count approved node operators without validators.");
 		}
 	}
 }

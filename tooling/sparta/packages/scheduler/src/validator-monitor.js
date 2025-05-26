@@ -33,14 +33,15 @@ class ValidatorMonitorService {
      * Check a single validator's status and send alerts if needed
      * @param {string} validator - Validator address
      * @param {Array} activeValidators - List of active validators
+     * @param {Object} allValidatorStats - Pre-fetched stats for all validators
      */
-    async processValidator(validator, activeValidators) {
+    async processValidator(validator, activeValidators, allValidatorStats) {
         try {
             const isInValidatorSet = activeValidators.includes(validator);
             
             if (isInValidatorSet) {
-                const validatorStats = await l2InfoService.fetchValidatorStats(validator);
-                if (validatorStats.totalSlots && validatorStats.missedAttestationsCount !== undefined) {
+                const validatorStats = allValidatorStats[validator.toLowerCase()];
+                if (validatorStats && validatorStats.totalSlots && validatorStats.missedAttestationsCount !== undefined) {
                     const missPercent = (validatorStats.missedAttestationsCount / validatorStats.totalSlots) * 100;
                     if (missPercent < 20) return null; 
                 } else {
@@ -60,8 +61,8 @@ class ValidatorMonitorService {
             if (!isInValidatorSet) {
                 alertReason = "not in active validator set";
             } else {
-                const stats = await l2InfoService.fetchValidatorStats(validator);
-                if (stats.totalSlots && stats.missedAttestationsCount !== undefined) {
+                const stats = allValidatorStats[validator.toLowerCase()];
+                if (stats && stats.totalSlots && stats.missedAttestationsCount !== undefined) {
                     missPercentage = ((stats.missedAttestationsCount / stats.totalSlots) * 100).toFixed(2) + "%";
                     alertReason = `missing attestations (${missPercentage})`;
                 } else {
@@ -77,23 +78,25 @@ class ValidatorMonitorService {
             let error = null;
             let recipient = null;
             
-            try {
-                recipient = this.dmOverrideRecipient ? this.dmOverrideRecipient : validatorData.operatorInfo?.discordUsername;
-                logger.info({ recipient }, "Recipient for DM");
-                const response = await this.client.post("/api/operator/message", 
-                    { message: messageContent, validatorAddress: validator, threadName: "Validator Monitoring Alert" }, 
-                    { params: { discordUsername: recipient } }
-                );
-                dmSent = response.data.success;
-                if (dmSent) {
-                    logger.info(`Alert DM sent to ${recipient} for validator ${validatorData.operatorInfo?.discordUsername} with address ${validator}`);
-                } else {
-                    error = response.data.error || "API call to send DM returned false";
-                    logger.warn(`Failed to send DM to ${recipient} for ${validator}: ${error}`);
+            if (!process.env.SKIP_DMS) { 
+                try {
+                    recipient = this.dmOverrideRecipient ? this.dmOverrideRecipient : validatorData.operatorInfo?.discordUsername;
+                    logger.info({ recipient }, "Recipient for DM");
+                    const response = await this.client.post("/api/operator/message", 
+                        { message: messageContent, validatorAddress: validator, threadName: "Validator Monitoring Alert" }, 
+                        { params: { discordUsername: recipient } }
+                    );
+                    dmSent = response.data.success;
+                    if (dmSent) {
+                        logger.info(`Alert DM sent to ${recipient} for validator ${validatorData.operatorInfo?.discordUsername} with address ${validator}`);
+                    } else {
+                        error = response.data.error || "API call to send DM returned false";
+                        logger.warn(`Failed to send DM to ${recipient} for ${validator}: ${error}`);
+                    }
+                } catch (dmError) {
+                    error = dmError.message;
+                    logger.error(`Error sending DM for validator ${validatorData.operatorInfo?.discordUsername} with address ${validator} to ${recipient}: ${error}`);
                 }
-            } catch (dmError) {
-                error = dmError.message;
-                logger.error(`Error sending DM for validator ${validatorData.operatorInfo?.discordUsername} with address ${validator} to ${recipient}: ${error}`);
             }
             
             return {
@@ -118,7 +121,6 @@ class ValidatorMonitorService {
         try {
             logger.info("Fetching validators to monitor...");
             
-            // Call API to get all validators - assuming no pagination as per new Swagger
             const response = await this.client.getAllValidators(); 
             const validatorsData = response?.data?.data;
 
@@ -136,9 +138,14 @@ class ValidatorMonitorService {
             
             logger.info(`Found ${allKnownValidators.length} total known validators to check.`);
             
+            // Fetch all validator stats at once for efficiency
+            logger.info("Fetching stats for all validators...");
+            const allValidatorStats = await l2InfoService.fetchValidatorStats(); // No targetAddress - gets all stats
+            logger.info(`Retrieved stats for ${Object.keys(allValidatorStats).length} validators from RPC.`);
+            
             const reports = [];
             const results = await Promise.allSettled(
-                allKnownValidators.map(validator => this.processValidator(validator, allKnownValidators))
+                allKnownValidators.map(validator => this.processValidator(validator, allKnownValidators, allValidatorStats))
             );
             
             results.forEach(result => {
@@ -160,6 +167,7 @@ class ValidatorMonitorService {
 
     /**
      * Send a summary report to the mod-bot channel using webhook service
+     * Splits large reports into multiple messages to avoid Discord's character limit
      */
     async sendSummaryReport(reports) {
         if (!this.summaryChannelId) {
@@ -168,34 +176,104 @@ class ValidatorMonitorService {
         }
 
         try {
-            let messageContent = "# Validator Alert Summary\n\n";
-            messageContent += `**Time:** ${new Date().toISOString()}\n`;
-            messageContent += `**Total Alerts:** ${reports.length}\n\n`;
-            reports.forEach(report => {
-                messageContent += `- **${report.validatorAddress}** (${report.operatorDiscordUsername === "N/A" ? report.operatorId : report.operatorDiscordUsername}): `;
-                messageContent += report.messageContent.includes('not in active validator set') ? 
+            const MAX_MESSAGE_LENGTH = 1500; // Stay under Discord's 4000 limit with buffer
+            
+            // Calculate base header info
+            const timestamp = new Date().toISOString();
+            const totalAlertsLine = `**Total Alerts:** ${reports.length}\n\n`;
+            
+            // Pre-calculate each report line to know exact sizes
+            const reportLines = reports.map(report => {
+                const operatorName = report.operatorDiscordUsername === "N/A" ? (report.operatorId || "Unknown") : report.operatorDiscordUsername;
+                const status = report.messageContent.includes('not in active validator set') ? 
                     'Not in validator set' : `Missing attestations (${report.missPercentage})`;
-                messageContent += report.dmSent ? ' - Alert sent' : ` - Alert failed: ${report.error ? String(report.error).substring(0, 100) : 'Unknown'}`;
-                messageContent += '\n';
+                const result = report.dmSent ? 'Alert sent' : `Alert failed: ${report.error ? String(report.error).substring(0, 100) : 'Unknown'}`;
+                
+                return `- **${report.validatorAddress}** (${operatorName}): ${status} - ${result}\n`;
             });
             
-            // Use the new /api/moderator/message endpoint
-            const summaryPostResponse = await this.client.post("/api/moderator/message", 
-                {
-                    message: messageContent,
-                    channelId: this.summaryChannelId
+            // Split into pages
+            const pages = [];
+            let currentPageLines = [];
+            let currentPageSize = 0;
+            
+            for (const line of reportLines) {
+                const lineLength = line.length;
+                
+                // Calculate what the header size would be for this page
+                const pageNumber = pages.length + 1;
+                const headerSize = pages.length > 0 || reportLines.length > 20 ? // Estimate if we'll need multiple pages
+                    `# Validator Alert Summary (Page ${pageNumber}/X)\n\n**Time:** ${timestamp}\n${totalAlertsLine}`.length :
+                    `# Validator Alert Summary\n\n**Time:** ${timestamp}\n${totalAlertsLine}`.length;
+                
+                // If adding this line would exceed the limit, start a new page
+                if (currentPageLines.length > 0 && (headerSize + currentPageSize + lineLength) > MAX_MESSAGE_LENGTH) {
+                    pages.push([...currentPageLines]);
+                    currentPageLines = [line];
+                    currentPageSize = lineLength;
+                } else {
+                    currentPageLines.push(line);
+                    currentPageSize += lineLength;
                 }
-                // No params needed in query for this new endpoint
-            );
-
-            // Assuming the response structure for success is { data: { success: true } } or similar
-            // Adjust based on actual response from your new moderator message endpoint
-            if (summaryPostResponse.data && summaryPostResponse.data.success) {
-                logger.info(`Sent summary report to channel ${this.summaryChannelId}.`);
-            } else {
-                logger.error(`Failed to send summary report to channel ${this.summaryChannelId}: ${summaryPostResponse.data?.error || 'Unknown error from API'}`);
             }
+            
+            // Add the last page if it has content
+            if (currentPageLines.length > 0) {
+                pages.push(currentPageLines);
+            }
+            
+            // If no pages were created (empty reports), create one empty page
+            if (pages.length === 0) {
+                pages.push([]);
+            }
+            
+            // Send each page
+            for (let i = 0; i < pages.length; i++) {
+                const pageNumber = i + 1;
+                const totalPages = pages.length;
+                
+                // Build the message for this page
+                let messageContent = totalPages > 1 ? 
+                    `# Validator Alert Summary (Page ${pageNumber}/${totalPages})\n\n` :
+                    `# Validator Alert Summary\n\n`;
+                    
+                messageContent += `**Time:** ${timestamp}\n`;
+                messageContent += totalAlertsLine;
+                messageContent += pages[i].join('');
+                
+                // If this is the last page and there are multiple pages, add a footer
+                if (totalPages > 1 && pageNumber === totalPages) {
+                    messageContent += `\n*End of summary (${totalPages} pages total)*`;
+                }
+                
+                const summaryPostResponse = await this.client.post("/api/moderator/message", 
+                    {
+                        message: messageContent,
+                        channelId: this.summaryChannelId
+                    }
+                );
+
+                if (summaryPostResponse.data && summaryPostResponse.data.success) {
+                    if (totalPages > 1) {
+                        logger.info(`Sent summary report page ${pageNumber}/${totalPages} to channel ${this.summaryChannelId}.`);
+                    } else {
+                        logger.info(`Sent summary report to channel ${this.summaryChannelId}.`);
+                    }
+                } else {
+                    const errorMsg = totalPages > 1 ? 
+                        `Failed to send summary report page ${pageNumber}/${totalPages}` :
+                        `Failed to send summary report`;
+                    logger.error(`${errorMsg} to channel ${this.summaryChannelId}: ${summaryPostResponse.data?.error || 'Unknown error from API'}`);
+                }
+                
+                // Add a small delay between messages to avoid rate limiting
+                if (i < pages.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                }
+            }
+            
         } catch (error) {
+            console.log(error);
             logger.error(`Error sending summary report to channel ${this.summaryChannelId}: ${error.message}`);
         }
     }

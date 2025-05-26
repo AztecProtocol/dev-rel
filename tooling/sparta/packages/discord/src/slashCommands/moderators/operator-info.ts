@@ -31,18 +31,41 @@ interface ValidatorDetail {
 }
 
 /**
- * Gets comprehensive information about a node operator by their Discord username
+ * Gets comprehensive information about a node operator by their Discord username or ID
  * Combines the functionality of operator-attesting and operator-in-set
  */
 export async function getOperatorInfo(
 	interaction: ChatInputCommandInteraction
 ) {
 	try {
-		// Get Discord username from options
-		const discordUsername = interaction.options.getString("username");
+		// Get Discord username and user ID from options
+		let discordUsername = interaction.options.getString("username");
+		const discordUserId = interaction.options.getString("user-id");
 
+		// Validate that at least one parameter is provided
+		if (!discordUsername && !discordUserId) {
+			await interaction.editReply("Please provide either a Discord username or Discord ID.");
+			return;
+		}
+
+		// If no username but user ID provided, try to fetch username from Discord
+		if (!discordUsername && discordUserId) {
+			try {
+				const user = await interaction.guild?.members.fetch(discordUserId);
+				if (!user) {
+					await interaction.editReply("User not found with the provided Discord ID.");
+					return;
+				}
+				discordUsername = user.user.username;
+			} catch (fetchError) {
+				await interaction.editReply("Unable to fetch user information from the provided Discord ID.");
+				return;
+			}
+		}
+
+		// At this point, discordUsername should be defined
 		if (!discordUsername) {
-			await interaction.editReply("Please provide a Discord username.");
+			await interaction.editReply("Unable to determine Discord username.");
 			return;
 		}
 
@@ -79,6 +102,9 @@ export async function getOperatorInfo(
 				let totalValidators = 0;
 				const validatorDetails: ValidatorDetail[] = [];
 				
+				// Fetch all validator stats at once for efficiency
+				const allValidatorStats = await l2InfoService.fetchValidatorStats() as Record<string, any>;
+				
 				// Process validator information if the operator has any
 				if (operator.validators && operator.validators.length > 0) {
 					hasValidators = true;
@@ -101,11 +127,11 @@ export async function getOperatorInfo(
 							if (isInValidatorSet) {
 								validatorsInSet++;
 								
-								// Fetch attestation stats
-								const validatorStats = await l2InfoService.fetchValidatorStats(validatorAddress);
+								// Get attestation stats from pre-fetched data
+								const validatorStats = allValidatorStats[validatorAddress.toLowerCase()];
 								
 								console.log(validatorStats, "validatorStats");
-								if (validatorStats.totalSlots && validatorStats.missedAttestationsCount !== undefined) {
+								if (validatorStats && validatorStats.totalSlots && validatorStats.missedAttestationsCount !== undefined) {
 									const missed = (validatorStats.missedAttestationsCount / validatorStats.totalSlots) * 100;
 									missPercentage = missed.toFixed(2) + "%";
 									

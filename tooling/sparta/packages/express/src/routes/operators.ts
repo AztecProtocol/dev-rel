@@ -311,28 +311,16 @@ router.get("/", async (req: Request, res: Response) => {
 router.get("/stats", async (_req: Request, res: Response) => {
 	try {
 		// Get all operators
-		let allOperators = await nodeOperatorService.getAllOperators();
-		let operators = allOperators.operators;
-		while(allOperators.nextPageToken){
-			allOperators = await nodeOperatorService.getAllOperators(allOperators.nextPageToken);
-			operators = operators.concat(allOperators.operators);
-		}
+		const allOperatorsCount = await nodeOperatorService.countOperators()
 
-		const approvedWithZeroValidators = [];
-		for (const operator of operators) {
-			if (operator.isApproved) {
-				const validators = await validatorService.getValidatorsByNodeOperator(operator.discordId);
-				if (validators.length === 0) {
-					approvedWithZeroValidators.push(operator);
-				}
-			}
-		}
+		// Get all operators with zero validators efficiently
+		const operatorsWithoutValidatorsCount = await nodeOperatorService.countApprovedOperatorsWithoutValidators();
 		
 		// Return stats object that can be expanded with more metrics in the future
 		res.status(200).json({
 			stats: {
-				totalOperators: operators.length,
-				approvedOperatorsWithZeroValidators: approvedWithZeroValidators.length,
+				totalOperators: allOperatorsCount,
+				operatorsWithoutValidators: operatorsWithoutValidatorsCount,
 				// Future stats can be added here
 			}
 		});
@@ -824,6 +812,14 @@ router.put(
 			});
 		}
 
+		// Check if this operator was previously slashed
+		if (operatorToApprove.wasSlashed) {
+			return res.status(403).json({
+				error: "Operator was slashed",
+				message: "Cannot approve an operator whose validator was previously slashed."
+			});
+		}
+
 		const updated = await nodeOperatorService.updateApprovalStatus(
 			idToApprove,
 			true
@@ -837,6 +833,214 @@ router.put(
 		} else {
 			return res.status(500).json({
 				error: "Failed to approve operator",
+			});
+		}
+	});
+
+// DELETE /api/operator/approve - unapproves an operator
+/**
+ * @swagger
+ * /api/operator/approve:
+ *   delete:
+ *     summary: Unapprove a node operator
+ *     description: Unapproves a node operator using their Discord ID or username.
+ *     tags: [NodeOperator]
+ *     operationId: unapproveOperator
+ *     security:
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: discordId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord ID of the operator to unapprove.
+ *       - in: query
+ *         name: discordUsername
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord username of the operator to unapprove.
+ *     responses:
+ *       200:
+ *         description: Operator unapproved successfully. Returns the updated operator.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NodeOperator'
+ *       400:
+ *         description: Bad Request - Missing parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       404:
+ *         description: Operator not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ */
+router.delete(
+	"/approve",
+	async (req: Request, res: Response) => {
+		const discordId = req.query.discordId as string | undefined;
+		const discordUsername = req.query.discordUsername as string | undefined;
+		
+		if (!discordId && !discordUsername) {
+			return res
+				.status(400)
+				.json({ error: "Missing discordId or discordUsername parameter" });
+		}
+		
+		let operatorToUnapprove: any = undefined;
+		let idToUnapprove: string | undefined = discordId;
+		
+		// Find the operator
+		if (discordId) {
+			operatorToUnapprove = await nodeOperatorService.getOperatorByDiscordId(discordId);
+		} else if (discordUsername) {
+			operatorToUnapprove = await nodeOperatorService.getOperatorByDiscordUsername(discordUsername);
+			if (operatorToUnapprove) {
+				idToUnapprove = operatorToUnapprove.discordId;
+			}
+		}
+		
+		if (!operatorToUnapprove || !idToUnapprove) {
+			return res.status(404).json({
+				error: "Operator not found",
+			});
+		}
+
+		const updated = await nodeOperatorService.updateApprovalStatus(
+			idToUnapprove,
+			false
+		);
+
+		if (updated) {
+			// Fetch the updated operator to return
+			const updatedOperator =
+				await nodeOperatorService.getOperatorByDiscordId(idToUnapprove);
+			return res.status(200).json(updatedOperator);
+		} else {
+			return res.status(500).json({
+				error: "Failed to unapprove operator",
+			});
+		}
+	});
+
+// DELETE /api/operator/slashed - removes the wasSlashed flag from an operator
+/**
+ * @swagger
+ * /api/operator/slashed:
+ *   delete:
+ *     summary: Remove slashed status from a node operator
+ *     description: Removes the wasSlashed flag from a node operator using their Discord ID or username.
+ *     tags: [NodeOperator]
+ *     operationId: unslashOperator
+ *     security:
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: discordId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord ID of the operator to remove slashed status from.
+ *       - in: query
+ *         name: discordUsername
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord username of the operator to remove slashed status from.
+ *     responses:
+ *       200:
+ *         description: Slashed status removed successfully. Returns the updated operator.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/NodeOperator'
+ *       400:
+ *         description: Bad Request - Missing parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       404:
+ *         description: Operator not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ */
+router.delete(
+	"/slashed",
+	async (req: Request, res: Response) => {
+		const discordId = req.query.discordId as string | undefined;
+		const discordUsername = req.query.discordUsername as string | undefined;
+		
+		if (!discordId && !discordUsername) {
+			return res
+				.status(400)
+				.json({ error: "Missing discordId or discordUsername parameter" });
+		}
+		
+		let operatorToUnslash: any = undefined;
+		let idToUnslash: string | undefined = discordId;
+		
+		// Find the operator
+		if (discordId) {
+			operatorToUnslash = await nodeOperatorService.getOperatorByDiscordId(discordId);
+		} else if (discordUsername) {
+			operatorToUnslash = await nodeOperatorService.getOperatorByDiscordUsername(discordUsername);
+			if (operatorToUnslash) {
+				idToUnslash = operatorToUnslash.discordId;
+			}
+		}
+		
+		if (!operatorToUnslash || !idToUnslash) {
+			return res.status(404).json({
+				error: "Operator not found",
+			});
+		}
+
+		const updated = await nodeOperatorService.updateSlashedStatus(
+			idToUnslash,
+			false
+		);
+
+		if (updated) {
+			// Fetch the updated operator to return
+			const updatedOperator =
+				await nodeOperatorService.getOperatorByDiscordId(idToUnslash);
+			return res.status(200).json(updatedOperator);
+		} else {
+			return res.status(500).json({
+				error: "Failed to remove slashed status from operator",
 			});
 		}
 	});
@@ -915,34 +1119,27 @@ router.get("/validators", async (_req, res) => {
 		const rollupInfo = await ethereum.getRollupInfo();
 		const blockchainValidators = rollupInfo.validators;
 		
-		// Get total validators count without loading all records
-		const totalValidatorsCount = await validatorService.countValidators();
+		// Get all validators from database using pagination
+		let allDbValidators: Validator[] = [];
+		let nextPageToken: string | undefined = undefined;
+		
+		do {
+			const result = await validatorService.getAllValidators(nextPageToken);
+			allDbValidators = allDbValidators.concat(result.validators);
+			nextPageToken = result.nextPageToken;
+			logger.info(`Retrieved ${result.validators.length} validators from database, total so far: ${allDbValidators.length}`);
+		} while (nextPageToken);
+		
+		// Create a Set of database validator addresses for O(1) lookup
+		const dbValidatorAddresses = new Set(allDbValidators.map(v => v.validatorAddress.toLowerCase()));
+		
+		// Find intersection - blockchain validators that exist in database
+		const validatorsWithOperators = blockchainValidators.filter(address => 
+			dbValidatorAddresses.has(address.toLowerCase())
+		);
 		
 		// Log for debugging
-		logger.info(`Retrieved ${blockchainValidators.length} validators from blockchain and ${totalValidatorsCount} validators in database`);
-		
-		// Process blockchain validators in batches to check against database
-		const BATCH_SIZE = 100;
-		let validatorsWithOperators: string[] = [];
-		
-		// Process blockchain validators in batches to avoid loading all records at once
-		for (let i = 0; i < blockchainValidators.length; i += BATCH_SIZE) {
-			const batch = blockchainValidators.slice(i, i + BATCH_SIZE);
-			logger.info(`Processing blockchain validators batch ${i/BATCH_SIZE + 1}, size: ${batch.length}`);
-			
-			// Check each validator in batch
-			for (const address of batch) {
-				// Check if this blockchain validator exists in our database
-				const dbValidator = await validatorService.getValidatorByAddress(address);
-				if (dbValidator) {
-					validatorsWithOperators.push(address);
-				}
-			}
-			
-			logger.info(`Found ${validatorsWithOperators.length} validators with operators so far`);
-		}
-		
-		// Log for debugging
+		logger.info(`Retrieved ${blockchainValidators.length} validators from blockchain and ${allDbValidators.length} validators in database`);
 		logger.info(`Found ${validatorsWithOperators.length} validators with matching operators in database`);
 		
 		return res.status(200).json({
@@ -1279,6 +1476,14 @@ router.post("/validator", async (req, res) => {
 			return res.status(403).json({
 				error: "Node operator is not approved",
 				message: "Your account requires approval before adding validators."
+			});
+		}
+
+		// Check if this operator was previously slashed
+		if (operator.wasSlashed) {
+			return res.status(403).json({
+				error: "Operator was slashed",
+				message: "Your validator was slashed, so you are unable to re-add your validator."
 			});
 		}
 		

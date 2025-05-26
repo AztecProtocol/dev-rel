@@ -1177,6 +1177,178 @@
             }
           }
         }
+      },
+      "delete": {
+        "summary": "Unapprove a node operator",
+        "description": "Unapproves a node operator using their Discord ID or username.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "unapproveOperator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord ID of the operator to unapprove."
+          },
+          {
+            "in": "query",
+            "name": "discordUsername",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord username of the operator to unapprove."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Operator unapproved successfully. Returns the updated operator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeOperator"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/operator/slashed": {
+      "delete": {
+        "summary": "Remove slashed status from a node operator",
+        "description": "Removes the wasSlashed flag from a node operator using their Discord ID or username.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "unslashOperator",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord ID of the operator to remove slashed status from."
+          },
+          {
+            "in": "query",
+            "name": "discordUsername",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord username of the operator to remove slashed status from."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Slashed status removed successfully. Returns the updated operator.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeOperator"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/api/operator/validators": {
