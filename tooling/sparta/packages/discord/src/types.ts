@@ -11,8 +11,10 @@ export enum ModeratorSubcommandGroups {
 
 export enum ModeratorSubcommands {
 	Info = "info",
-	Approve = "approve",
+	ApproveByUsername = "approve",
+	ApproveById = "approve-id",
 	Help = "help",
+	AddValidator = "add-validator",
 }
 
 // Node Operator command enums

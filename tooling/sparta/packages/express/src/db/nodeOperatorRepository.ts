@@ -100,6 +100,14 @@ export class NodeOperatorRepository {
 	async findByDiscordUsername(
 		discordUsername: string
 	): Promise<NodeOperator | undefined> {
+		logger.info({
+			message: "findByDiscordUsername called",
+			inputUsername: discordUsername,
+			usernameLength: discordUsername?.length,
+			tableName: this.tableName,
+			indexName: DISCORD_USERNAME_INDEX_NAME
+		}, "Exact input to findByDiscordUsername");
+
 		try {
 			try {
 				// First try to use the index if it exists
@@ -111,18 +119,27 @@ export class NodeOperatorRepository {
 						":discordUsername": discordUsername,
 					},
 				});
+				logger.info({ command }, "Attempting GSI QueryCommand");
 				const response = await this.client.send(command);
-				return response.Items && response.Items.length > 0
-					? (response.Items[0] as NodeOperator)
-					: undefined;
+				logger.info({ responseFromGSIQuery: response }, "Received response from GSI QueryCommand");
+
+				if (response.Items && response.Items.length > 0) {
+					logger.info({ foundItem: response.Items[0] }, "Found operator via GSI query");
+					return response.Items[0] as NodeOperator;
+				} else {
+					logger.info("No items found via GSI query for the given username.");
+					// Proceed to return undefined, will be caught by outer logic or fallback if index error occurred
+				}
 			} catch (indexError: any) {
-				// If the index doesn't exist yet, fall back to scan
+				logger.error({ indexError, details: JSON.stringify(indexError, Object.getOwnPropertyNames(indexError)) }, "Error during GSI Query attempt");
+				// If the index doesn't exist yet or is backfilling, fall back to scan
 				if (indexError.name === "ValidationException" && 
 					indexError.message && 
-					indexError.message.includes("specified index")) {
+					(indexError.message.includes("specified index") || 
+					 indexError.message.includes("Cannot read from backfilling global secondary index"))) {
 					logger.warn(
 						{ indexError, discordUsername, tableName: this.tableName },
-						"Index not ready, falling back to scan for Discord username lookup"
+						"Index not ready or backfilling, falling back to scan for Discord username lookup"
 					);
 					
 					// Fall back to scan
@@ -133,24 +150,36 @@ export class NodeOperatorRepository {
 							":discordUsername": discordUsername,
 						},
 					});
+					logger.info({ scanCommand }, "Attempting ScanCommand (fallback)");
 					const scanResponse = await this.client.send(scanCommand);
-					return scanResponse.Items && scanResponse.Items.length > 0
-						? (scanResponse.Items[0] as NodeOperator)
-						: undefined;
+					logger.info({ scanResponseFromFallback: scanResponse }, "Received response from fallback ScanCommand");
+
+					if (scanResponse.Items && scanResponse.Items.length > 0) {
+						logger.info({ foundItem: scanResponse.Items[0] }, "Found operator via fallback scan");
+						return scanResponse.Items[0] as NodeOperator;
+					} else {
+						logger.info("No items found via fallback scan for the given username.");
+						return undefined;
+					}
 				} else {
+					logger.error("Re-throwing unhandled GSI query error (not a known ValidationException for fallback).");
 					// Re-throw if it's a different error
 					throw indexError;
 				}
 			}
-		} catch (error) {
+		} catch (error) { // This catches errors re-thrown from the inner try/catch or direct errors if the GSI query itself failed unexpectedly.
 			logger.error(
-				{ error, discordUsername, tableName: this.tableName },
-				"Error retrieving NodeOperator by Discord username in repository"
+				{ error, details: JSON.stringify(error, Object.getOwnPropertyNames(error)), discordUsername, tableName: this.tableName },
+				"Error retrieving NodeOperator by Discord username in repository (outer catch)"
 			);
-			throw new Error(
-				"Repository failed to retrieve node operator by Discord username."
+			throw new Error( // This will be caught by the service/route layer
+				`Repository failed to retrieve node operator by Discord username. Original error: ${(error as Error).message}`
 			);
 		}
+		// This line should ideally not be reached if all paths return or throw.
+		// If the GSI query returned no items and no error occurred, it should have returned undefined.
+		logger.warn("findByDiscordUsername reached end of function without returning, returning undefined. This indicates a potential logic flaw if an operator was expected.");
+		return undefined;
 	}
 
 	async findByWalletAddress(
@@ -184,12 +213,37 @@ export class NodeOperatorRepository {
 
 	async countAll(): Promise<number> {
 		try {
-			const command = new ScanCommand({
-				TableName: this.tableName,
-				Select: "COUNT",
-			});
-			const response = await this.client.send(command);
-			return response.Count ?? 0;
+			// Use pagination to count all items instead of relying on the COUNT option
+			let totalCount = 0;
+			let lastEvaluatedKey: any = undefined;
+			
+			do {
+				const scanParams: any = {
+					TableName: this.tableName,
+					Limit: 1000,
+				};
+				
+				if (lastEvaluatedKey) {
+					scanParams.ExclusiveStartKey = lastEvaluatedKey;
+				}
+				
+				const command = new ScanCommand(scanParams);
+				const response = await this.client.send(command);
+				
+				totalCount += response.Items?.length || 0;
+				lastEvaluatedKey = response.LastEvaluatedKey;
+				
+				logger.debug(
+					{ 
+						batchSize: response.Items?.length || 0,
+						runningTotal: totalCount,
+						hasMoreItems: !!lastEvaluatedKey
+					},
+					"Counting NodeOperators with pagination"
+				);
+			} while (lastEvaluatedKey);
+			
+			return totalCount;
 		} catch (error) {
 			logger.error(
 				{ error, tableName: this.tableName },
@@ -202,14 +256,14 @@ export class NodeOperatorRepository {
 	async create(
 		discordId: string,
 		walletAddress: string,
-		discordUsername?: string,
+		discordUsername: string,
 		isApproved?: boolean
 	): Promise<NodeOperator> {
 		const now = Date.now();
 		const newOperator: NodeOperator = {
 			discordId,
 			walletAddress, // Consider normalizing address before saving
-			...(discordUsername && { discordUsername }),
+			discordUsername,
 			...(isApproved !== undefined && { isApproved }),
 			createdAt: now,
 			updatedAt: now,

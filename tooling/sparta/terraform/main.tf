@@ -307,6 +307,10 @@ resource "aws_dynamodb_table" "sparta_node_operators" {
     name = "walletAddress"
     type = "S"
   }
+  attribute {
+    name = "discordUsername" # Attribute for DiscordUsernameIndex GSI
+    type = "S"
+  }
 
   # Define the primary hash key
   hash_key = "discordId"
@@ -316,6 +320,13 @@ resource "aws_dynamodb_table" "sparta_node_operators" {
     name            = "WalletAddressIndex"
     hash_key        = "walletAddress"
     projection_type = "ALL" # Project all attributes
+    # PAY_PER_REQUEST billing mode applies to GSIs as well
+  }
+
+  global_secondary_index {
+    name            = "DiscordUsernameIndex" # The GSI used by the repository
+    hash_key        = "discordUsername"
+    projection_type = "ALL" # Project all attributes to ensure the GSI has all necessary data
     # PAY_PER_REQUEST billing mode applies to GSIs as well
   }
 
@@ -483,7 +494,8 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "NODE_OPERATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_node_operators.name },
         { name = "VALIDATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_validators.name },
         { name = "SPARTA_PRIVATE_KEY", value = var.sparta_private_key },
-        { name = "SPARTA_ADDRESS", value = var.sparta_address }
+        { name = "SPARTA_ADDRESS", value = var.sparta_address },
+        { name = "AZTEC_RPC_URL", value = var.aztec_rpc_url }
       ]
     }
   ])
@@ -792,6 +804,7 @@ resource "aws_lambda_function" "validator_monitor" {
       ETHEREUM_HOST           = var.ethereum_host
       SPARTA_PRIVATE_KEY      = var.sparta_private_key
       SPARTA_ADDRESS          = var.sparta_address
+      AZTEC_RPC_URL           = var.aztec_rpc_url
     }
   }
 

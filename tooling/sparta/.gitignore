@@ -40,3 +40,4 @@ yarn.lock
 package-lock.json
 .cursor/
 out.txt
+ops/

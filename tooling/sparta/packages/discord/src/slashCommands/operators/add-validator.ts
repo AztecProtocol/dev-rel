@@ -112,7 +112,7 @@ export async function addValidator(
 			return "Validator added successfully";
 
 		} catch (apiError: any) {
-			logger.error("Error with operator API:", apiError);
+			logger.error(apiError, "Error with operator API");
 
 			// Create error embed
 			const errorEmbed = new EmbedBuilder()

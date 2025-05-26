@@ -2,6 +2,7 @@ import express from "express";
 import apiDocs from "@sparta/utils/openapi/api-docs.json";
 import swaggerUi from "swagger-ui-express";
 import operatorRouter from "./operators";
+import moderatorRouter from "./moderators";
 import ethereumRoutes from "./ethereum";
 
 const router = express.Router();
@@ -32,5 +33,5 @@ router.use(
 
 router.use("/operator", operatorRouter);
 router.use("/ethereum", ethereumRoutes);
-
+router.use("/moderator", moderatorRouter);
 export default router;

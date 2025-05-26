@@ -18,7 +18,7 @@ const apiInstance = new OpenAPIClientAxios({
 	definition: spec as OpenAPIV3.Document,
 	axiosConfigDefaults: {
 		baseURL: apiUrl,
-		timeout: 10_000,
+		timeout: 30_000,
 		headers: {
 			"Content-Type": "application/json",
 			Accept: "application/json",

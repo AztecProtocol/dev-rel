@@ -55,8 +55,17 @@ export async function showModeratorHelp(
 					inline: false,
 				},
 				{
-					name: `/mod ${ModeratorSubcommands.Approve}`,
-					value: "Approve a user to join the validator set\n`user` - The Discord username of the user to approve (required)",
+					name: `/mod ${ModeratorSubcommands.ApproveByUsername}`,
+					value: "Approve a user to join the validator set\n`username` - The Discord username of the user to approve (required)",
+					inline: false,
+				},{
+					name: `/mod ${ModeratorSubcommands.ApproveById}`,
+					value: "Approve a user to join the validator set\n`user-id` - The Discord ID of the user to approve (required)",
+					inline: false,
+				},
+				{
+					name: `/mod ${ModeratorSubcommands.AddValidator}`,
+					value: "Add a validator to the validator set\n`user` - The Discord username of the user to add (required)\n`validator-address` - The validator address to add (required)",
 					inline: false,
 				},
 			])

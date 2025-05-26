@@ -104,6 +104,7 @@ export async function getOperatorInfo(
 								// Fetch attestation stats
 								const validatorStats = await l2InfoService.fetchValidatorStats(validatorAddress);
 								
+								console.log(validatorStats, "validatorStats");
 								if (validatorStats.totalSlots && validatorStats.missedAttestationsCount !== undefined) {
 									const missed = (validatorStats.missedAttestationsCount / validatorStats.totalSlots) * 100;
 									missPercentage = missed.toFixed(2) + "%";
@@ -221,7 +222,7 @@ export async function getOperatorInfo(
 			}
 			
 		} catch (error) {
-			logger.error("Error with operator API service:", error);
+			logger.error(error, "Error with operator API service");
 			
 			const embed = new EmbedBuilder()
 				.setTitle("❌ SERVICE ERROR")

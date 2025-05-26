@@ -93,22 +93,50 @@ export class ValidatorRepository {
 			// If exact match fails, try case-insensitive search
 			logger.debug(
 				{ validatorAddress },
-				"Exact match failed, trying case-insensitive search"
+				"Exact match failed, trying case-insensitive search with pagination"
 			);
 			
-			// Get all validators and find one that matches case-insensitively
-			const scanCommand = new ScanCommand({
-				TableName: this.tableName,
-			});
-			const scanResponse = await this.client.send(scanCommand);
-			const validators = scanResponse.Items as Validator[] || [];
+			// Use paginated scan for case-insensitive search rather than loading all at once
+			let lastEvaluatedKey: any = undefined;
 			
-			// Find case-insensitive match
-			const matchingValidator = validators.find(v => 
-				v.validatorAddress.toLowerCase() === validatorAddress.toLowerCase()
+			do {
+				const scanParams: any = {
+					TableName: this.tableName,
+					Limit: 1000, // Process in smaller batches
+				};
+				
+				if (lastEvaluatedKey) {
+					scanParams.ExclusiveStartKey = lastEvaluatedKey;
+				}
+				
+				const scanCommand = new ScanCommand(scanParams);
+				const scanResponse = await this.client.send(scanCommand);
+				const validators = scanResponse.Items as Validator[] || [];
+				
+				// Find case-insensitive match in this batch
+				const matchingValidator = validators.find(v => 
+					v.validatorAddress.toLowerCase() === validatorAddress.toLowerCase()
+				);
+				
+				if (matchingValidator) {
+					logger.debug(
+						{ foundAddress: matchingValidator.validatorAddress, searchedFor: validatorAddress },
+						"Found case-insensitive match for validator address"
+					);
+					return matchingValidator;
+				}
+				
+				// Get the last evaluated key for the next page
+				lastEvaluatedKey = scanResponse.LastEvaluatedKey;
+				
+			} while (lastEvaluatedKey);
+			
+			// No match found
+			logger.debug(
+				{ validatorAddress },
+				"No validator found with the given address (case-insensitive)"
 			);
-			
-			return matchingValidator;
+			return undefined;
 		} catch (error) {
 			logger.error(
 				{ error, validatorAddress, tableName: this.tableName },
@@ -147,12 +175,37 @@ export class ValidatorRepository {
 
 	async countAll(): Promise<number> {
 		try {
-			const command = new ScanCommand({
-				TableName: this.tableName,
-				Select: "COUNT",
-			});
-			const response = await this.client.send(command);
-			return response.Count ?? 0;
+			// Use pagination to count all items instead of relying on the COUNT option
+			let totalCount = 0;
+			let lastEvaluatedKey: any = undefined;
+			
+			do {
+				const scanParams: any = {
+					TableName: this.tableName,
+					Limit: 1000,
+				};
+				
+				if (lastEvaluatedKey) {
+					scanParams.ExclusiveStartKey = lastEvaluatedKey;
+				}
+				
+				const command = new ScanCommand(scanParams);
+				const response = await this.client.send(command);
+				
+				totalCount += response.Items?.length || 0;
+				lastEvaluatedKey = response.LastEvaluatedKey;
+				
+				logger.debug(
+					{ 
+						batchSize: response.Items?.length || 0,
+						runningTotal: totalCount,
+						hasMoreItems: !!lastEvaluatedKey
+					},
+					"Counting Validators with pagination"
+				);
+			} while (lastEvaluatedKey);
+			
+			return totalCount;
 		} catch (error) {
 			logger.error(
 				{ error, tableName: this.tableName },

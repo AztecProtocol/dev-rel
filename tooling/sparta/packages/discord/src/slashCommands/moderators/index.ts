@@ -13,6 +13,7 @@ import { showModeratorHelp } from "./help.js";
 import { checkModeratorPermissions } from "../../utils/index.js";
 import { approveUser } from "./operator-approve.js";
 import { getOperatorInfo } from "./operator-info.js";
+import { addValidator } from "./add-validator.js";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -31,12 +32,40 @@ export default {
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
-				.setName(ModeratorSubcommands.Approve)
+				.setName(ModeratorSubcommands.ApproveByUsername)
 				.setDescription("Approve a user to join the validator set")
 				.addStringOption((option) =>
 					option
 						.setName("user")
 						.setDescription("The Discord username of the user to approve")
+						.setRequired(true)
+				)
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName(ModeratorSubcommands.ApproveById)
+				.setDescription("Approve a user to join the validator set")
+				.addStringOption((option) =>
+					option
+						.setName("user-id")
+						.setDescription("The Discord ID of the user to approve")
+						.setRequired(true)
+				)
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName(ModeratorSubcommands.AddValidator)
+				.setDescription("Add a validator to the validator set")
+				.addStringOption((option) =>
+					option
+						.setName("user")
+						.setDescription("The Discord username of the user to add")
+						.setRequired(true)
+				)
+				.addStringOption((option) =>
+					option
+						.setName("validator-address")
+						.setDescription("The validator address to add")
 						.setRequired(true)
 				)
 		)
@@ -65,11 +94,17 @@ export default {
 				case ModeratorSubcommands.Info:
 					await getOperatorInfo(interaction);
 					break;
-				case ModeratorSubcommands.Approve:
+				case ModeratorSubcommands.ApproveByUsername:
+					await approveUser(interaction);
+					break;
+				case ModeratorSubcommands.ApproveById:
 					await approveUser(interaction);
 					break;
 				case ModeratorSubcommands.Help:
 					await showModeratorHelp(interaction);
+					break;
+				case ModeratorSubcommands.AddValidator:
+					await addValidator(interaction);
 					break;
 				default:
 					await interaction.editReply({

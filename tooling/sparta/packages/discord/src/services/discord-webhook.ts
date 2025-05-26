@@ -123,6 +123,88 @@ export class DiscordWebhookService {
       return false;
     }
   }
+
+  /**
+   * Creates a private thread in a specified parent channel, invites a user, and sends an initial message.
+   * @param options - Options for creating the private thread.
+   * @returns An object indicating success, and including threadId if successful, or an error message.
+   */
+  public async createPrivateThreadWithInitialMessage(options: {
+    parentChannelId: string;
+    userToInviteAndMention: string;
+    threadName: string;
+    initialMessage: string;
+    autoArchiveDurationMinutes: number;
+    reason?: string;
+  }): Promise<{ success: boolean; threadId?: string; error?: string }> {
+    const { 
+      parentChannelId, 
+      userToInviteAndMention, 
+      threadName, 
+      initialMessage, 
+      autoArchiveDurationMinutes, 
+      reason 
+    } = options;
+
+    try {
+      if (!parentChannelId || !userToInviteAndMention || !threadName || !initialMessage) {
+        logger.warn("Missing required parameters for creating a private thread");
+        return { success: false, error: "Missing required parameters" };
+      }
+
+      // Create the private thread
+      // Note: Type 12 is GUILD_PRIVATE_THREAD. For public, use 11 (GUILD_PUBLIC_THREAD).
+      // For private threads, the bot must have CREATE_PRIVATE_THREADS permission.
+      // The initial message to the thread is created separately after thread creation if not supported directly.
+      const thread = await this.rest.post(
+        Routes.threads(parentChannelId),
+        {
+          body: {
+            name: threadName,
+            auto_archive_duration: autoArchiveDurationMinutes,
+            type: 12, // GUILD_PRIVATE_THREAD
+            invitable: false, // Only users with MANAGE_THREADS can invite others (true allows anyone)
+            reason: reason || "Creating private thread for notification",
+          },
+        }
+      ) as { id: string; owner_id: string }; // Adjust type based on actual API response
+
+      if (!thread || !thread.id) {
+        logger.error("Failed to create private thread.");
+        return { success: false, error: "Failed to create private thread" };
+      }
+
+      logger.info(`Private thread created with ID: ${thread.id} in channel ${parentChannelId}`);
+
+      // Add the user to the thread
+      // The bot needs MANAGE_THREADS or be the thread creator and have SEND_MESSAGES in the thread
+      await this.rest.put(
+        Routes.threadMembers(thread.id, userToInviteAndMention)
+        // No body needed to add a user, just their ID in the route
+      );
+      logger.info(`User ${userToInviteAndMention} added to thread ${thread.id}`);
+
+      // Send the initial message to the thread, mentioning the user
+      const messageWithMention = `<@${userToInviteAndMention}> ${initialMessage}`;
+      await this.rest.post(
+        Routes.channelMessages(thread.id),
+        {
+          body: {
+            content: messageWithMention,
+          },
+        }
+      );
+      logger.info(`Initial message sent to thread ${thread.id}`);
+
+      return { success: true, threadId: thread.id };
+
+    } catch (error: any) {
+      logger.error({ error }, `Failed to create private thread or send message for user ${userToInviteAndMention}`);
+      // Attempt to provide a more specific error message if available from Discord's API response
+      const discordError = error?.rawError?.message || error?.message || "Unknown error during thread creation/messaging";
+      return { success: false, error: discordError };
+    }
+  }
 }
 
 // Export a singleton instance

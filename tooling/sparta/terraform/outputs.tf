@@ -93,3 +93,8 @@ output "hourly_rule_arn" {
   description = "ARN of the EventBridge rule that triggers the validator monitor Lambda function"
   value       = aws_cloudwatch_event_rule.hourly_validator_check.arn
 }
+
+output "aztec_rpc_url" {
+  description = "URL of the Aztec RPC"
+  value       = var.aztec_rpc_url
+}

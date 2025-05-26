@@ -39,6 +39,22 @@ declare namespace Components {
              */
             data: string[];
         }
+        export interface ModeratorError {
+            /**
+             * Error message describing the issue.
+             */
+            error?: string;
+        }
+        export interface ModeratorMessageInput {
+            /**
+             * The message content to send.
+             */
+            message: string;
+            /**
+             * The Discord channel ID to send the message to.
+             */
+            channelId: string;
+        }
         export interface NodeOperator {
             /**
              * The Discord user ID of the node operator.
@@ -227,6 +243,12 @@ declare namespace Paths {
              * 0x1234567890abcdef1234567890abcdef12345678
              */
             validatorAddress: string;
+            /**
+             * Whether to skip adding the validator on-chain. If true, only adds to database.
+             * example:
+             * false
+             */
+            skipOnChain?: boolean;
         }
         namespace Responses {
             export interface $201 {
@@ -265,7 +287,7 @@ declare namespace Paths {
         export interface QueryParameters {
             discordId: Parameters.DiscordId;
             walletAddress: Parameters.WalletAddress;
-            discordUsername?: Parameters.DiscordUsername;
+            discordUsername: Parameters.DiscordUsername;
         }
         namespace Responses {
             export type $201 = Components.Schemas.NodeOperator;
@@ -463,6 +485,62 @@ declare namespace Paths {
             export type $500 = Components.Schemas.OperatorError;
         }
     }
+    namespace SendMessageToChannel {
+        export type RequestBody = Components.Schemas.ModeratorMessageInput;
+        namespace Responses {
+            export interface $200 {
+                success?: boolean;
+                message?: string;
+            }
+            export type $400 = Components.Schemas.ModeratorError;
+            export type $401 = Components.Schemas.ModeratorError;
+            export type $500 = Components.Schemas.ModeratorError;
+        }
+    }
+    namespace SendMessageToOperator {
+        namespace Parameters {
+            export type DiscordId = string;
+            export type DiscordUsername = string;
+        }
+        export interface QueryParameters {
+            discordId?: Parameters.DiscordId;
+            discordUsername?: Parameters.DiscordUsername;
+        }
+        export interface RequestBody {
+            /**
+             * The message content to send.
+             */
+            message: string;
+            /**
+             * Optional. The validator address associated with this message, for context.
+             * example:
+             * 0x1234567890abcdef1234567890abcdef12345678
+             */
+            validatorAddress?: string | null;
+            /**
+             * Optional. For development/testing only. Overrides the default parent channel ID for thread creation.
+             * example:
+             * 1329081299490570296
+             */
+            parentChannelId?: string | null;
+            /**
+             * Optional. A custom name for the Discord thread. If not provided, a name will be generated.
+             * example:
+             * Urgent Alert for Validator X
+             */
+            threadName?: string | null;
+        }
+        namespace Responses {
+            export interface $200 {
+                success?: boolean;
+                message?: string;
+            }
+            export type $400 = Components.Schemas.OperatorError;
+            export type $401 = Components.Schemas.OperatorError;
+            export type $404 = Components.Schemas.OperatorError;
+            export type $500 = Components.Schemas.OperatorError;
+        }
+    }
     namespace UpdateOperator {
         namespace Parameters {
             export type DiscordId = string;
@@ -547,6 +625,16 @@ export interface OperationMethods {
     data?: any,
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.GetRollupStatus.Responses.$200>
+  /**
+   * sendMessageToChannel - Send a message to a Discord channel
+   * 
+   * Sends a message to a specified Discord channel.
+   */
+  'sendMessageToChannel'(
+    parameters?: Parameters<UnknownParamsObject> | null,
+    data?: Paths.SendMessageToChannel.RequestBody,
+    config?: AxiosRequestConfig  
+  ): OperationResponse<Paths.SendMessageToChannel.Responses.$200>
   /**
    * getOperators - Get node operators
    * 
@@ -677,6 +765,16 @@ export interface OperationMethods {
     data?: any,
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.RemoveValidator.Responses.$204>
+  /**
+   * sendMessageToOperator - Send a direct message to an operator
+   * 
+   * Sends a direct message to a node operator via Discord.
+   */
+  'sendMessageToOperator'(
+    parameters?: Parameters<Paths.SendMessageToOperator.QueryParameters> | null,
+    data?: Paths.SendMessageToOperator.RequestBody,
+    config?: AxiosRequestConfig  
+  ): OperationResponse<Paths.SendMessageToOperator.Responses.$200>
 }
 
 export interface PathsDictionary {
@@ -715,6 +813,18 @@ export interface PathsDictionary {
       data?: any,
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.GetRollupStatus.Responses.$200>
+  }
+  ['/api/moderator/message']: {
+    /**
+     * sendMessageToChannel - Send a message to a Discord channel
+     * 
+     * Sends a message to a specified Discord channel.
+     */
+    'post'(
+      parameters?: Parameters<UnknownParamsObject> | null,
+      data?: Paths.SendMessageToChannel.RequestBody,
+      config?: AxiosRequestConfig  
+    ): OperationResponse<Paths.SendMessageToChannel.Responses.$200>
   }
   ['/api/operator/operators']: {
     /**
@@ -859,6 +969,18 @@ export interface PathsDictionary {
       data?: any,
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.RemoveValidator.Responses.$204>
+  }
+  ['/api/operator/message']: {
+    /**
+     * sendMessageToOperator - Send a direct message to an operator
+     * 
+     * Sends a direct message to a node operator via Discord.
+     */
+    'post'(
+      parameters?: Parameters<Paths.SendMessageToOperator.QueryParameters> | null,
+      data?: Paths.SendMessageToOperator.RequestBody,
+      config?: AxiosRequestConfig  
+    ): OperationResponse<Paths.SendMessageToOperator.Responses.$200>
   }
 }
 

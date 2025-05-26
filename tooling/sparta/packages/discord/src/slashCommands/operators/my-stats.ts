@@ -231,7 +231,7 @@ export async function getNodeOperatorInfo(
 			}
 			
 		} catch (error) {
-			logger.error("Error with operator API service:", error);
+			logger.error(error, "Error with operator API service");
 			
 			const embed = new EmbedBuilder()
 				.setTitle("❌ SERVICE ERROR")

@@ -1,7 +1,7 @@
 // AWS Lambda handler for validator monitoring
 const { logger } = require("@sparta/utils");
 const { ValidatorMonitorService } = require('./validator-monitor');
-
+const { CHANNELS } = require("@sparta/utils");
 // Singleton validator monitor service instance
 let validatorMonitor;
 
@@ -17,13 +17,15 @@ exports.handler = async (event, context) => {
   try {
     // Initialize service if needed
     if (!validatorMonitor) {
+      // validatorMonitor = await ValidatorMonitorService.new("zkpedro", CHANNELS.BOT_TEST?.id);
       validatorMonitor = await ValidatorMonitorService.new();
+
     }
 
-    logger.info("Starting validator monitoring", { 
+    logger.info( {
       requestId: context.awsRequestId,
       eventSource: event.source || 'manual'
-    });
+    },"Starting validator monitoring");
     
     // Run the validator monitoring process
     const reports = await validatorMonitor.monitorValidators();

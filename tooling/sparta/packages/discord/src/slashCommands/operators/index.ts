@@ -7,7 +7,7 @@ import {
 } from "../../types.js";
 import { getNodeOperatorInfo } from "./my-stats.js";
 import { registerValidator } from "./register.js";
-import { showOperatorHelp } from "./help.js";
+import { showRegistrationHelp } from "./help.js";
 import { addValidator } from "./add-validator.js";
 
 export default {
@@ -77,7 +77,7 @@ export default {
 					await registerValidator(interaction);
 					break;
 				case NodeOperatorSubcommands.Help:
-					await showOperatorHelp(interaction);
+					await showRegistrationHelp(interaction);
 					break;
 				case NodeOperatorSubcommands.AddValidator:
 					await addValidator(interaction);

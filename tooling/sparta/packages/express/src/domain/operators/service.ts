@@ -119,7 +119,7 @@ class NodeOperatorService {
 	public async createOperator(
 		discordId: string,
 		walletAddress: string,
-		discordUsername?: string,
+		discordUsername: string,
 		isApproved?: boolean
 	): Promise<NodeOperator | undefined> {
 		try {

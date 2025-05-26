@@ -84,6 +84,7 @@ export async function registerValidator(
 								{
 									discordId: operatorData.discordId,
 									walletAddress: address,
+									discordUsername: interaction.user.username,
 								},
 								{}
 							);
@@ -92,7 +93,8 @@ export async function registerValidator(
 							operationResult = "unchanged";
 						}
 					} catch (error: any) {
-						console.log(error)
+						logger.error(error, "Error creating or updating operator");
+
 						// If 404, create new operator
 						if (error.response && error.response.status === 404) {
 							await client.createOperator(
@@ -221,7 +223,7 @@ export async function registerValidator(
 					}
 				} catch (apiError) {
 					console.log(apiError);
-					logger.error("Error with operator API:", { apiError });
+					logger.error(apiError, "Error with operator API");
 
 					// Set fallback message when API error occurs
 					embed.setDescription(

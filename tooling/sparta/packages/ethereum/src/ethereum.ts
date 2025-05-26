@@ -200,7 +200,13 @@ export class Ethereum {
 		try {
 			logger.info({ validatorAddress }, "Adding validator to rollup");
 
-			const tx = await this.stakingAssetHandler.write.addValidator([validatorAddress as `0x${string}`, validatorAddress as `0x${string}`]);
+			const forwarderAddress = getExpectedAddress(
+				[validatorAddress.toString() as `0x${string}`],
+				validatorAddress.toString() as `0x${string}`)
+
+			logger.info(`Attester address: ${validatorAddress} Forwarder address: ${forwarderAddress.address}`);
+
+			const tx = await this.stakingAssetHandler.write.addValidator([validatorAddress as `0x${string}`, forwarderAddress.address as `0x${string}`]);
 			const receipt = await this.publicClient.waitForTransactionReceipt({ hash: tx });
 
 			if (receipt.status === "success") {

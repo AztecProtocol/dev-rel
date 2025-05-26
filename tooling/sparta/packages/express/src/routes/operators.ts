@@ -4,6 +4,8 @@ import { validatorService, type Validator } from "../domain/validators/service";
 import { logger } from "@sparta/utils"; // Assuming logger is accessible
 import { apiKeyMiddleware } from "../middlewares/auth.js";
 import { getEthereumInstance } from "@sparta/ethereum"; // Add import for ethereum
+import { discordWebhookService } from "@sparta/discord"; // Import Discord service
+import { CHANNELS } from "@sparta/utils/const/channels"; // Import CHANNELS
 
 // --- Swagger Schemas ---
 /**
@@ -308,13 +310,29 @@ router.get("/", async (req: Request, res: Response) => {
  */
 router.get("/stats", async (_req: Request, res: Response) => {
 	try {
-		// Get current stats
-		const totalCount = await nodeOperatorService.countOperators();
+		// Get all operators
+		let allOperators = await nodeOperatorService.getAllOperators();
+		let operators = allOperators.operators;
+		while(allOperators.nextPageToken){
+			allOperators = await nodeOperatorService.getAllOperators(allOperators.nextPageToken);
+			operators = operators.concat(allOperators.operators);
+		}
+
+		const approvedWithZeroValidators = [];
+		for (const operator of operators) {
+			if (operator.isApproved) {
+				const validators = await validatorService.getValidatorsByNodeOperator(operator.discordId);
+				if (validators.length === 0) {
+					approvedWithZeroValidators.push(operator);
+				}
+			}
+		}
 		
 		// Return stats object that can be expanded with more metrics in the future
 		res.status(200).json({
 			stats: {
-				totalCount
+				totalOperators: operators.length,
+				approvedOperatorsWithZeroValidators: approvedWithZeroValidators.length,
 				// Future stats can be added here
 			}
 		});
@@ -427,7 +445,7 @@ router.get(
  *         name: discordUsername
  *         schema:
  *           type: string
- *         required: false
+ *         required: true
  *         description: The Discord username.
  *     responses:
  *       201:
@@ -468,7 +486,7 @@ router.post(
 		const walletAddress = req.query.walletAddress as string;
 		const discordUsername = req.query.discordUsername as string | undefined;
 		
-		if (!discordId || !walletAddress) {
+		if (!discordId || !walletAddress || !discordUsername) {
 			return res.status(400).json({
 				error: "Missing discordId or walletAddress parameter",
 			});
@@ -897,37 +915,32 @@ router.get("/validators", async (_req, res) => {
 		const rollupInfo = await ethereum.getRollupInfo();
 		const blockchainValidators = rollupInfo.validators;
 		
-		// Get ALL validators from the database (handle pagination)
-		let allValidators: Validator[] = [];
-		let nextPageToken: string | undefined = undefined;
-		
-		do {
-			// Fetch page of validators
-			const result = await validatorService.getAllValidators(nextPageToken);
-			
-			// Add to our collection
-			allValidators = [...allValidators, ...result.validators];
-			
-			// Get next page token
-			nextPageToken = result.nextPageToken;
-			
-			// Log progress
-			logger.info(`Fetched ${result.validators.length} validators from database, total so far: ${allValidators.length}`);
-			
-		} while (nextPageToken); // Continue until no more pages
+		// Get total validators count without loading all records
+		const totalValidatorsCount = await validatorService.countValidators();
 		
 		// Log for debugging
-		logger.info(`Retrieved ${blockchainValidators.length} validators from blockchain and ${allValidators.length} total validators from database`);
+		logger.info(`Retrieved ${blockchainValidators.length} validators from blockchain and ${totalValidatorsCount} validators in database`);
 		
-		// For each validator in blockchain, find if it has an operator in our database
-		// Using case-insensitive comparison to match addresses
-		const validatorsWithOperators = blockchainValidators.filter(address => {
-			// Find a match in the database regardless of case
-			const dbValidator = allValidators.find(v => 
-				v.validatorAddress.toLowerCase() === address.toLowerCase()
-			);
-			return dbValidator;
-		});
+		// Process blockchain validators in batches to check against database
+		const BATCH_SIZE = 100;
+		let validatorsWithOperators: string[] = [];
+		
+		// Process blockchain validators in batches to avoid loading all records at once
+		for (let i = 0; i < blockchainValidators.length; i += BATCH_SIZE) {
+			const batch = blockchainValidators.slice(i, i + BATCH_SIZE);
+			logger.info(`Processing blockchain validators batch ${i/BATCH_SIZE + 1}, size: ${batch.length}`);
+			
+			// Check each validator in batch
+			for (const address of batch) {
+				// Check if this blockchain validator exists in our database
+				const dbValidator = await validatorService.getValidatorByAddress(address);
+				if (dbValidator) {
+					validatorsWithOperators.push(address);
+				}
+			}
+			
+			logger.info(`Found ${validatorsWithOperators.length} validators with operators so far`);
+		}
 		
 		// Log for debugging
 		logger.info(`Found ${validatorsWithOperators.length} validators with matching operators in database`);
@@ -1059,39 +1072,13 @@ router.get("/validator", async (req, res) => {
 			}
 			
 			// Find if this validator is associated with an operator
+			// The validatorRepository.findByAddress method now handles case-insensitive search with pagination
 			let dbValidator = await validatorService.getValidatorByAddress(address);
 			
-			// If not found by exact match, try case-insensitive match
-			if (!dbValidator) {
-				// Get ALL validators from the database (handle pagination) to find a case-insensitive match
-				let allValidators: any[] = [];
-				let nextPageToken: string | undefined = undefined;
-				
-				logger.info(`Validator not found by exact match, trying case-insensitive search for: ${address}`);
-				
-				do {
-					// Fetch page of validators
-					const result = await validatorService.getAllValidators(nextPageToken);
-					
-					// Add to our collection
-					allValidators = [...allValidators, ...result.validators];
-					
-					// Get next page token
-					nextPageToken = result.nextPageToken;
-					
-				} while (nextPageToken); // Continue until no more pages
-				
-				// Now search through all validators with case-insensitive comparison
-				const matchingValidator = allValidators.find(v => 
-					v.validatorAddress.toLowerCase() === address.toLowerCase()
-				);
-				
-				if (matchingValidator) {
-					logger.info(`Found case-insensitive match for ${address}: ${matchingValidator.validatorAddress}`);
-					dbValidator = matchingValidator;
-				} else {
-					logger.info(`No case-insensitive match found for ${address} in ${allValidators.length} validators`);
-				}
+			if (dbValidator) {
+				logger.info(`Found validator in database for address: ${address}`);
+			} else {
+				logger.info(`No validator found in database for address: ${address}`);
 			}
 			
 			// Get operator info if validator has an associated operator
@@ -1198,6 +1185,11 @@ router.get("/validator", async (req, res) => {
  *                 type: string
  *                 description: The validator address to add.
  *                 example: "0x1234567890abcdef1234567890abcdef12345678"
+ *               skipOnChain:
+ *                 type: boolean
+ *                 description: Whether to skip adding the validator on-chain. If true, only adds to database.
+ *                 example: false
+ *                 default: false
  *             required:
  *               - validatorAddress
  *     responses:
@@ -1239,7 +1231,7 @@ router.get("/validator", async (req, res) => {
  */
 router.post("/validator", async (req, res) => {
 	try {
-		const { validatorAddress } = req.body;
+		const { validatorAddress, skipOnChain } = req.body;
 		const discordId = req.query.discordId as string | undefined;
 		const discordUsername = req.query.discordUsername as string | undefined;
 		
@@ -1292,7 +1284,9 @@ router.post("/validator", async (req, res) => {
 		
 		// Get Ethereum instance and add validator to rollup
 		const ethereum = await getEthereumInstance();
-		await ethereum.addValidator(validatorAddress);
+		if (!skipOnChain) {
+			await ethereum.addValidator(validatorAddress);
+		}
 		
 		// Add the validator to the operator in the database
 		await nodeOperatorService.addValidatorToOperator(operatorId, validatorAddress);
@@ -1315,9 +1309,9 @@ router.post("/validator", async (req, res) => {
 				},
 			},
 		});
-	} catch (error) {
-		logger.error(error, "Error adding validator");
-		res.status(500).json({ error: "Failed to add validator" });
+	} catch (error: any) {
+		logger.error(error.message, "Error adding validator");
+		res.status(500).json({ error: error.message });
 	}
 	return;
 });
@@ -1592,6 +1586,184 @@ router.delete("/validator", async (req, res) => {
 		res.status(500).json({ error: "Failed to remove validator" });
 	}
 	return;
+});
+
+// POST /api/operator/message - sends a message to an operator
+/**
+ * @swagger
+ * /api/operator/message:
+ *   post:
+ *     summary: Send a direct message to an operator
+ *     description: Sends a direct message to a node operator via Discord.
+ *     tags: [NodeOperator]
+ *     operationId: sendMessageToOperator
+ *     security:
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: discordId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord ID of the operator.
+ *       - in: query
+ *         name: discordUsername
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord username of the operator.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               message:
+ *                 type: string
+ *                 description: The message content to send.
+ *               validatorAddress:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Optional. The validator address associated with this message, for context.
+ *                 example: "0x1234567890abcdef1234567890abcdef12345678"
+ *               parentChannelId:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Optional. For development/testing only. Overrides the default parent channel ID for thread creation.
+ *                 example: "1329081299490570296"
+ *               threadName:
+ *                 type: string
+ *                 nullable: true
+ *                 description: Optional. A custom name for the Discord thread. If not provided, a name will be generated.
+ *                 example: "Urgent Alert for Validator X"
+ *             required:
+ *               - message
+ *     responses:
+ *       200:
+ *         description: Message sent successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *       400:
+ *         description: Bad Request - Missing parameters or message body
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       404:
+ *         description: Operator not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       500:
+ *         description: Internal Server Error or failed to send message
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ */
+router.post("/message", async (req: Request, res: Response) => {
+	const discordId = req.query.discordId as string | undefined;
+	const discordUsername = req.query.discordUsername as string | undefined;
+	const { message, parentChannelId: devParentChannelId, threadName: customThreadName } = req.body;
+
+	if (!discordId && !discordUsername) {
+		return res.status(400).json({ 
+			error: "Missing discordId or discordUsername query parameter" 
+		});
+	}
+
+	if (!message) {
+		return res.status(400).json({ error: "Missing message in request body" });
+	}
+
+	let operator: any = undefined;
+	let targetDiscordId: string | undefined = discordId;
+	let operatorUsername: string | undefined = discordUsername;
+
+	try {
+		if (discordId) {
+			operator = await nodeOperatorService.getOperatorByDiscordId(discordId);
+			if (!operator) {
+				return res.status(404).json({ error: "Operator not found by ID" });
+			}
+			targetDiscordId = operator.discordId; // Ensure we have the canonical ID
+			operatorUsername = operator.discordUsername;
+		} else if (discordUsername) { // discordUsername is provided, discordId is not
+			operator = await nodeOperatorService.getOperatorByDiscordUsername(discordUsername);
+			if (operator) {
+				targetDiscordId = operator.discordId;
+				operatorUsername = operator.discordUsername; // Ensure we have the canonical username
+			} else {
+				return res.status(404).json({ error: "Operator not found by username" });
+			}
+		}
+		
+		if (!targetDiscordId) { // Should be caught by above, but as a safeguard
+			return res.status(404).json({ error: "Operator target Discord ID could not be determined" });
+		}
+
+		// Construct thread name
+		let threadName = customThreadName || `Alert for ${operatorUsername}`;
+		
+		const isDevelopment = process.env.NODE_ENV === 'development';
+		let targetParentChannelId: string;
+
+		if (isDevelopment) {
+			targetParentChannelId = devParentChannelId || CHANNELS.BOT_TEST.id;
+			logger.info(`Development mode: Using parentChannelId: ${targetParentChannelId}`);
+		} else {
+			targetParentChannelId = CHANNELS.OPERATORS_START_HERE.id;
+			// Optionally log if devParentChannelId was provided in prod but ignored
+			if (devParentChannelId) {
+				logger.warn(`Production mode: Ignoring devParentChannelId '${devParentChannelId}'. Using default OPERATORS_START_HERE.`);
+			}
+		}
+		
+		// Create private thread and send message
+		const threadResult = await discordWebhookService.createPrivateThreadWithInitialMessage({
+			parentChannelId: targetParentChannelId,
+			userToInviteAndMention: targetDiscordId,
+			threadName: threadName,
+			initialMessage: message,
+			autoArchiveDurationMinutes: 1440, // 1 day
+			reason: "Validator status alert notification"
+		});
+
+		if (threadResult.success) {
+			logger.info(`Private thread created and message sent for operator Discord ID: ${targetDiscordId}. Thread ID: ${threadResult.threadId}`);
+			return res.status(200).json({ 
+				success: true, 
+				message: "Message sent successfully in a new private thread.",
+				threadId: threadResult.threadId 
+			});
+		} else {
+			logger.error(`Failed to create thread or send message for operator Discord ID: ${targetDiscordId}. Error: ${threadResult.error}`);
+			return res.status(500).json({ error: threadResult.error || "Failed to send message via Discord service" });
+		}
+
+	} catch (error) {
+		logger.error(error as any, `Error processing message for operator: ${targetDiscordId || discordUsername}`);
+		const errorMessage = (error as any)?.message || "Internal server error while processing message";
+		if (errorMessage.includes("Operator not found")) {
+			return res.status(404).json({ error: errorMessage });
+		}
+		return res.status(500).json({ error: errorMessage });
+	}
 });
 
 export default router;

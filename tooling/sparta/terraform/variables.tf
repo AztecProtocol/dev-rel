@@ -186,6 +186,14 @@ variable "enable_validator_monitor_schedule" {
   default     = true
 }
 
+# -----------------------------------------------------------------------------
+# Aztec RPC Configuration
+# -----------------------------------------------------------------------------
+variable "aztec_rpc_url" {
+  description = "URL for the Aztec RPC"
+  type        = string
+}
+
 # =============================================================================
 # Outputs (Consider adding outputs for easy access to created resources)
 # =============================================================================

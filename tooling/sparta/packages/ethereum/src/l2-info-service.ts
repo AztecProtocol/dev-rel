@@ -7,7 +7,7 @@
 import { logger } from "@sparta/utils/logger";
 
 // RPC endpoint URL
-const DEFAULT_RPC_URL = process.env.RPC_URL || "http://35.230.8.105:8080"; // Use env var or default
+const DEFAULT_RPC_URL = process.env.AZTEC_RPC_URL || "http://localhost:8080"; // Use env var or default
 const RPC_METHOD_VALIDATOR_STATS = "node_getValidatorsStats";
 
 // --- Define types based on RPC response ---
