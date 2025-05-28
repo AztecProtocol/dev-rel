@@ -31,7 +31,7 @@ dotenv.config();
 // Configuration
 const operatorsTableName = process.env.NODE_OPERATORS_TABLE_NAME || "sparta-node-operators-dev";
 const validatorsTableName = process.env.VALIDATORS_TABLE_NAME || "sparta-validators-dev";
-const endpoint = process.env.DYNAMODB_LOCAL_ENDPOINT || "http://localhost:8000";
+const endpoint = process.env.DYNAMODB_ENDPOINT || "http://localhost:8000";
 const API_URL = `${process.env.API_URL}/api` || 'http://localhost:3000/api';
 const BACKEND_API_KEY = process.env.BACKEND_API_KEY || 'your-api-key'; // Replace with your API key or use environment variable
 const DRY_RUN = process.env.DRY_RUN === 'true'; // Set to true to skip saving to the database

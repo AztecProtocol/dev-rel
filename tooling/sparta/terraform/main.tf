@@ -479,7 +479,7 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "AWS_REGION", value = var.aws_region },
         { name = "BACKEND_API_KEY", value = var.backend_api_key },
         { name = "LOCAL_DYNAMO_DB", value = "false" },
-        { name = "DYNAMODB_LOCAL_ENDPOINT", value = var.dynamodb_local_endpoint },
+        { name = "DYNAMODB_ENDPOINT", value = var.dynamodb_endpoint },
         { name = "API_HOST", value = "0.0.0.0" }, # Make sure Express listens on 0.0.0.0 inside container
         { name = "BOT_TOKEN", value = var.bot_token },
         { name = "BOT_CLIENT_ID", value = var.bot_client_id },

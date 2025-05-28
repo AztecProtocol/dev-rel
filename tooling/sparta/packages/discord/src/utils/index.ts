@@ -10,3 +10,6 @@ export * from "./roles";
 
 // Re-export other utilities
 export * from "./roleAssigner";
+
+// Re-export message management utilities
+export * from "./messageManager";

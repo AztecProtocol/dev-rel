@@ -26,8 +26,11 @@
     "dev:webapp": "bun --env-file=.env --elide-lines=0 --filter='@sparta/webapp' run dev",
     "dev:api": "bun --env-file=.env --elide-lines=0 --filter='@sparta/api' run dev",
     "dev:scheduler": "bun run build && NODE_ENV='development' bun --env-file=.env --elide-lines=0 --filter='@sparta/scheduler' run dev",
-    "dev:migration": "bun --env-file=.env --filter='@sparta/utils' run backup && bun --env-file=.env --filter='@sparta/utils' --elide-lines=0 run migration",
-    "dev:migration:dry": "DRY_RUN=true bun --env-file=.env --filter='@sparta/utils' --elide-lines=0 run migration"
+    "staging": "bun run prep && bun run build && NODE_ENV='development' bun --env-file=.env.production --elide-lines=0 --filter='@sparta/api' --filter='@sparta/discord' run dev",
+    "staging:migration": "bun --env-file=.env.production --filter='@sparta/utils' run backup && bun --env-file=.env.production --filter='@sparta/utils' --elide-lines=0 run migration",
+    "staging:migration:dry": "DRY_RUN=true bun --env-file=.env.production --filter='@sparta/utils' --elide-lines=0 run migration",
+    "test:setup": "bun run scripts/copy_prod_db.ts",
+    "test:e2e": "bun --env-file=.env --elide-lines=0 --filter='@sparta/e2e' run test:e2e"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.788.0",

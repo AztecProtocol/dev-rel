@@ -90,7 +90,7 @@ app.listen(process.env.API_PORT as unknown as number, "0.0.0.0", async () => {
 	console.log(`Server is running on port ${process.env.API_PORT}`);
 	console.log(`Allowing CORS for: ${allowedOrigins.join(", ")}`);
 	console.log(
-		`API Documentation available at: ${process.env.API_URL}/api-docs`
+		`API Documentation available at: ${process.env.API_URL}/api/docs`
 	);
 
 	// Start Discord Bot and then the background processor

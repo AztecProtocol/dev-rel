@@ -26,8 +26,10 @@ export enum NodeOperatorSubcommands {
 	ChainInfo = "chain-info",
 	MyStats = "my-stats",
 	Start = "start",
-	Help = "help",
+	StartHelp = "start-help",
 	AddValidator = "add-validator",
+	Help = "help",
+	IsReady = "is-ready",
 }
 
 // Other role-related enums

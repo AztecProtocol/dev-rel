@@ -63,13 +63,13 @@ export async function getNodeOperatorInfo(
 				
 				if (!operator) {
 					const embed = new EmbedBuilder()
-						.setTitle("❌ NOT REGISTERED")
+						.setTitle("⚔️ WARRIOR NOT ENLISTED")
 						.setColor(0xff0000) // Red for error
-						.setDescription("You are not registered as a node operator.")
+						.setDescription("You have not taken the Spartan oath yet, warrior.")
 						.addFields([
 							{
-								name: "How to Register",
-								value: "Use the `/operator start` command to register as a node operator.",
+								name: "Join the Spartan Ranks",
+								value: "Use the `/operator start` command to pledge your service to the Aztec Network.",
 							}
 						]);
 					
@@ -141,25 +141,25 @@ export async function getNodeOperatorInfo(
 				
 				// Create embed with all operator information
 				const embed = new EmbedBuilder()
-					.setTitle(`YOUR OPERATOR INFO`)
-					.setColor(0x4bb543) // Standard green color for operator info
-					.setDescription(`Your node operator status and validator information`)
+					.setTitle(`🛡️ YOUR SPARTAN BATTLE REPORT`)
+					.setColor(0x8B0000) // Deep red for Spartan theme
+					.setDescription(`Your warrior status and battlefield performance in the Aztec Network`)
 					.addFields([
 						{
-							name: "Discord ID",
+							name: "🎭 Warrior Identity (Discord ID)",
 							value: `\`${operator.discordId}\``,
 							inline: true
 						},
 						{
-							name: "Wallet Address",
+							name: "⚔️ Battle Address",
 							value: `\`${operator.walletAddress}\``,
 							inline: true
 						},
 						{
-							name: "Validators",
+							name: "🏺 Validator Forces",
 							value: hasValidators ? 
-								`Total: ${totalValidators} | In Set: ${validatorsInSet} | Attesting: ${validatorsAttesting}` : 
-								"No validators found",
+								`Total validators: **${totalValidators}** | In the Set: **${validatorsInSet}** | Attesting: **${validatorsAttesting}**` : 
+								"No validators deployed for battle",
 						}
 					]);
 				
@@ -170,10 +170,10 @@ export async function getNodeOperatorInfo(
 						if (v) {
 							embed.addFields([
 								{
-									name: `Validator ${i+1}: ${v.address.substring(0, 10)}...`,
-									value: `In Set: ${v.inSet ? "✅" : "❌"} | ` +
-										   `Attesting: ${v.attesting ? "✅" : "❌"} | ` +
-										   `Miss %: ${v.missPercentage}`,
+									name: `🗡️ Warrior ${i+1}: ${v.address.substring(0, 10)}...`,
+									value: `In Formation: ${v.inSet ? "✅ **In Set**" : "❌ *Awaiting orders (Not in the Validator Set)**"} | ` +
+										   `Battle Status: ${v.attesting ? "⚔️ **Attesting**" : "🛡️ *Faulty (Not Attesting)**"} | ` +
+										   `Miss Rate: ${v.missPercentage}`,
 									inline: false
 								}
 							]);
@@ -184,12 +184,12 @@ export async function getNodeOperatorInfo(
 				// Add registration timestamps
 				embed.addFields([
 					{
-						name: "Registered",
+						name: "🏛️ Enlisted",
 						value: new Date(operator.createdAt).toISOString(),
 						inline: true
 					},
 					{
-						name: "Last Updated",
+						name: "⚡ Last Battle Report",
 						value: new Date(operator.updatedAt).toISOString(),
 						inline: true
 					}
@@ -199,17 +199,17 @@ export async function getNodeOperatorInfo(
 				return;
 				
 			} catch (apiError: any) {
-				logger.error("Error fetching operator:", apiError);
+				logger.error(apiError,"Error fetching operator");
 				
 				if (apiError.response && apiError.response.status === 404) {
 					const embed = new EmbedBuilder()
-						.setTitle("❌ NOT REGISTERED")
+						.setTitle("⚔️ WARRIOR NOT ENLISTED")
 						.setColor(0xff0000) // Red for error
-						.setDescription("You are not registered as a node operator.")
+						.setDescription("You have not taken the Spartan oath yet, warrior.")
 						.addFields([
 							{
-								name: "How to Register",
-								value: "Use the `/operator start` command to register as a node operator.",
+								name: "Join the Spartan Ranks",
+								value: "Use the `/operator start` command to pledge your service to the Aztec Network.",
 							}
 						]);
 					
@@ -219,13 +219,13 @@ export async function getNodeOperatorInfo(
 				
 				// Other errors
 				const embed = new EmbedBuilder()
-					.setTitle("❌ ERROR FETCHING YOUR INFO")
+					.setTitle("⚔️ BATTLE INTELLIGENCE FAILURE")
 					.setColor(0xff0000) // Red for error
-					.setDescription("There was an error retrieving your operator information.")
+					.setDescription("The Spartan scouts encountered an error while gathering your battle report.")
 					.addFields([
 						{
-							name: "Error",
-							value: "The operator service returned an error.",
+							name: "Error Status",
+							value: "Our information networks are experiencing difficulties, warrior.",
 						}
 					]);
 
@@ -237,13 +237,13 @@ export async function getNodeOperatorInfo(
 			logger.error(error, "Error with operator API service");
 			
 			const embed = new EmbedBuilder()
-				.setTitle("❌ SERVICE ERROR")
+				.setTitle("⚔️ SPARTAN COMMUNICATIONS DOWN")
 				.setColor(0xff0000) // Red for error
-				.setDescription("API service error when fetching your operator information.")
+				.setDescription("Our battle communication network is temporarily disrupted.")
 				.addFields([
 					{
-						name: "Error",
-						value: "The operator service is currently unavailable.",
+						name: "Error Status",
+						value: "The Spartan intelligence service is currently unreachable.",
 					}
 				]);
 
@@ -252,7 +252,7 @@ export async function getNodeOperatorInfo(
 		}
 	} catch (error) {
 		logger.error("Error executing my-info command:", error);
-		await interaction.editReply("Error retrieving your operator information.");
+		await interaction.editReply("⚔️ Battle report failed! Our scribes encountered an error, warrior.");
 		throw error;
 	}
 }

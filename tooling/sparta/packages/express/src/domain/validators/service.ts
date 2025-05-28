@@ -102,27 +102,6 @@ class ValidatorService {
     }
 
     /**
-     * Updates the node operator for a validator.
-     * @param validatorAddress The validator address.
-     * @param newNodeOperatorId The new node operator Discord ID.
-     * @returns True if the update was successful, false otherwise.
-     */
-    public async updateValidatorOperator(
-        validatorAddress: string,
-        newNodeOperatorId: string
-    ): Promise<boolean> {
-        try {
-            return await this.repository.updateNodeOperator(validatorAddress, newNodeOperatorId);
-        } catch (error) {
-            logger.error(
-                { error, validatorAddress, newNodeOperatorId },
-                "Service error updating validator operator"
-            );
-            throw error;
-        }
-    }
-
-    /**
      * Deletes a validator by address.
      * @param validatorAddress The validator address.
      * @returns True if deletion was successful, false otherwise.

@@ -1600,15 +1600,6 @@
         "parameters": [
           {
             "in": "query",
-            "name": "address",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The wallet address of the validator to retrieve."
-          },
-          {
-            "in": "query",
             "name": "discordId",
             "schema": {
               "type": "string"
@@ -1796,111 +1787,6 @@
           },
           "404": {
             "description": "Operator not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "summary": "Update validator's operator",
-        "description": "Transfers a validator from one operator to another.",
-        "tags": [
-          "Validator"
-        ],
-        "operationId": "updateValidator",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "validatorAddress": {
-                    "type": "string",
-                    "description": "The validator address to transfer.",
-                    "example": "0x1234567890abcdef1234567890abcdef12345678"
-                  },
-                  "fromDiscordId": {
-                    "type": "string",
-                    "description": "The Discord ID of the current operator.",
-                    "example": "123456789012345678"
-                  },
-                  "toDiscordId": {
-                    "type": "string",
-                    "description": "The Discord ID of the new operator to transfer to.",
-                    "example": "987654321098765432"
-                  }
-                },
-                "required": [
-                  "validatorAddress",
-                  "fromDiscordId",
-                  "toDiscordId"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Validator transferred successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "data": {
-                      "$ref": "#/components/schemas/ValidatorResponse"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Missing or invalid parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Operator or validator not found",
             "content": {
               "application/json": {
                 "schema": {

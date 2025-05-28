@@ -6,7 +6,7 @@
  * 2. Fetches all validators from the database
  * 3. Gets the current validator set from the blockchain
  * 4. Identifies validators that are in the DB but not in the current set (slashed)
- * 5. Updates slashed validators' operators: sets wasSlashed=true, isApproved=false
+ * 5. Updates slashed validators' operators: sets wasSlashed=true
  * 6. Removes slashed validators from validators table
  * 7. Generates a report of affected users
  * 
@@ -35,7 +35,7 @@ import fetch from 'node-fetch';
 // Configuration
 const operatorsTableName = process.env.NODE_OPERATORS_TABLE_NAME || "sparta-node-operators-dev";
 const validatorsTableName = process.env.VALIDATORS_TABLE_NAME || "sparta-validators-dev";
-const endpoint = process.env.DYNAMODB_LOCAL_ENDPOINT || "http://localhost:8000";
+const endpoint = process.env.DYNAMODB_ENDPOINT || "http://localhost:8000";
 const API_URL = `${process.env.API_URL}/api` || 'http://localhost:3000/api';
 const BACKEND_API_KEY = process.env.BACKEND_API_KEY || 'your-api-key';
 const DRY_RUN = process.env.DRY_RUN === 'true';
@@ -191,11 +191,11 @@ async function getNodeOperator(docClient, discordId) {
 }
 
 /**
- * Updates a node operator to set wasSlashed=true and isApproved=false
+ * Updates a node operator to set wasSlashed=true
  */
 async function updateSlashedOperator(docClient, discordId, operatorInfo) {
   if (DRY_RUN) {
-    console.log(`   [DRY RUN] Would update operator ${discordId} (${operatorInfo.discordUsername || 'No username'}) - set wasSlashed=true, isApproved=false`);
+    console.log(`   [DRY RUN] Would update operator ${discordId} (${operatorInfo.discordUsername || 'No username'}) - set wasSlashed=true`);
     return true;
   }
   
@@ -203,16 +203,15 @@ async function updateSlashedOperator(docClient, discordId, operatorInfo) {
     const command = new UpdateCommand({
       TableName: operatorsTableName,
       Key: { discordId },
-      UpdateExpression: "SET wasSlashed = :wasSlashed, isApproved = :isApproved, updatedAt = :updatedAt",
+      UpdateExpression: "SET wasSlashed = :wasSlashed, updatedAt = :updatedAt",
       ExpressionAttributeValues: {
         ":wasSlashed": true,
-        ":isApproved": false,
         ":updatedAt": Date.now()
       }
     });
     
     await docClient.send(command);
-    console.log(`   ✅ Updated operator ${discordId} - set wasSlashed=true, isApproved=false`);
+    console.log(`   ✅ Updated operator ${discordId} - set wasSlashed=true`);
     return true;
   } catch (error) {
     console.error(`   ❌ Failed to update operator ${discordId}:`, error.message);
@@ -272,8 +271,7 @@ async function processSlashedValidators(docClient, slashedValidators) {
       discordId: operator.discordId,
       discordUsername: operator.discordUsername || 'No username',
       walletAddress: operator.walletAddress,
-      validatorAddress: validator.validatorAddress,
-      wasApproved: operator.isApproved
+      validatorAddress: validator.validatorAddress
     });
     
     // Update operator approval status

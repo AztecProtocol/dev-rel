@@ -27,17 +27,17 @@ export async function registerValidator(
 
 		// Validate address format
 		if (!address || !/^0x[a-fA-F0-9]{40}$/.test(address)) {
-			await interaction.editReply("Invalid Ethereum address format.");
+			await interaction.editReply("⚔️ Invalid battle address format, warrior! Ensure it follows Ethereum standards.");
 			return "Invalid address format";
 		}
 
 		if (!blockNumber || !/^[0-9]+$/.test(blockNumber)) {
-			await interaction.editReply("Invalid block number format.");
+			await interaction.editReply("🏛️ Invalid stronghold number format, warrior!");
 			return "Invalid block number format";
 		}
 
 		if (!proof) {
-			await interaction.editReply("Invalid proof format.");
+			await interaction.editReply("📜 Invalid proof format, warrior! Your sync proof appears corrupted.");
 			return "Invalid proof format";
 		}
 
@@ -47,10 +47,10 @@ export async function registerValidator(
 
 			// Create a Discord embed for the result
 			const embed = new EmbedBuilder()
-				.setTitle(`Validator Registration`)
-				.setColor(isValid ? 0x00ff00 : 0xff0000) // Green for success, Red for failure
+				.setTitle(`⚔️ SPARTAN WARRIOR REGISTRATION`)
+				.setColor(isValid ? 0x8B0000 : 0xff0000) // Deep red for success, bright red for failure
 				.setTimestamp()
-				.setFooter({ text: "Sparta Validator Registration" });
+				.setFooter({ text: "Aztec Network • Spartan Defense Force" });
 
 			const displayAddress = `${address.slice(0, 6)}...${address.slice(
 				-4
@@ -144,79 +144,79 @@ export async function registerValidator(
 					// Set appropriate message based on operation result
 					if (operationResult === "created") {
 						embed.setDescription(
-							`✅ **New validator ${displayAddress} registered successfully!**`
+							`🛡️ **Welcome to the Spartan ranks, warrior ${displayAddress}!**\n⚔️ Your oath has been accepted and your battle station prepared.`
 						);
 						embed.addFields(
 							{
-								name: "Address",
+								name: "🏺 Battle Address",
 								value: address,
 								inline: false,
 							},
 							{
-								name: "Block Number",
+								name: "🏛️ Stronghold Number",
 								value: blockNumber,
 								inline: true,
 							},
 							{
-								name: "Proof Verified",
-								value: "✓",
+								name: "📜 Proof Status",
+								value: "✅ **Verified by the Oracle**",
 								inline: true,
 							},
 							{
-								name: "Status",
-								value: "New operator registered",
+								name: "⚡ Rank Achieved",
+								value: "🥉 **Spartan Apprentice** - Welcome to the brotherhood!",
 								inline: false,
 							}
 						);
 					} else if (operationResult === "updated") {
 						embed.setDescription(
-							`✅ **Validator ${displayAddress} updated successfully!**`
+							`🔄 **Battle address updated for warrior ${displayAddress}!**\n⚔️ Your new coordinates have been recorded in our war registry.`
 						);
 						embed.addFields(
 							{
-								name: "Address",
+								name: "🏺 New Battle Address",
 								value: address,
 								inline: false,
 							},
 							{
-								name: "Block Number",
+								name: "🏛️ Stronghold Number",
 								value: blockNumber,
 								inline: true,
 							},
 							{
-								name: "Proof Verified",
-								value: "✓",
+								name: "📜 Proof Status",
+								value: "✅ **Verified by the Oracle**",
 								inline: true,
 							},
 							{
-								name: "Status",
-								value: "Wallet address updated",
+								name: "⚡ Status Update",
+								value: "🔧 **Coordinates Updated** - Ready for battle!",
 								inline: false,
 							}
 						);
 					} else {
 						embed.setDescription(
-							`✅ **Validator ${displayAddress} verification successful!**`
+							`✅ **Proof verified for warrior ${displayAddress}!**\n🛡️ Your commitment to the Spartan cause is confirmed.`
 						);
 						embed.addFields(
 							{
-								name: "Address",
+								name: "🏺 Battle Address",
 								value: address,
 								inline: false,
 							},
 							{
-								name: "Block Number",
+								name: "🏛️ Stronghold Number",
 								value: blockNumber,
 								inline: true,
 							},
 							{
-								name: "Proof Verified",
-								value: "✓",
+								name: "📜 Proof Status",
+								value: "✅ **Verified by the Oracle**",
 								inline: true,
 							},
 							{
-								name: "Status",
-								value: "Already registered with this address",
+								name: "⚡ Current Status",
+								value: "🏛️ **Already Enlisted** - Standing strong with us!",
 								inline: false,
 							}
 						);
@@ -227,42 +227,50 @@ export async function registerValidator(
 
 					// Set fallback message when API error occurs
 					embed.setDescription(
-						`✅ **Validator ${displayAddress} proof verified, but registration service unavailable.**`
+						`⚔️ **Warrior ${displayAddress} proof accepted, but our scribes are unavailable (API Error)!**\n🏺 Your battle worthiness is proven, but registration records are temporarily inaccessible.`
 					);
 					embed.addFields(
 						{
-							name: "Address",
+							name: "🏺 Battle Address",
 							value: address,
 							inline: false,
 						},
 						{
-							name: "Block Number",
+							name: "🏛️ Stronghold Number",
 							value: blockNumber,
 							inline: true,
 						},
 						{
-							name: "Proof Verified",
-							value: "✓",
+							name: "📜 Proof Status",
+							value: "✅ **Verified by the Oracle**",
 							inline: true,
 						},
 						{
-							name: "Note",
-							value: "Registration service error - please try again later",
+							name: "⚠️ Spartan Notice",
+							value: "🏛️ Registry service disrupted - retry your oath later, warrior",
 							inline: false,
 						}
 					);
 				}
 			} else {
-				embed.setDescription(`❌ **Validator registration failed.**`);
+				embed.setDescription(`❌ **Warrior registration denied!**\n⚔️ Your proof of battle readiness has been rejected by the Oracle.`);
 				embed.addFields(
-					{ name: "Address", value: address, inline: false },
-					{ name: "Reason", value: "Invalid proof", inline: false }
+					{ 
+						name: "🏺 Battle Address", 
+						value: address, 
+						inline: false 
+					},
+					{ 
+						name: "🚫 Rejection Reason", 
+						value: "📜 **Invalid sync proof** - Your node may not be battle-ready", 
+						inline: false 
+					}
 				);
 			}
 
 			await interaction.editReply({ embeds: [embed] });
 
-			return isValid ? "Registration successful" : "Registration failed";
+			return isValid ? "Spartan registration successful" : "Registration denied by Oracle";
 		} catch (error) {
 			logger.error("Error validating proof:", error);
 
@@ -270,13 +278,13 @@ export async function registerValidator(
 				error instanceof Error ? error.message : "Unknown error";
 
 			const embed = new EmbedBuilder()
-				.setTitle(`Registration Error`)
+				.setTitle(`⚔️ SPARTAN REGISTRATION ERROR`)
 				.setColor(0xff0000) // Red for error
 				.setDescription(
-					`❌ **Validator registration failed:**\n${errorMessage}`
+					`❌ **Battle registration failed, warrior:**\n🏺 ${errorMessage}`
 				)
 				.setTimestamp()
-				.setFooter({ text: "Sparta Validator Registration" });
+				.setFooter({ text: "Aztec Network • Spartan Defense Force" });
 
 			await interaction.editReply({ embeds: [embed] });
 			return `Registration error: ${errorMessage}`;
@@ -287,12 +295,12 @@ export async function registerValidator(
 		if (interaction.replied || interaction.deferred) {
 			await interaction.editReply({
 				content:
-					"Something went wrong while processing your registration.",
+					"⚔️ The Spartan registration ritual has failed! Our battle systems encountered an error, warrior.",
 			});
 		} else {
 			await interaction.editReply({
 				content:
-					"Something went wrong while processing your registration.",
+					"⚔️ The Spartan registration ritual has failed! Our battle systems encountered an error, warrior.",
 			});
 		}
 

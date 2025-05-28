@@ -27,7 +27,7 @@ const operatorsTableName = process.argv[2] || "sparta-node-operators-dev";
 const validatorsTableName = process.argv[3] || "sparta-validators-dev";
 const NODE_OPERATOR_INDEX_NAME = "NodeOperatorIndex";   
 const isLocal = process.env.IS_LOCAL !== "false";
-const endpoint = process.env.DYNAMODB_LOCAL_ENDPOINT || "http://localhost:8000";
+const endpoint = process.env.DYNAMODB_ENDPOINT || "http://localhost:8000";
 
 console.log("====== Validators Migration ======");
 console.log("Source table (node operators): " + operatorsTableName);

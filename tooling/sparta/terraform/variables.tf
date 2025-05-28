@@ -89,7 +89,7 @@ variable "local_dynamo_db" {
   default     = false
 }
 
-variable "dynamodb_local_endpoint" {
+variable "dynamodb_endpoint" {
   description = "Endpoint URL for local DynamoDB"
   type        = string
   default     = "http://localhost:8000"

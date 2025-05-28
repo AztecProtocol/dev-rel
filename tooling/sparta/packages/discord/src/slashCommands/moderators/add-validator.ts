@@ -80,7 +80,7 @@ export async function addValidator(
 					.setColor(0xff0000)
 					.setDescription(`No node operator found with Discord username: \`${targetDiscordUsername}\`. They need to register first.`)
 					.setTimestamp()
-					.setFooter({ text: "Sparta Operator Management" });
+					.setFooter({ text: "Aztec Network Operator Management" });
 				await interaction.editReply({ embeds: [errorEmbed] });
 				return "Approval failed - Operator not found";
 			}
@@ -90,7 +90,7 @@ export async function addValidator(
 				.setDescription(`An error occurred while trying to approve \`${targetDiscordUsername}\`.`)
 				.addFields({ name: "Details", value: approvalError.message || "Please check logs."})
 				.setTimestamp()
-				.setFooter({ text: "Sparta Operator Management" });
+				.setFooter({ text: "Aztec Network Operator Management" });
 			await interaction.editReply({ embeds: [errorEmbed] });
 			return "Approval error";
 		}
@@ -111,7 +111,7 @@ export async function addValidator(
 					.setColor(0xff0000)
 					.setDescription(`Failed to retrieve operator details for \`${targetDiscordUsername}\` after approval. Cannot proceed with validator addition.`)
 					.setTimestamp()
-					.setFooter({ text: "Sparta Operator Management" });
+					.setFooter({ text: "Aztec Network Operator Management" });
 				await interaction.editReply({ embeds: [errorEmbed] });
 				return "Error fetching operator details post-approval";
 			}
@@ -126,7 +126,7 @@ export async function addValidator(
 				.setDescription(`Could not fetch details for operator \`${targetDiscordUsername}\`.`)
 				.addFields({ name: "Details", value: fetchError.message || "Please check logs."})
 				.setTimestamp()
-				.setFooter({ text: "Sparta Operator Management" });
+				.setFooter({ text: "Aztec Network Operator Management" });
 			await interaction.editReply({ embeds: [errorEmbed] });
 			return "Error fetching operator data";
 		}
@@ -160,7 +160,7 @@ export async function addValidator(
 				);
 
 			// Send DM to the operator
-			const dmContent = `Hear ye, hear ye, brave Spartan warrior! 🛡️ A moderator has **APPROVED** your entry and **ADDED** your validator to the Aztec network!\n\nYour validator address: \`${validatorAddress}\` is now registered.\n\n- Keep your shield up and your validator sharp! You can check its readiness with \`/operator my-stats\`.\n- A true Spartan upholds the line! Neglecting your duties could lead to your validator being slashed.\n\nShould you need guidance, seek aid in our support channels or message <@411954463541166080> (my creator) directly. Do not reply to this message.\n\nVictory favors the prepared! This is SPARTAAAA! 💪`;
+			const dmContent = `Hear ye, hear ye, brave Spartan warrior! 🛡️ A moderator has **APPROVED** your entry and **ADDED** your validator to the Aztec network!\n\nYour validator address: \`${validatorAddress}\` is now registered.\n\n- Keep your shield up and your validator sharp! You can check its readiness with \`/operator my-stats\`.\n- A true Spartan upholds the line! Neglecting your duties could lead to your validator being slashed.\n\nShould you need guidance, seek aid in this channel or message <@411954463541166080> (my creator) directly.\n\nVictory favors the prepared! This is SPARTAAAA! 💪`;
 			const dmThreadName = `Auto-Notification: Approved & Validator Added - ${targetDiscordUsername}`;
 			let dmStatusMessage = "A direct message has been sent to the operator.";
 

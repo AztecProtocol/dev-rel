@@ -1,6 +1,7 @@
 import { ChatInputCommandInteraction, MessageFlags } from "discord.js";
 import { getEthereumInstance } from "@sparta/ethereum";
 import { logger } from "@sparta/utils";
+import { manageChannelMessage } from "../../utils/messageManager.js";
 
 export const get = async (
 	interaction: ChatInputCommandInteraction
@@ -20,15 +21,24 @@ export const get = async (
 			proposerNow,
 		} = await ethereum.getRollupInfo();
 
-		await interaction.editReply({
+		const chainMessage = await interaction.editReply({
 			content: `
-Pending block: [${pendingBlockNum}](https://aztecscan.xyz/blocks/${pendingBlockNum})
-Proven block: [${provenBlockNum}](https://aztecscan.xyz/blocks/${provenBlockNum})
-Current epoch: ${currentEpoch}
-Current slot: ${currentSlot}
-Proposer now: [${proposerNow}](https://sepolia.etherscan.io/address/${proposerNow})`,
+🛡️ **SPARTAN NETWORK REPORT** 🛡️
+
+⚔️ **Battlefield Status:**
+• Pending block: [${pendingBlockNum}](https://aztecscan.xyz/blocks/${pendingBlockNum}) - *Awaiting confirmation*
+• Proven block: [${provenBlockNum}](https://aztecscan.xyz/blocks/${provenBlockNum}) - *Battle tested & secured*
+• Current epoch: **${currentEpoch}** - *Era of combat*
+• Current slot: **${currentSlot}** - *Position in formation*
+• Commander on duty (proposer): [${proposerNow}](https://sepolia.etherscan.io/address/${proposerNow}) - *Leading the charge*
+
+🏛️ The Aztec Network stands strong, warrior! 🏛️`,
 			flags: MessageFlags.SuppressEmbeds,
 		});
+
+		// Use the message manager utility to handle cleanup
+		await manageChannelMessage(interaction, 'chain-info', chainMessage);
+
 		return `Pending block: ${pendingBlockNum}\nProven block: ${provenBlockNum}\nCurrent epoch: ${currentEpoch}\nCurrent slot: ${currentSlot}\nProposer now: ${proposerNow}`;
 	} catch (error) {
 		logger.error(error, "Error getting chain info");

@@ -7,66 +7,86 @@ import {
 } from "../../types.js";
 import { getNodeOperatorInfo } from "./my-stats.js";
 import { registerValidator } from "./register.js";
-import { showRegistrationHelp } from "./help.js";
+import { showRegistrationHelp, showOperatorHelp } from "./help.js";
 import { addValidator } from "./add-validator.js";
+import { checkNodeReadiness } from "./is-ready.js";
 
 export default {
 	data: new SlashCommandBuilder()
 		.setName(NodeOperatorSubcommandGroups.Operator)
-		.setDescription("Node operator commands")
+		.setDescription("⚔️ Spartan warrior commands for Aztec Network operations")
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName(NodeOperatorSubcommands.Help)
+				.setDescription("📜 View Spartan command arsenal and battle instructions")
+		)
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName(NodeOperatorSubcommands.MyStats)
-				.setDescription("Check your node operator status and validator stats")
+				.setDescription("🛡️ Check your warrior status and validator battle performance")
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName(NodeOperatorSubcommands.ChainInfo)
-				.setDescription("Get chain information")
+				.setDescription("🏛️ Survey the Aztec Network battlefield status")
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName(NodeOperatorSubcommands.Start)
-				.setDescription("Register your validator")
+				.setDescription("⚔️ Take the Spartan oath and join the ranks")
 				.addStringOption((option) =>
 					option
 						.setName("address")
-						.setDescription("Your validator address")
+						.setDescription("Your warrior's Ethereum battle address")
 						.setRequired(true)
 				)
 				.addStringOption((option) =>
 					option
 						.setName("block-number")
-						.setDescription("Block number for verification")
+						.setDescription("Stronghold number for battle verification")
 						.setRequired(true)
 				)
 				.addStringOption((option) =>
 					option
 						.setName("proof")
-						.setDescription("Your sync proof")
+						.setDescription("Your forged sync proof of battle readiness")
 						.setRequired(true)
 				)
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName(NodeOperatorSubcommands.AddValidator)
-				.setDescription("Add a new validator to your account")
+				.setDescription("🗡️ Deploy additional validator to the front lines")
 				.addStringOption((option) =>
 					option
 						.setName("validator-address")
-						.setDescription("The validator address to add")
+						.setDescription("Battle address of the validator to deploy")
 						.setRequired(true)
 				)
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
-				.setName(NodeOperatorSubcommands.Help)
-				.setDescription("Display help information for node operators")
+				.setName(NodeOperatorSubcommands.StartHelp)
+				.setDescription("📋 Study the ancient ritual of Spartan warrior initiation")
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName(NodeOperatorSubcommands.IsReady)
+				.setDescription("🏰 Check if your battle fortress is ready for combat")
+				.addStringOption((option) =>
+					option
+						.setName("ip-address")
+						.setDescription("Your fortress IP address for readiness inspection")
+						.setRequired(false)
+				)
 		),
 	execute: async (interaction: ChatInputCommandInteraction) => {
 		try {
 			const subcommand = interaction.options.getSubcommand();
 			switch (subcommand) {
+				case NodeOperatorSubcommands.Help:
+					await showOperatorHelp(interaction);
+					break;
 				case NodeOperatorSubcommands.MyStats:
 					await getNodeOperatorInfo(interaction);
 					break;
@@ -76,15 +96,18 @@ export default {
 				case NodeOperatorSubcommands.Start:
 					await registerValidator(interaction);
 					break;
-				case NodeOperatorSubcommands.Help:
+				case NodeOperatorSubcommands.StartHelp:
 					await showRegistrationHelp(interaction);
 					break;
 				case NodeOperatorSubcommands.AddValidator:
 					await addValidator(interaction);
 					break;
+				case NodeOperatorSubcommands.IsReady:
+					await checkNodeReadiness(interaction);
+					break;
 				default:
 					await interaction.editReply({
-						content: `Invalid subcommand: ${subcommand}`,
+						content: `⚔️ Unknown battle command: ${subcommand} - Consult the command scroll!`,
 					});
 					return "Invalid subcommand";
 			}

@@ -1,0 +1,21 @@
+services:
+    dynamodb-local:
+        container_name: dynamodb-local
+        ports:
+            - 8000:8000
+        image: amazon/dynamodb-local:latest
+        env_file:
+            - .env
+        command: -jar DynamoDBLocal.jar -sharedDb
+
+    anvil:
+      build:
+        context: .
+        dockerfile: Dockerfile.anvil
+      container_name: anvil
+      working_dir: /anvil
+      environment:
+        FORK_URL: "${BLOCKCHAIN_FORK_URL}"
+      ports:
+        - "8545:8545"
+      command: anvil

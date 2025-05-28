@@ -49,7 +49,7 @@ AWS_REGION=us-east-1
 # Migration options
 DRY_RUN=true          # Run in dry mode (no database writes)
 IS_LOCAL=false        # Set to true for local DynamoDB
-DYNAMODB_LOCAL_ENDPOINT=http://localhost:8000
+DYNAMODB_ENDPOINT=http://localhost:8000
 ```
 
 ## Available Migrations

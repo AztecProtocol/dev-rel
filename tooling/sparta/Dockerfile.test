@@ -46,16 +46,24 @@ RUN bun install --frozen-lockfile
 # This includes Express, Vite, Utils, etc.
 COPY . .
 
-# Declare the build argument for the Vite frontend URL
-ARG API_URL
-
-ENV API_URL=$API_URL
+# Copy and make startup script executable
+COPY scripts/startup.sh /app/startup.sh
+RUN chmod +x /app/startup.sh
 
 # Expose the port the Express server will listen on
 # Make sure this matches the PORT environment variable passed in Terraform (var.api_port)
 EXPOSE 3000
 
-# Start ONLY the Express API server using its own start script
-# Assumes a "start" script exists in packages/express/package.json (or the relevant API package)
-# This avoids running the root build/swagger scripts at runtime.
-CMD ["bun", "--filter=@sparta/api", "--filter=@sparta/discord", "run", "start"]
+ARG AWS_ACCESS_KEY_ID
+ARG AWS_SECRET_ACCESS_KEY
+ARG AWS_REGION
+
+ENV AWS_ACCESS_KEY_ID=$AWS_ACCESS_KEY_ID
+ENV AWS_SECRET_ACCESS_KEY=$AWS_SECRET_ACCESS_KEY
+ENV AWS_REGION=$AWS_REGION
+
+# Database setup script will run at container startup, not build time
+# RUN bun run scripts/copy_prod_db.ts
+
+# Use startup script that waits for dependencies and sets up database
+CMD ["/app/startup.sh"]

@@ -219,7 +219,7 @@ export async function getOperatorInfo(
 				return;
 				
 			} catch (apiError: any) {
-				logger.error("Error fetching operator:", apiError);
+				logger.error(apiError, "Error fetching operator:");
 				
 				if (apiError.response && apiError.response.status === 404) {
 					const embed = new EmbedBuilder()

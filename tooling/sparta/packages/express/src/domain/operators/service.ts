@@ -270,17 +270,6 @@ class NodeOperatorService {
 				return false;
 			}
 			
-			// Check if the validator already exists
-			const existingValidator = await validatorService.getValidatorByAddress(validatorAddress);
-			if (existingValidator) {
-				// If it exists but belongs to a different operator, update it
-				if (existingValidator.nodeOperatorId !== discordId) {
-					return await validatorService.updateValidatorOperator(validatorAddress, discordId);
-				}
-				// If it's already associated with this operator, return success
-				return true;
-			}
-			
 			// Create a new validator associated with this operator
 			const validator = await validatorService.createValidator(validatorAddress, discordId);
 			return !!validator;

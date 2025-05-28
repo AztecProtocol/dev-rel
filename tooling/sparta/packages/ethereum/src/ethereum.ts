@@ -90,6 +90,7 @@ export class Ethereum {
 			logger.info("Initializing Ethereum client");
 			const rpcUrl = process.env.ETHEREUM_HOST as string;
 
+			console.log("rpcUrl", rpcUrl);
 			if (!rpcUrl) {
 				throw new Error(
 					"ETHEREUM_HOST environment variable is not set or not loaded yet."
@@ -126,9 +127,10 @@ export class Ethereum {
 				client: publicClient,
 			});
 
+			console.log(await rollup.read.getAttesters());
+
 			return new Ethereum(rollup, stakingAssetHandler, publicClient, walletClient);
 		} catch (error: unknown) {
-			logger.error({ error }, "Error initializing Ethereum client");
 			if (error instanceof Error) {
 				throw new Error(error.message);
 			} else {

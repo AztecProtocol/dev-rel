@@ -112,7 +112,7 @@ async function createItem(itemData: Record<string, any>) {
 // createItem({ id: 'example-123', name: 'Test Item', value: 100 });
 ```
 
-The service handles local DynamoDB configuration via `LOCAL_DYNAMO_DB` and `DYNAMODB_LOCAL_ENDPOINT` environment variables.
+The service handles local DynamoDB configuration via `LOCAL_DYNAMO_DB` and `DYNAMODB_ENDPOINT` environment variables.
 
 ### Constants
 

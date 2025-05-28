@@ -25,7 +25,7 @@ jobs:
             TF_VAR_staking_asset_handler_address: "0xF739D03e98e23A7B65940848aBA8921fF3bAc4b2"
             TF_VAR_l1_chain_id: "11155111"
             TF_VAR_local_dynamo_db: "false"
-            TF_VAR_dynamodb_local_endpoint: "http://localhost:8000"
+            TF_VAR_dynamodb_endpoint: "http://localhost:8000"
             TF_VAR_log_level: "info"
             TF_VAR_log_pretty_print: "false"
             TF_VAR_api_port: "3000"

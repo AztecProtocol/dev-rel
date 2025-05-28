@@ -3,6 +3,7 @@ import { nodeOperatorService } from "../domain/operators/service"; // Adjust pat
 import { logger } from "@sparta/utils"; // Assuming logger is accessible
 import { discordWebhookService } from "@sparta/discord"; // Import Discord service
 import { CHANNELS } from "@sparta/utils/const/channels"; // Import CHANNELS
+import { validatorService } from "../domain/validators/service";
 
 // --- Swagger Schemas ---
 /**
@@ -247,7 +248,16 @@ router.get("/", async (req: Request, res: Response) => {
 	}
 	
 	if (operator) {
-		res.status(200).json(operator);
+		// Fetch validators associated with this operator
+		const validators = await validatorService.getValidatorsByNodeOperator(operator.discordId);
+		
+		// Add validators to the operator response
+		const operatorWithValidators = {
+			...operator,
+			validators
+		};
+		
+		res.status(200).json(operatorWithValidators);
 	} else {
 		res.status(404).json({ error: "Operator not found" });
 	}
@@ -797,13 +807,19 @@ router.put(
 			});
 		}
 
-		// Check if this operator was previously slashed
-		if (operatorToApprove.wasSlashed) {
-			return res.status(403).json({
-				error: "Operator was slashed",
-				message: "Cannot approve an operator whose validator was previously slashed."
+		if (operatorToApprove.isApproved) {
+			return res.status(400).json({
+				error: "Operator is already approved",
 			});
 		}
+
+		// // Check if this operator was previously slashed
+		// if (operatorToApprove.wasSlashed) {
+		// 	return res.status(403).json({
+		// 		error: "Operator was slashed",
+		// 		message: "Cannot approve an operator whose validator was previously slashed."
+		// 	});
+		// }
 
 		const updated = await nodeOperatorService.updateApprovalStatus(
 			idToApprove,

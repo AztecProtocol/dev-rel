@@ -140,12 +140,6 @@ router.get("/validators", async (_req, res) => {
  *       - ApiKeyAuth: []
  *     parameters:
  *       - in: query
- *         name: address
- *         schema:
- *           type: string
- *         required: false
- *         description: The wallet address of the validator to retrieve.
- *       - in: query
  *         name: discordId
  *         schema:
  *           type: string
@@ -200,14 +194,13 @@ router.get("/validators", async (_req, res) => {
  */
 router.get("/", async (req, res) => {
 	try {
-		const address = req.query.address as string | undefined;
 		const discordId = req.query.discordId as string | undefined;
 		const discordUsername = req.query.discordUsername as string | undefined;
 		
 		// Require at least one parameter
-		if (!address && !discordId && !discordUsername) {
+		if (!discordId && !discordUsername) {
 			return res.status(400).json({ 
-				error: "At least one parameter is required: address, discordId, or discordUsername" 
+				error: "At least one parameter is required: discordId, or discordUsername" 
 			});
 		}
 		
@@ -215,51 +208,6 @@ router.get("/", async (req, res) => {
 		const ethereum = await getEthereumInstance();
 		const rollupInfo = await ethereum.getRollupInfo();
 		
-		// Case 1: Lookup by validator address
-		if (address) {
-			// Check if address is a known validator
-			if (!rollupInfo.validators.includes(address)) {
-				// Try case-insensitive check before failing
-				const foundValidator = rollupInfo.validators.find(v => 
-					v.toLowerCase() === address.toLowerCase()
-				);
-				
-				if (!foundValidator) {
-					return res.status(404).json({ error: "Validator not found" });
-				}
-			}
-			
-			// Find if this validator is associated with an operator
-			// The validatorRepository.findByAddress method now handles case-insensitive search with pagination
-			let dbValidator = await validatorService.getValidatorByAddress(address);
-			
-			if (dbValidator) {
-				logger.info(`Found validator in database for address: ${address}`);
-			} else {
-				logger.info(`No validator found in database for address: ${address}`);
-			}
-			
-			// Get operator info if validator has an associated operator
-			let operatorInfo = null;
-			if (dbValidator) {
-				operatorInfo = await nodeOperatorService.getOperatorByDiscordId(dbValidator.nodeOperatorId);
-			}
-			
-			return res.status(200).json({
-				success: true,
-				data: {
-					address,
-					operatorId: dbValidator ? dbValidator.nodeOperatorId : null,
-					operatorInfo: operatorInfo || null,
-					stats: {
-						totalValidators: rollupInfo.validators.length,
-					},
-				},
-			});
-		}
-		
-		// Case 2: Lookup by operator (discordId or discordUsername)
-		// Determine the operator's Discord ID
 		let operatorId = discordId;
 		let operator = null;
 		
@@ -294,11 +242,7 @@ router.get("/", async (req, res) => {
 			success: true,
 			data: {
 				operator: operator,
-				validators: validatorDetails,
-				stats: {
-					totalValidators: rollupInfo.validators.length,
-					operatorValidators: validators.length,
-				},
+				validators: validatorDetails
 			},
 		});
 	} catch (error) {
@@ -440,202 +384,69 @@ router.post("/", async (req, res) => {
 			});
 		}
 
-		// Check if this operator was previously slashed
-		if (operator.wasSlashed) {
-			return res.status(403).json({
-				error: "Operator was slashed",
-				message: "Your validator was slashed, so you are unable to re-add your validator."
-			});
-		}
+		// // Check if this operator was previously slashed
+		// if (operator.wasSlashed) {
+		// 	return res.status(403).json({
+		// 		error: "Operator was slashed",
+		// 		message: "Your validator was slashed, so you are unable to re-add your validator."
+		// 	});
+		// }
 		
-		// Get Ethereum instance and add validator to rollup
+		// Get Ethereum instance for both on-chain operations and stats
 		const ethereum = await getEthereumInstance();
-		if (!skipOnChain) {
-			await ethereum.addValidator(validatorAddress);
+		
+		// Add the validator to the database first (easier to rollback)
+		let validatorCreated = false;
+		let operatorUpdated = false;
+		
+		try {
+			// Step 1: Add validator to database
+			await validatorService.createValidator(validatorAddress, operatorId);
+			validatorCreated = true;
+			
+			// Step 2: Add validator to operator in database
+			await nodeOperatorService.addValidatorToOperator(operatorId, validatorAddress);
+			operatorUpdated = true;
+			
+			// Step 3: Add validator to Ethereum rollup (if not skipped)
+			if (!skipOnChain) {
+				await ethereum.addValidator(validatorAddress);
+			}
+			
+		} catch (error: any) {
+			// Rollback database operations if Ethereum operation failed
+			logger.error(error, "Error during validator addition, attempting rollback");
+			
+			try {
+				if (operatorUpdated) {
+					// Note: You may need to implement removeValidatorFromOperator method
+					// For now, we'll log that manual cleanup may be needed
+					logger.warn(`Manual cleanup may be needed for operator ${operatorId} and validator ${validatorAddress}`);
+				}
+				
+				if (validatorCreated) {
+					await validatorService.deleteValidator(validatorAddress);
+					logger.info(`Successfully rolled back validator creation for ${validatorAddress}`);
+				}
+			} catch (rollbackError) {
+				logger.error(rollbackError, "Failed to rollback database operations - manual cleanup required");
+			}
+			
+			// Re-throw the original error
+			throw error;
 		}
-		
-		// Add the validator to the operator in the database
-		await nodeOperatorService.addValidatorToOperator(operatorId, validatorAddress);
-		
-		// Get the validator count for this operator
-		const operatorValidators = await validatorService.getValidatorsByNodeOperator(operatorId);
-		
-		// Get the updated validators count for stats
-		const rollupInfo = await ethereum.getRollupInfo();
-		
+
 		return res.status(201).json({
 			success: true,
 			data: {
 				address: validatorAddress,
 				operatorId: operatorId,
 				operatorInfo: operator,
-				stats: {
-					totalValidators: rollupInfo.validators.length,
-					operatorValidators: operatorValidators.length,
-				},
 			},
 		});
 	} catch (error: any) {
 		logger.error(error.message, "Error adding validator");
 		res.status(500).json({ error: error.message });
-	}
-	return;
-});
-
-// PUT /api/validator - updates a validator's associated operator
-/**
- * @swagger
- * /api/validator:
- *   put:
- *     summary: Update validator's operator
- *     description: Transfers a validator from one operator to another.
- *     tags: [Validator]
- *     operationId: updateValidator
- *     security:
- *       - ApiKeyAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             properties:
- *               validatorAddress:
- *                 type: string
- *                 description: The validator address to transfer.
- *                 example: "0x1234567890abcdef1234567890abcdef12345678"
- *               fromDiscordId:
- *                 type: string
- *                 description: The Discord ID of the current operator.
- *                 example: "123456789012345678"
- *               toDiscordId:
- *                 type: string
- *                 description: The Discord ID of the new operator to transfer to.
- *                 example: "987654321098765432"
- *             required:
- *               - validatorAddress
- *               - fromDiscordId
- *               - toDiscordId
- *     responses:
- *       200:
- *         description: Validator transferred successfully.
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   $ref: '#/components/schemas/ValidatorResponse'
- *       400:
- *         description: Bad Request - Missing or invalid parameters
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/OperatorError'
- *       401:
- *         description: Unauthorized - Invalid or missing API key
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/OperatorError'
- *       404:
- *         description: Operator or validator not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/OperatorError'
- *       500:
- *         description: Internal Server Error
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/OperatorError'
- */
-router.put("/", async (req, res) => {
-	try {
-		const { validatorAddress, fromDiscordId, toDiscordId } = req.body;
-		
-		// Validate input parameters
-		if (!validatorAddress || !fromDiscordId || !toDiscordId) {
-			return res.status(400).json({
-				error: "Missing required parameters",
-			});
-		}
-		
-		// Basic address validation
-		if (!/^0x[a-fA-F0-9]{40}$/.test(validatorAddress)) {
-			return res.status(400).json({
-				error: "Invalid validator address format",
-			});
-		}
-		
-		// Check if operators exist
-		const fromOperator = await nodeOperatorService.getOperatorByDiscordId(fromDiscordId);
-		const toOperator = await nodeOperatorService.getOperatorByDiscordId(toDiscordId);
-		
-		if (!fromOperator) {
-			return res.status(404).json({
-				error: "Source operator not found",
-			});
-		}
-		
-		if (!toOperator) {
-			return res.status(404).json({
-				error: "Destination operator not found",
-			});
-		}
-		
-		// Check if the validator exists in the database
-		const validator = await validatorService.getValidatorByAddress(validatorAddress);
-		
-		if (!validator) {
-			return res.status(404).json({
-				error: "Validator not found in the database",
-			});
-		}
-		
-		// Check if the validator is associated with the fromOperator
-		if (validator.nodeOperatorId !== fromDiscordId) {
-			return res.status(404).json({
-				error: "Validator not found for the source operator",
-			});
-		}
-		
-		// Get Ethereum instance to verify the validator exists
-		const ethereum = await getEthereumInstance();
-		const rollupInfo = await ethereum.getRollupInfo();
-		
-		if (!rollupInfo.validators.includes(validatorAddress)) {
-			return res.status(404).json({
-				error: "Validator not found in the rollup",
-			});
-		}
-		
-		// Update the validator to be associated with the new operator
-		await validatorService.updateValidatorOperator(validatorAddress, toDiscordId);
-		
-		// Get validator counts for both operators
-		const fromOperatorValidators = await validatorService.getValidatorsByNodeOperator(fromDiscordId);
-		const toOperatorValidators = await validatorService.getValidatorsByNodeOperator(toDiscordId);
-		
-		return res.status(200).json({
-			success: true,
-			data: {
-				address: validatorAddress,
-				operatorId: toDiscordId,
-				previousOperatorId: fromDiscordId,
-				stats: {
-					totalValidators: rollupInfo.validators.length,
-					sourceOperatorValidators: fromOperatorValidators.length,
-					destinationOperatorValidators: toOperatorValidators.length,
-				},
-			},
-		});
-	} catch (error) {
-		logger.error(error, "Error transferring validator");
-		res.status(500).json({ error: "Failed to transfer validator" });
 	}
 	return;
 });

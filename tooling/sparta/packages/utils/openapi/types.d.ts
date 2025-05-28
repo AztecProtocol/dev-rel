@@ -447,12 +447,10 @@ declare namespace Paths {
     }
     namespace GetValidator {
         namespace Parameters {
-            export type Address = string;
             export type DiscordId = string;
             export type DiscordUsername = string;
         }
         export interface QueryParameters {
-            address?: Parameters.Address;
             discordId?: Parameters.DiscordId;
             discordUsername?: Parameters.DiscordUsername;
         }
@@ -588,38 +586,6 @@ declare namespace Paths {
         }
         namespace Responses {
             export type $200 = Components.Schemas.NodeOperator;
-            export type $400 = Components.Schemas.OperatorError;
-            export type $401 = Components.Schemas.OperatorError;
-            export type $404 = Components.Schemas.OperatorError;
-            export type $500 = Components.Schemas.OperatorError;
-        }
-    }
-    namespace UpdateValidator {
-        export interface RequestBody {
-            /**
-             * The validator address to transfer.
-             * example:
-             * 0x1234567890abcdef1234567890abcdef12345678
-             */
-            validatorAddress: string;
-            /**
-             * The Discord ID of the current operator.
-             * example:
-             * 123456789012345678
-             */
-            fromDiscordId: string;
-            /**
-             * The Discord ID of the new operator to transfer to.
-             * example:
-             * 987654321098765432
-             */
-            toDiscordId: string;
-        }
-        namespace Responses {
-            export interface $200 {
-                success?: boolean;
-                data?: Components.Schemas.ValidatorResponse;
-            }
             export type $400 = Components.Schemas.OperatorError;
             export type $401 = Components.Schemas.OperatorError;
             export type $404 = Components.Schemas.OperatorError;
@@ -799,16 +765,6 @@ export interface OperationMethods {
     data?: any,
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.GetValidator.Responses.$200>
-  /**
-   * updateValidator - Update validator's operator
-   * 
-   * Transfers a validator from one operator to another.
-   */
-  'updateValidator'(
-    parameters?: Parameters<UnknownParamsObject> | null,
-    data?: Paths.UpdateValidator.RequestBody,
-    config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.UpdateValidator.Responses.$200>
   /**
    * addValidator - Add a new validator
    * 
@@ -1037,16 +993,6 @@ export interface PathsDictionary {
       data?: Paths.AddValidator.RequestBody,
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.AddValidator.Responses.$201>
-    /**
-     * updateValidator - Update validator's operator
-     * 
-     * Transfers a validator from one operator to another.
-     */
-    'put'(
-      parameters?: Parameters<UnknownParamsObject> | null,
-      data?: Paths.UpdateValidator.RequestBody,
-      config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.UpdateValidator.Responses.$200>
     /**
      * removeValidator - Remove a validator
      * 

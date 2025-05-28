@@ -1,0 +1,6 @@
+# workaround for https://github.com/foundry-rs/foundry/discussions/7151
+FROM ghcr.io/foundry-rs/foundry
+
+WORKDIR /anvil
+
+ENTRYPOINT anvil --fork-url $FORK_URL --host 0.0.0.0

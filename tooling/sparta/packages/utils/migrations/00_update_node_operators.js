@@ -26,7 +26,7 @@ dotenv.config();
 
 // Configuration
 const tableName = process.env.NODE_OPERATORS_TABLE_NAME || "sparta-node-operators-dev";
-const endpoint = process.env.DYNAMODB_LOCAL_ENDPOINT || "http://localhost:8000";
+const endpoint = process.env.DYNAMODB_ENDPOINT || "http://localhost:8000";
 const botToken = process.env.BOT_TOKEN;
 const guildId = process.env.GUILD_ID;
 const isLocal = process.env.LOCAL_DYNAMO_DB === "true";

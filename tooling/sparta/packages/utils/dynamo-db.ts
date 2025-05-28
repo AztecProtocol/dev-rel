@@ -26,7 +26,7 @@ class DynamoDBService {
 		// Use local DynamoDB when running locally
 		if (this.isLocal) {
 			clientOptions.endpoint =
-				process.env.DYNAMODB_LOCAL_ENDPOINT || "http://localhost:8000";
+				process.env.DYNAMODB_ENDPOINT || "http://localhost:8000";
 			logger.info(`Using local DynamoDB at ${clientOptions.endpoint} for table ${this.tableName}`);
 		} else {
 			// Add region if not local and if it's configured, e.g., process.env.AWS_REGION
