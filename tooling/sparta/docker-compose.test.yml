@@ -1,0 +1,76 @@
+services:
+    dynamodb-local:
+        container_name: dynamodb-local
+        ports:
+            - 8000:8000
+        image: amazon/dynamodb-local:latest
+        env_file:
+            - .env
+        command: -jar DynamoDBLocal.jar -sharedDb
+
+    anvil:
+      build:
+        context: .
+        dockerfile: Dockerfile.anvil
+      container_name: anvil
+      working_dir: /anvil
+      environment:
+        FORK_URL: "${BLOCKCHAIN_FORK_URL}"
+      ports:
+        - "8545:8545"
+      command: anvil
+
+    sparta:
+      container_name: sparta
+      build:
+        context: .
+        dockerfile: Dockerfile.test
+        args:
+          - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+          - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+          - AWS_REGION=${AWS_REGION}
+      ports:
+        - 3000:3000
+      env_file:
+        - .env
+      environment:
+        # Ethereum Configuration - Override to use anvil container
+        - ETHEREUM_HOST=http://anvil:8545
+        - PROD_ETHEREUM_HOST=${BLOCKCHAIN_FORK_URL}
+        - L1_CHAIN_ID=11155111
+        
+        # DynamoDB Configuration
+        - DYNAMODB_ENDPOINT=http://dynamodb-local:8000
+        - LOCAL_DYNAMO_DB=true
+        
+        # API Configuration
+        - API_URL=http://localhost:3000
+        - API_PORT=3000
+        
+        # Logging Configuration
+        - LOG_LEVEL=info
+        - LOG_PRETTY_PRINT=true
+        
+        # Contract Addresses
+        - SPARTA_ADDRESS=${SPARTA_ADDRESS}
+        - SPARTA_PRIVATE_KEY=${SPARTA_PRIVATE_KEY}
+        - STAKING_ASSET_HANDLER_ADDRESS=${STAKING_ASSET_HANDLER_ADDRESS}
+        
+        # Database Table Names
+        - NODE_OPERATORS_TABLE_NAME=sparta-node-operators-dev
+        - VALIDATORS_TABLE_NAME=sparta-validators-dev
+        - PROD_NODE_OPERATORS_TABLE_NAME=sparta-production-node-operators
+        - PROD_VALIDATORS_TABLE_NAME=sparta-production-validators
+        
+        # Discord Configuration
+        - BOT_CLIENT_ID=${BOT_CLIENT_ID}
+        - BOT_TOKEN=${BOT_TOKEN}
+        - GUILD_ID=${GUILD_ID}
+        
+        # Other Configuration
+        - BACKEND_API_KEY=${BACKEND_API_KEY}
+        - FUNDER_AMOUNT=0.1
+        - AZTEC_RPC_URL=${AZTEC_RPC_URL}
+      depends_on:
+        - dynamodb-local
+        - anvil
