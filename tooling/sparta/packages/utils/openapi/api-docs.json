@@ -1600,6 +1600,15 @@
         "parameters": [
           {
             "in": "query",
+            "name": "address",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The validator address to retrieve information for."
+          },
+          {
+            "in": "query",
             "name": "discordId",
             "schema": {
               "type": "string"

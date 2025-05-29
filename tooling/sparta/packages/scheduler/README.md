@@ -17,6 +17,49 @@ A serverless AWS Lambda-based service for monitoring validators and sending aler
 bun run dev
 ```
 
+## Testing
+
+The scheduler includes a comprehensive test suite that validates the ValidatorMonitorService functionality:
+
+```bash
+# Run the test suite
+npm test
+```
+
+The test automatically:
+- Sets `SKIP_MSG=true` to prevent sending actual Discord messages
+- Tests service initialization and configuration
+- Validates the validator monitoring process
+- Checks error handling and resilience
+- Asserts on result structure and data integrity
+- Provides detailed execution metrics and summaries
+
+### Test Environment Variables
+
+- `SKIP_MSG=true`: Prevents sending actual Discord messages during testing
+- This replaces the previous `SKIP_DMS` variable for better naming clarity
+
+### Test Output
+
+The test provides comprehensive feedback including:
+- ✅/❌ Individual test results
+- 📊 Execution time metrics  
+- 📈 Success rate statistics
+- 📋 Monitoring results summary
+- 🎉 Overall test status
+
+Example output:
+```
+🚀 Starting ValidatorMonitorService Test Suite...
+✅ PASS: Service should initialize with default parameters
+✅ PASS: Monitor should return an array of reports
+📊 Test Suite Summary:
+✅ Tests passed: 8
+❌ Tests failed: 0  
+📊 Success rate: 100.0%
+🎉 All tests passed!
+```
+
 ## Configuration
 
 Required environment variables:
@@ -81,4 +124,4 @@ This implementation follows AWS Lambda best practices:
 
 ## License
 
-See the project license for details. 
+See the project license for details.

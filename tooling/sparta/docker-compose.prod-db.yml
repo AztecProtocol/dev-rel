@@ -15,7 +15,7 @@ services:
       container_name: anvil
       working_dir: /anvil
       environment:
-        FORK_URL: "${BLOCKCHAIN_FORK_URL}"
+        FORK_URL: "${PROD_ETHEREUM_HOST}"
       ports:
         - "8545:8545"
       command: anvil
@@ -24,11 +24,7 @@ services:
       container_name: sparta
       build:
         context: .
-        dockerfile: Dockerfile.test
-        args:
-          - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
-          - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
-          - AWS_REGION=${AWS_REGION}
+        dockerfile: Dockerfile
       ports:
         - 3000:3000
       env_file:
@@ -36,7 +32,7 @@ services:
       environment:
         # Ethereum Configuration - Override to use anvil container
         - ETHEREUM_HOST=http://anvil:8545
-        - PROD_ETHEREUM_HOST=${BLOCKCHAIN_FORK_URL}
+        - PROD_ETHEREUM_HOST=${PROD_ETHEREUM_HOST}
         - L1_CHAIN_ID=11155111
         
         # DynamoDB Configuration

@@ -131,7 +131,7 @@ Start the complete development stack with all dependencies:
 docker-compose -f docker-compose.dev.yml up -d
 
 # 2. Optional: Copy production data for realistic testing
-bun run test:setup
+bun run setup:db
 
 # 3. Start development servers with hot reload
 bun run dev
@@ -192,7 +192,7 @@ The testing setup provides a complete isolated environment:
 docker-compose -f docker-compose.test.yml up
 
 # 2. Copy production database (required)
-bun run test:setup
+bun run setup:db
 
 # 3. Run end-to-end tests
 bun run test:e2e

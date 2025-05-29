@@ -1,5 +1,5 @@
 import { ChatInputCommandInteraction, MessageFlags } from "discord.js";
-import { getEthereumInstance } from "@sparta/ethereum";
+import { getEthereumInstance, l2InfoService } from "@sparta/ethereum";
 import { logger } from "@sparta/utils";
 import { manageChannelMessage } from "../../utils/messageManager.js";
 
@@ -11,7 +11,7 @@ export const get = async (
 
 		// Get Ethereum instance
 		const ethereum = await getEthereumInstance();
-
+		
 		// Get chain info directly
 		const {
 			pendingBlockNum,
@@ -19,7 +19,14 @@ export const get = async (
 			currentEpoch,
 			currentSlot,
 			proposerNow,
+			validators
 		} = await ethereum.getRollupInfo();
+
+		// Fetch validator stats with epoch-based caching to avoid large downloads
+		const allValidatorStats = await l2InfoService.fetchValidatorStatsWithCache(BigInt(currentEpoch));
+		
+		// Calculate some useful stats from the validator data
+		const activeValidators = Object.values(allValidatorStats).filter(stats => stats.hasAttested24h).length;
 
 		const chainMessage = await interaction.editReply({
 			content: `
@@ -30,6 +37,8 @@ export const get = async (
 • Proven block: [${provenBlockNum}](https://aztecscan.xyz/blocks/${provenBlockNum}) - *Battle tested & secured*
 • Current epoch: **${currentEpoch}** - *Era of combat*
 • Current slot: **${currentSlot}** - *Position in formation*
+• Validators on the set: **${validators.length}** - *Army size*
+• Active validators		: **${activeValidators}** - *Warriors in action*
 • Commander on duty (proposer): [${proposerNow}](https://sepolia.etherscan.io/address/${proposerNow}) - *Leading the charge*
 
 🏛️ The Aztec Network stands strong, warrior! 🏛️`,

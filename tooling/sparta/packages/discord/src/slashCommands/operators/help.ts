@@ -13,7 +13,7 @@ import {
 	MessageFlags,
 } from "discord.js";
 import { logger } from "@sparta/utils";
-import { NodeOperatorSubcommands } from "../../types.js";
+import { AztecSubcommands, NodeOperatorSubcommands } from "../../types.js";
 import { manageChannelMessage } from "../../utils/messageManager.js";
 
 /**
@@ -40,7 +40,7 @@ export async function showOperatorHelp(
 					inline: false,
 				},
 				{
-					name: `⛓️ /operator ${NodeOperatorSubcommands.ChainInfo}`,
+					name: `⛓️ /aztec ${AztecSubcommands.Info}`,
 					value: "🏛️ **Survey the battlefield - Aztec Network status**\n• Latest block intelligence reports\n• Network fortress statistics\n• Chain health and battle readiness",
 					inline: false,
 				},

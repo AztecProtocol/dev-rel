@@ -38,7 +38,7 @@ class ValidatorMonitorService {
     async processValidator(validator, activeValidators, allValidatorStats) {
         try {
             const isInValidatorSet = activeValidators.includes(validator);
-            
+
             if (isInValidatorSet) {
                 const validatorStats = allValidatorStats[validator.toLowerCase()];
                 if (validatorStats && validatorStats.totalSlots && validatorStats.missedAttestationsCount !== undefined) {
@@ -49,9 +49,9 @@ class ValidatorMonitorService {
                 }
             }
             
-            const { data: { data: validatorData } } = await this.client.getValidator({ validatorAddress: validator });
+            const { data: { data: validatorData } } = await this.client.getValidator({ address: validator });
 
-            if (!validatorData || !validatorData.operatorInfo?.discordUsername) {
+            if (!validatorData || !validatorData.operator?.discordId) {
                 logger.warn(`No operator info (discordUsername) found for validator ${validator}`);
                 return null;
             }
@@ -78,7 +78,7 @@ class ValidatorMonitorService {
             let error = null;
             let recipient = null;
             
-            if (!process.env.SKIP_DMS) { 
+            if (!process.env.SKIP_MSG) { 
                 try {
                     recipient = this.dmOverrideRecipient ? this.dmOverrideRecipient : validatorData.operatorInfo?.discordUsername;
                     logger.info({ recipient }, "Recipient for DM");
@@ -157,15 +157,17 @@ class ValidatorMonitorService {
                 else if (result.status === 'rejected') logger.error(`Promise rejected during validator processing: ${result.reason}`);
             });
             
-            if (reports.length > 0) {
-                await this.sendSummaryReport(reports);
+            if (!process.env.SKIP_MSG) {
+                if (reports.length > 0) {
+                    await this.sendSummaryReport(reports);
+                }
             }
-            
+
             logger.info(`Validator monitoring completed. Generated ${reports.length} alert reports.`);
             return reports;
         } catch (error) {
-            logger.error(`Critical error in monitorValidators: ${error.message}`);
-            return []; // Return empty if monitor fails critically
+            // logger.error(`Critical error in monitorValidators: ${error.message}`);
+            return error; // Return empty if monitor fails critically
         }
     }
 

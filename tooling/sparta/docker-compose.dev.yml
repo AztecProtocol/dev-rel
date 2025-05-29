@@ -9,13 +9,11 @@ services:
         command: -jar DynamoDBLocal.jar -sharedDb
 
     anvil:
-      build:
-        context: .
-        dockerfile: Dockerfile.anvil
+      image: ghcr.io/foundry-rs/foundry
       container_name: anvil
       working_dir: /anvil
       environment:
-        FORK_URL: "${BLOCKCHAIN_FORK_URL}"
+        ANVIL_IP_ADDR: "0.0.0.0"
       ports:
         - "8545:8545"
       command: anvil

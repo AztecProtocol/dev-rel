@@ -1,9 +1,11 @@
 {
     "name": "@sparta/e2e",
-    "module": "index.ts",
+    "module": "index.test.ts",
     "type": "module",
     "scripts": {
-        "test:e2e": "bun test e2e.test.ts --timeout 60000"
+        "test:e2e": "bun test index.test.ts --timeout 60000",
+        "test:operator": "bun test operator/operator.test.ts --timeout 60000",
+        "test:validator": "bun test validator/validator.test.ts --timeout 60000"
     },
     "dependencies": {
         "@nomicfoundation/hardhat-ignition": "^3.0.0-next.11",

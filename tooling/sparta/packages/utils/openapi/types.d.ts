@@ -447,10 +447,12 @@ declare namespace Paths {
     }
     namespace GetValidator {
         namespace Parameters {
+            export type Address = string;
             export type DiscordId = string;
             export type DiscordUsername = string;
         }
         export interface QueryParameters {
+            address?: Parameters.Address;
             discordId?: Parameters.DiscordId;
             discordUsername?: Parameters.DiscordUsername;
         }

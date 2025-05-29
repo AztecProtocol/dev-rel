@@ -476,7 +476,6 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "NODE_ENV", value = var.environment }, # Pass environment context
         { name = "PORT", value = tostring(var.api_port) },
         { name = "API_PORT", value = tostring(var.api_port) },
-        { name = "AWS_REGION", value = var.aws_region },
         { name = "BACKEND_API_KEY", value = var.backend_api_key },
         { name = "LOCAL_DYNAMO_DB", value = "false" },
         { name = "DYNAMODB_ENDPOINT", value = var.dynamodb_endpoint },
@@ -495,7 +494,10 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "VALIDATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_validators.name },
         { name = "SPARTA_PRIVATE_KEY", value = var.sparta_private_key },
         { name = "SPARTA_ADDRESS", value = var.sparta_address },
-        { name = "AZTEC_RPC_URL", value = var.aztec_rpc_url }
+        { name = "AZTEC_RPC_URL", value = var.aztec_rpc_url },
+        { name = "AWS_REGION", value = var.aws_region },
+        { name = "AWS_ACCESS_KEY_ID", value = var.aws_access_key_id },
+        { name = "AWS_SECRET_ACCESS_KEY", value = var.aws_secret_access_key }
       ]
     }
   ])

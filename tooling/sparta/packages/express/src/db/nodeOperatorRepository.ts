@@ -88,7 +88,7 @@ export class NodeOperatorRepository {
 			return response.Item as NodeOperator | undefined;
 		} catch (error) {
 			logger.error(
-				{ error, discordId, tableName: this.tableName },
+				error,
 				"Error retrieving NodeOperator by Discord ID in repository"
 			);
 			throw new Error(

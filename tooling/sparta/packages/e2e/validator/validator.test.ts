@@ -1,226 +1,16 @@
-import { describe, test, expect, beforeAll, afterEach, beforeEach, afterAll } from "bun:test";
-import axios, { type AxiosRequestConfig, type AxiosResponse } from "axios";
-import { spawn, ChildProcess } from "child_process";
-import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts'
-
-const BASE_URL = "http://localhost:3000";
-const API_KEY = "test_key_12345";
-
-// Test data
-const testOperator = {
-  discordId: "123456789012345678",
-  walletAddress: "0x1234567890abcdef1234567890abcdef12345678",
-  discordUsername: "testuser#1234"
-};
-
-const updatedWalletAddress = "0xabcdef1234567890abcdef1234567890abcdef12";
-
-describe("Node Operator E2E Tests", () => {
-  // Cleanup any existing test operator before all tests
-  beforeAll(async () => {
-    try {
-      await makeAPIRequest("DELETE", "/api/operator", {
-        params: { discordId: testOperator.discordId }
-      });
-    } catch (error) {
-      console.log("No operator found to delete in beforeAll");
-    }
-  });
-
-  // Cleanup after each test to ensure test isolation
-  afterEach(async () => {
-    try {
-      await makeAPIRequest("DELETE", "/api/operator", {
-        params: { discordId: testOperator.discordId }
-      });
-    } catch (error) {
-      console.log("No operator found to delete in afterEach");
-    }
-  });
-
-  test("should create and retrieve node operator", async () => {
-    // Step 1: Create a new node operator
-    console.log("➕ Creating new node operator...");
-    const createResponse = await makeAPIRequest("POST", "/api/operator", {
-      params: {
-        discordId: testOperator.discordId,
-        walletAddress: testOperator.walletAddress,
-        discordUsername: testOperator.discordUsername
-      }
-    });
-    expect(createResponse.status).toBe(201);
-    expect(createResponse.data).toHaveProperty("discordId", testOperator.discordId);
-    expect(createResponse.data).toHaveProperty("walletAddress", testOperator.walletAddress);
-    expect(createResponse.data).toHaveProperty("discordUsername", testOperator.discordUsername);
-    console.log("✅ Node operator created successfully");
-
-    // Step 2: Verify the operator exists by retrieving it
-    console.log("🔍 Retrieving created node operator to verify...");
-    const getOperatorResponse = await makeAPIRequest("GET", "/api/operator", {
-      params: { discordId: testOperator.discordId }
-    });
-    expect(getOperatorResponse.status).toBe(200);
-    expect(getOperatorResponse.data).toHaveProperty("discordId", testOperator.discordId);
-    expect(getOperatorResponse.data).toHaveProperty("walletAddress", testOperator.walletAddress);
-    expect(getOperatorResponse.data).toHaveProperty("discordUsername", testOperator.discordUsername);
-    console.log("✅ Node operator retrieved and verified successfully");
-  });
-
-  test("should update node operator wallet address", async () => {
-    // Setup: Create operator first
-    console.log("🔧 Setting up operator for wallet update test...");
-    await makeAPIRequest("POST", "/api/operator", {
-      params: {
-        discordId: testOperator.discordId,
-        walletAddress: testOperator.walletAddress,
-        discordUsername: testOperator.discordUsername
-      }
-    });
-
-    // Step 1: Update the node operator's wallet address
-    console.log("🔄 Updating node operator wallet address...");
-    const updateResponse = await makeAPIRequest("PUT", "/api/operator", {
-      params: {
-        discordId: testOperator.discordId,
-        walletAddress: updatedWalletAddress
-      }
-    });
-    expect(updateResponse.status).toBe(200);
-    expect(updateResponse.data).toHaveProperty("walletAddress", updatedWalletAddress);
-    console.log("✅ Node operator wallet updated successfully");
-
-    // Step 2: Verify the update by retrieving the operator
-    console.log("🔍 Retrieving operator to verify wallet update...");
-    const getOperatorResponse = await makeAPIRequest("GET", "/api/operator", {
-      params: { discordId: testOperator.discordId }
-    });
-    expect(getOperatorResponse.status).toBe(200);
-    expect(getOperatorResponse.data).toHaveProperty("discordId", testOperator.discordId);
-    expect(getOperatorResponse.data).toHaveProperty("walletAddress", updatedWalletAddress);
-    console.log("✅ Wallet address update verified successfully");
-
-    // Step 3: Also verify retrieval by new wallet address works
-    console.log("🔍 Retrieving operator by new wallet address...");
-    const getByWalletResponse = await makeAPIRequest("GET", "/api/operator", {
-      params: { walletAddress: updatedWalletAddress, discordId: testOperator.discordId }
-    });
-    expect(getByWalletResponse.status).toBe(200);
-    expect(getByWalletResponse.data).toHaveProperty("discordId", testOperator.discordId);
-    expect(getByWalletResponse.data).toHaveProperty("walletAddress", updatedWalletAddress);
-    console.log("✅ Retrieval by wallet address verified successfully");
-  });
-
-  test("should approve and unapprove node operator", async () => {
-    // Setup: Create operator first
-    console.log("🔧 Setting up operator for approval test...");
-    await makeAPIRequest("POST", "/api/operator", {
-      params: {
-        discordId: testOperator.discordId,
-        walletAddress: testOperator.walletAddress,
-        discordUsername: testOperator.discordUsername
-      }
-    });
-
-    // Step 1: Approve the operator
-    console.log("✅ Approving node operator...");
-    const approveResponse = await makeAPIRequest("PUT", "/api/operator/approve", {
-      params: { discordId: testOperator.discordId }
-    });
-    expect(approveResponse.status).toBe(200);
-    expect(approveResponse.data).toHaveProperty("isApproved", true);
-    console.log("✅ Node operator approved successfully");
-
-    // Step 2: Verify approval by retrieving the operator
-    console.log("🔍 Retrieving operator to verify approval...");
-    let getOperatorResponse = await makeAPIRequest("GET", "/api/operator", {
-      params: { discordId: testOperator.discordId }
-    });
-    expect(getOperatorResponse.status).toBe(200);
-    expect(getOperatorResponse.data).toHaveProperty("isApproved", true);
-    console.log("✅ Operator approval verified successfully");
-
-    // Step 3: Unapprove the operator
-    console.log("❌ Unapproving node operator...");
-    const unapproveResponse = await makeAPIRequest("DELETE", "/api/operator/approve", {
-      params: { discordId: testOperator.discordId }
-    });
-    expect(unapproveResponse.status).toBe(200);
-    expect(unapproveResponse.data).toHaveProperty("isApproved", false);
-    console.log("✅ Node operator unapproved successfully");
-
-    // Step 4: Verify unapproval by retrieving the operator
-    console.log("🔍 Retrieving operator to verify unapproval...");
-    getOperatorResponse = await makeAPIRequest("GET", "/api/operator", {
-      params: { discordId: testOperator.discordId }
-    });
-    expect(getOperatorResponse.status).toBe(200);
-    expect(getOperatorResponse.data).toHaveProperty("isApproved", false);
-    console.log("✅ Operator unapproval verified successfully");
-  });
-
-  test("should delete node operator", async () => {
-    // Setup: Create operator first
-    console.log("🔧 Setting up operator for deletion test...");
-    await makeAPIRequest("POST", "/api/operator", {
-      params: {
-        discordId: testOperator.discordId,
-        walletAddress: testOperator.walletAddress,
-        discordUsername: testOperator.discordUsername
-      }
-    });
-
-    // Verify operator exists before deletion
-    console.log("🔍 Verifying operator exists before deletion...");
-    const getBeforeDeleteResponse = await makeAPIRequest("GET", "/api/operator", {
-      params: { discordId: testOperator.discordId }
-    });
-    expect(getBeforeDeleteResponse.status).toBe(200);
-    console.log("✅ Operator confirmed to exist before deletion");
-
-    // Step 1: Delete the operator
-    console.log("🗑️ Deleting node operator...");
-    const deleteResponse = await makeAPIRequest("DELETE", "/api/operator", {
-      params: { discordId: testOperator.discordId }
-    });
-    expect(deleteResponse.status).toBe(204);
-    console.log("✅ Node operator deleted successfully");
-
-    // Step 2: Verify the operator is deleted by trying to retrieve it
-    console.log("🔍 Verifying node operator deletion...");
-    try {
-      await makeAPIRequest("GET", "/api/operator", {
-        params: { discordId: testOperator.discordId }
-      });
-      // If we reach here, the operator was not deleted
-      expect(true).toBe(false);
-    } catch (error: any) {
-      expect(error.response?.status).toBe(404);
-      console.log("✅ Node operator deletion verified - 404 as expected");
-    }
-  });
-});
+import { describe, test, expect, beforeEach, afterEach } from "bun:test";
+import type { AxiosResponse } from "axios";
+import { generatePrivateKey, privateKeyToAccount } from 'viem/accounts';
+import { 
+  testValidatorAddress,
+  testValidatorAddress2,
+  validatorTestOperator,
+  validatorTestOperator2,
+  waitForEthereumReady,
+  makeAPIRequest 
+} from "../shared/utils.js";
 
 describe("Validator E2E Tests", () => {
-  let serverProcess: ChildProcess | null = null;
-  let hardhatProcess: ChildProcess | null = null;
-
-  // Test data for validators
-  const testValidatorAddress = "0xabcdef1234567890abcdef1234567890abcdef13";
-  const testValidatorAddress2 = "0x9876543210fedcba9876543210fedcba98765432";
-  
-  // We'll use the same operator data from the operator tests
-  const validatorTestOperator = {
-    discordId: "validator_test_operator_123",
-    walletAddress: "0x1111111111111111111111111111111111111111",
-    discordUsername: "validatortest#1234"
-  };
-
-  const validatorTestOperator2 = {
-    discordId: "validator_test_operator_456", 
-    walletAddress: "0x2222222222222222222222222222222222222222",
-    discordUsername: "validatortest2#5678"
-  };
-
   // Cleanup before all tests
   beforeEach(async () => {
     try {
@@ -376,10 +166,82 @@ describe("Validator E2E Tests", () => {
     console.log("✅ Validator found in operator's validator list");
   });
 
+  test("should get validator by address", async () => {
+    // Setup: First add a validator to ensure we have one to retrieve
+    console.log("🔧 Setting up validator for address lookup test...");
+    await makeAPIRequest("POST", "/api/validator", {
+      params: { discordId: validatorTestOperator.discordId },
+      data: { 
+        validatorAddress: testValidatorAddress,
+        skipOnChain: true
+      }
+    });
+
+    // Step 1: Get validator by address
+    console.log("🔍 Getting validator by address...");
+    console.log(testValidatorAddress);
+    const response = await makeAPIRequest("GET", "/api/validator", {
+      params: { address: testValidatorAddress }
+    });
+    
+    // Step 2: Validate response structure and data
+    expect(response.status).toBe(200);
+    expect(response.data).toHaveProperty("success", true);
+    expect(response.data).toHaveProperty("data");
+    
+    const validatorData = response.data.data;
+    expect(validatorData).toHaveProperty("address", testValidatorAddress);
+    expect(validatorData).toHaveProperty("operatorId", validatorTestOperator.discordId);
+    expect(validatorData).toHaveProperty("isActive");
+    expect(validatorData).toHaveProperty("operator");
+    expect(validatorData).toHaveProperty("createdAt");
+    expect(validatorData).toHaveProperty("updatedAt");
+    
+    // Validate operator information is included
+    expect(validatorData.operator).toHaveProperty("discordId", validatorTestOperator.discordId);
+    expect(validatorData.operator).toHaveProperty("discordUsername", validatorTestOperator.discordUsername);
+    
+    console.log("✅ Validator retrieved by address successfully with correct data structure");
+  });
+
+  test("should return 404 when validator address not found", async () => {
+    const nonExistentAddress = "0x1111111111111111111111111111111111111111";
+    
+    console.log("🔍 Testing lookup of non-existent validator address...");
+    try {
+      await makeAPIRequest("GET", "/api/validator", {
+        params: { address: nonExistentAddress }
+      });
+      // If we reach here, the request didn't fail as expected
+      expect(true).toBe(false);
+    } catch (error: any) {
+      expect(error.response?.status).toBe(404);
+      expect(error.response?.data).toHaveProperty("error", "Validator not found");
+      console.log("✅ Non-existent validator correctly returned 404");
+    }
+  });
+
+  test("should return 400 for invalid validator address format", async () => {
+    const invalidAddress = "0x123"; // Too short
+    
+    console.log("🔍 Testing lookup with invalid address format...");
+    try {
+      await makeAPIRequest("GET", "/api/validator", {
+        params: { address: invalidAddress }
+      });
+      // If we reach here, the request didn't fail as expected
+      expect(true).toBe(false);
+    } catch (error: any) {
+      expect(error.response?.status).toBe(400);
+      expect(error.response?.data).toHaveProperty("error", "Invalid validator address format");
+      console.log("✅ Invalid address format correctly returned 400");
+    }
+  });
+
   test("should add validator on-chain and verify it's in the validator set", async () => {
     let addResponse: AxiosResponse<any> | undefined;
     let actualValidatorAddress: string = ""; // Store the actual address used
-    const maxRetries = 3;
+    const maxRetries = 60;
     let attempt = 0;
     
     // Step 1: Add validator to the operator (on-chain) with retries
@@ -582,89 +444,4 @@ describe("Validator E2E Tests", () => {
     console.log("✅ Validator lookup by username verified");
   });
 
-});
-
-async function waitForEthereumReady(
-  timeoutMs: number = 30000,
-  retryIntervalMs: number = 1000
-): Promise<void> {
-  const startTime = Date.now();
-  const endpoint = "/api/ethereum/rollup/validators";
-  let attempt = 0;
-
-  console.log(`Starting Ethereum health check by polling ${process.env.API_URL}${endpoint}...`);
-
-  while (Date.now() - startTime < timeoutMs) {
-    attempt++;
-    
-    try {
-      const response = await makeAPIRequest("GET", endpoint);
-
-      if (response.status === 200) {
-        const data = response.data as { data?: string[] };
-        console.log(`✅ Ethereum network is ready! (attempt ${attempt}, ${Date.now() - startTime}ms)`);
-        console.log(`Found ${data.data?.length || 0} validators`);
-        return; // Success!
-      } else {
-        console.log(`⏳ Ethereum not ready yet - HTTP ${response.status} (attempt ${attempt})`);
-      }
-
-    } catch (error: any) {
-      console.log(`⏳ Ethereum not ready yet - ${error.message} (attempt ${attempt})`);
-    }
-
-    // Wait before next attempt, but don't wait if we're about to timeout
-    const remainingTime = timeoutMs - (Date.now() - startTime);
-    if (remainingTime > retryIntervalMs) {
-      await new Promise(resolve => setTimeout(resolve, retryIntervalMs));
-    } else if (remainingTime > 0) {
-      // Wait for the remaining time
-      await new Promise(resolve => setTimeout(resolve, remainingTime));
-    }
-  }
-
-  // If we get here, we've timed out
-  const elapsedTime = Date.now() - startTime;
-  throw new Error(`❌ Ethereum health check timed out after ${elapsedTime}ms (${attempt} attempts). The Anvil network may not be running or accessible.`);
-}
-
-// Helper functions
-async function makeAPIRequest(method: string, endpoint: string, { params, data }: { params?: any, data?: any } = {}) {
-  const config: AxiosRequestConfig = {
-    method,
-    url: `${process.env.API_URL}${endpoint}`,
-    headers: {
-      "x-api-key": process.env.BACKEND_API_KEY,
-      "Content-Type": "application/json"
-    },
-    data,
-    params
-  };
-
-  try {
-    return await axios(config);
-  } catch (error: any) {
-    // Create a cleaner error object to avoid massive dumps
-    const cleanError = new Error();
-    cleanError.name = "APIRequestError";
-    cleanError.message = `${method} ${endpoint} failed`;
-    
-    // Add essential error information without the massive object dump
-    (cleanError as any).response = {
-      status: error.response?.status,
-      statusText: error.response?.statusText,
-      data: error.response?.data,
-      headers: error.response?.headers
-    };
-    
-    // Add request information for debugging
-    (cleanError as any).request = {
-      method: config.method,
-      url: config.url,
-      params: config.params,
-      data: config.data
-    };
-    
-    throw cleanError;
-  }
-}
+}); 

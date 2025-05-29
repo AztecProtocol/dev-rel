@@ -14,8 +14,8 @@ exports.handler = async (event, context) => {
   // Important for external connections like Discord API
   context.callbackWaitsForEmptyEventLoop = false;
 
-  if (process.env.SKIP_DMS) {
-    logger.info("Skipping DMs");
+  if (process.env.SKIP_MSG) {
+    logger.info("Skipping messages");
   }
   
   try {

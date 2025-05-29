@@ -19,11 +19,10 @@ export enum ModeratorSubcommands {
 
 // Node Operator command enums
 export enum NodeOperatorSubcommandGroups {
-	Operator = "operator",
+	Operator = "operator"
 }
 
 export enum NodeOperatorSubcommands {
-	ChainInfo = "chain-info",
 	MyStats = "my-stats",
 	Start = "start",
 	StartHelp = "start-help",
@@ -32,7 +31,10 @@ export enum NodeOperatorSubcommands {
 	IsReady = "is-ready",
 }
 
-// Other role-related enums
-export enum PassportRoles {
-	Verified = "Verified+", // Base role for verification
+export enum AztecSubcommandGroups {
+	Aztec = "aztec",
+}
+
+export enum AztecSubcommands {
+	Info = "info",
 }

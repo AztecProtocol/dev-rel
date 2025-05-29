@@ -19,7 +19,7 @@ import { logger } from "@sparta/utils";
 import { ApiProvider } from "@sparta/utils/openapi/api/apiProvider";
 import commands from "../slashCommands/index";
 import { getNodeOperatorInfo } from "../slashCommands/operators/my-stats.js";
-import { get as getChainInfo } from "../slashCommands/operators/chain-info.js";
+import { get as getChainInfo } from "../slashCommands/aztec/info.js";
 import { showRegistrationHelp } from "../slashCommands/operators/help.js";
 
 // Command interface

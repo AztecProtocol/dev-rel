@@ -1,5 +1,4 @@
 import { SlashCommandBuilder, ChatInputCommandInteraction } from "discord.js";
-import { get as getChainInfo } from "./chain-info.js";
 import { logger } from "@sparta/utils";
 import {
 	NodeOperatorSubcommandGroups,
@@ -24,11 +23,6 @@ export default {
 			subcommand
 				.setName(NodeOperatorSubcommands.MyStats)
 				.setDescription("🛡️ Check your warrior status and validator battle performance")
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName(NodeOperatorSubcommands.ChainInfo)
-				.setDescription("🏛️ Survey the Aztec Network battlefield status")
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
@@ -89,9 +83,6 @@ export default {
 					break;
 				case NodeOperatorSubcommands.MyStats:
 					await getNodeOperatorInfo(interaction);
-					break;
-				case NodeOperatorSubcommands.ChainInfo:
-					await getChainInfo(interaction);
 					break;
 				case NodeOperatorSubcommands.Start:
 					await registerValidator(interaction);

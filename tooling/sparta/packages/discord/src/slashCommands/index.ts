@@ -6,7 +6,8 @@
 
 import operatorsCommands from "./operators/index";
 import moderatorsCommands from "./moderators/index";
+import aztecCommands from "./aztec/index";
 export * from "../types";
 
 // Export roles commands
-export default { operatorsCommands, moderatorsCommands };
+export default { operatorsCommands, moderatorsCommands, aztecCommands };

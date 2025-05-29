@@ -103,7 +103,7 @@ export async function getOperatorInfo(
 				const validatorDetails: ValidatorDetail[] = [];
 				
 				// Fetch all validator stats at once for efficiency
-				const allValidatorStats = await l2InfoService.fetchValidatorStats() as Record<string, any>;
+				const allValidatorStats = await l2InfoService.fetchValidatorStatsWithCache(BigInt(chainInfo.currentEpoch)) as Record<string, any>;
 				
 				// Process validator information if the operator has any
 				if (operator.validators && operator.validators.length > 0) {

@@ -67,6 +67,10 @@ export class L2InfoService {
 	private static instance: L2InfoService | null = null;
 	private rpcUrl: string;
 	private initialized: boolean = false;
+	
+	// Cache for validator stats
+	private validatorStatsCache: Record<string, RpcAttestationResult> | null = null;
+	private cachedEpoch: bigint | null = null;
 
 	private constructor() {
 		this.rpcUrl = DEFAULT_RPC_URL;
@@ -342,6 +346,44 @@ export class L2InfoService {
 			// Adding a log message for failed proof verification
 			logger.warn(`Proof mismatch for block ${blockNumber}. Expected: ${rpcProof}, Got: ${proof}`);
 			return false;
+		}
+	}
+
+	/**
+	 * Fetches validator stats with epoch-based caching. Only refetches if the current epoch 
+	 * is different from the cached epoch.
+	 * @param currentEpoch The current epoch from rollup info
+	 * @returns All validator stats from cache or fresh fetch
+	 */
+	public async fetchValidatorStatsWithCache(
+		currentEpoch: bigint
+	): Promise<Record<string, RpcAttestationResult>> {
+		try {
+			// Check if we have cached data and the epoch hasn't changed
+			if (this.validatorStatsCache && this.cachedEpoch === currentEpoch) {
+				logger.info(`Using cached validator stats for epoch ${currentEpoch}`);
+				return this.validatorStatsCache;
+			}
+
+			// Epoch changed or no cache exists, fetch fresh data
+			logger.info(`Fetching fresh validator stats for epoch ${currentEpoch} (previous: ${this.cachedEpoch})`);
+			
+			const freshStats = await this.fetchValidatorStats() as Record<string, RpcAttestationResult>;
+			
+			// Update cache
+			this.validatorStatsCache = freshStats;
+			this.cachedEpoch = currentEpoch;
+			
+			return freshStats;
+		} catch (error) {
+			logger.error(error, "Error fetching validator stats with cache");
+			// If we have cached data, return it even if fetch failed
+			if (this.validatorStatsCache) {
+				logger.warn(`Returning stale cached data for epoch ${this.cachedEpoch} due to fetch error`);
+				return this.validatorStatsCache;
+			}
+			// No cache and fetch failed, return empty object
+			return {};
 		}
 	}
 }

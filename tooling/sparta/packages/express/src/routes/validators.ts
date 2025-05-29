@@ -140,6 +140,12 @@ router.get("/validators", async (_req, res) => {
  *       - ApiKeyAuth: []
  *     parameters:
  *       - in: query
+ *         name: address
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The validator address to retrieve information for.
+ *       - in: query
  *         name: discordId
  *         schema:
  *           type: string
@@ -194,16 +200,62 @@ router.get("/validators", async (_req, res) => {
  */
 router.get("/", async (req, res) => {
 	try {
+		const address = req.query.address as string | undefined;
 		const discordId = req.query.discordId as string | undefined;
 		const discordUsername = req.query.discordUsername as string | undefined;
 		
 		// Require at least one parameter
-		if (!discordId && !discordUsername) {
+		if (!address && !discordId && !discordUsername) {
 			return res.status(400).json({ 
-				error: "At least one parameter is required: discordId, or discordUsername" 
+				error: "At least one parameter is required: address, discordId, or discordUsername" 
 			});
 		}
 		
+		// If address is provided, get the specific validator
+		if (address) {
+			// Basic address validation
+			if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+				return res.status(400).json({
+					error: "Invalid validator address format",
+				});
+			}
+			
+			const validator = await validatorService.getValidatorByAddress(address);
+			
+			if (!validator) {
+				return res.status(404).json({ error: "Validator not found" });
+			}
+			
+			// Get Ethereum instance to check if validator is active in rollup
+			const ethereum = await getEthereumInstance();
+			const rollupInfo = await ethereum.getRollupInfo();
+			const isInRollup = rollupInfo.validators.includes(validator.validatorAddress);
+			
+			// Get operator information if available
+			let operator = null;
+			try {
+				operator = await nodeOperatorService.getOperatorByDiscordId(validator.nodeOperatorId);
+			} catch (error) {
+				logger.warn(
+					{ nodeOperatorId: validator.nodeOperatorId, validatorAddress: address },
+					"Could not find operator for validator"
+				);
+			}
+			
+			return res.status(200).json({
+				success: true,
+				data: {
+					address: validator.validatorAddress,
+					operatorId: validator.nodeOperatorId,
+					isActive: isInRollup,
+					operator: operator,
+					createdAt: validator.createdAt,
+					updatedAt: validator.updatedAt,
+				},
+			});
+		}
+		
+		// Original logic for getting validators by operator
 		// Get Ethereum instance to access validators
 		const ethereum = await getEthereumInstance();
 		const rollupInfo = await ethereum.getRollupInfo();
