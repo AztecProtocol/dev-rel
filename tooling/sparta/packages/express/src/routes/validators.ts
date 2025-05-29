@@ -241,11 +241,13 @@ router.get("/", async (req, res) => {
 					"Could not find operator for validator"
 				);
 			}
+
 			
 			return res.status(200).json({
 				success: true,
 				data: {
 					address: validator.validatorAddress,
+					peerId: validator.peerId,
 					operatorId: validator.nodeOperatorId,
 					isActive: isInRollup,
 					operator: operator,
@@ -285,6 +287,7 @@ router.get("/", async (req, res) => {
 			
 			return {
 				address: validator.validatorAddress,
+				peerId: validator.peerId,
 				operatorId: validator.nodeOperatorId,
 				isActive: isInRollup, // Whether the validator is active in the rollup
 			};
@@ -499,6 +502,194 @@ router.post("/", async (req, res) => {
 	} catch (error: any) {
 		logger.error(error.message, "Error adding validator");
 		res.status(500).json({ error: error.message });
+	}
+	return;
+});
+
+// PUT /api/validator - updates validator information (e.g., peerId)
+/**
+ * @swagger
+ * /api/validator:
+ *   put:
+ *     summary: Update validator information
+ *     description: Updates validator information such as peer network ID.
+ *     tags: [Validator]
+ *     operationId: updateValidator
+ *     security:
+ *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: discordId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord ID of the operator who owns this validator.
+ *       - in: query
+ *         name: discordUsername
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord username of the operator who owns this validator.
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               validatorAddress:
+ *                 type: string
+ *                 description: The validator address to update.
+ *                 example: "0x1234567890abcdef1234567890abcdef12345678"
+ *               peerId:
+ *                 type: string
+ *                 description: The peer network ID to associate with this validator. Use null to remove.
+ *                 example: "16Uiu2HAmJpn1h7BCnz2XqmeuoykU7J7f52o8S4DtU4LpjVCJD1RU"
+ *                 nullable: true
+ *             required:
+ *               - validatorAddress
+ *     responses:
+ *       200:
+ *         description: Validator updated successfully.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     address:
+ *                       type: string
+ *                     peerId:
+ *                       type: string
+ *                       nullable: true
+ *                     updatedAt:
+ *                       type: number
+ *       400:
+ *         description: Bad Request - Missing or invalid parameters
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       401:
+ *         description: Unauthorized - Invalid or missing API key
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       403:
+ *         description: Forbidden - Validator not owned by operator
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       404:
+ *         description: Validator or operator not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ *       500:
+ *         description: Internal Server Error
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/OperatorError'
+ */
+router.put("/", async (req, res) => {
+	try {
+		const { validatorAddress, peerId } = req.body;
+		const discordId = req.query.discordId as string | undefined;
+		const discordUsername = req.query.discordUsername as string | undefined;
+		
+		// Validate input parameters
+		if (!validatorAddress) {
+			return res.status(400).json({
+				error: "Missing required parameter: validatorAddress",
+			});
+		}
+		
+		if (!discordId && !discordUsername) {
+			return res.status(400).json({
+				error: "Missing required parameter: either discordId or discordUsername must be provided as a query parameter",
+			});
+		}
+		
+		// Basic address validation
+		if (!/^0x[a-fA-F0-9]{40}$/.test(validatorAddress)) {
+			return res.status(400).json({
+				error: "Invalid validator address format",
+			});
+		}
+		
+		// Validate peerId format if provided (basic libp2p peer ID validation)
+		if (peerId !== null && peerId !== undefined && peerId !== "") {
+			// Basic peer ID validation - should start with specific prefixes and be base58 encoded
+			if (!/^(1|Qm|16Uiu2H)[A-Za-z0-9]{44,}$/.test(peerId)) {
+				return res.status(400).json({
+					error: "Invalid peerId format. Expected libp2p peer ID format.",
+				});
+			}
+		}
+		
+		// Find operator by discordId or discordUsername
+		let operator;
+		let operatorId = discordId;
+		
+		if (discordId) {
+			operator = await nodeOperatorService.getOperatorByDiscordId(discordId);
+		} else if (discordUsername) {
+			operator = await nodeOperatorService.getOperatorByDiscordUsername(discordUsername);
+			if (operator) {
+				operatorId = operator.discordId;
+			}
+		}
+		
+		if (!operator || !operatorId) {
+			return res.status(404).json({
+				error: "Node operator not found",
+			});
+		}
+		
+		// Check if the validator exists and is owned by this operator
+		const validator = await validatorService.getValidatorByAddress(validatorAddress);
+		
+		if (!validator) {
+			return res.status(404).json({
+				error: "Validator not found",
+			});
+		}
+		
+		if (validator.nodeOperatorId !== operatorId) {
+			return res.status(403).json({
+				error: "Validator not owned by this operator",
+			});
+		}
+		
+		// Update the peerId
+		const normalizedPeerId = (peerId === null || peerId === undefined || peerId === "") ? null : peerId;
+		const success = await validatorService.updateValidatorPeerId(validatorAddress, normalizedPeerId);
+		
+		if (!success) {
+			return res.status(500).json({
+				error: "Failed to update validator peerId",
+			});
+		}
+		
+		return res.status(200).json({
+			success: true,
+			data: {
+				address: validatorAddress,
+				peerId: normalizedPeerId,
+				updatedAt: Date.now(),
+			},
+		});
+	} catch (error: any) {
+		logger.error(error, "Error updating validator");
+		res.status(500).json({ error: error.message || "Failed to update validator" });
 	}
 	return;
 });

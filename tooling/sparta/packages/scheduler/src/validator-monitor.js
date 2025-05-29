@@ -51,7 +51,7 @@ class ValidatorMonitorService {
             
             const { data: { data: validatorData } } = await this.client.getValidator({ address: validator });
 
-            if (!validatorData || !validatorData.operator?.discordId) {
+            if (!validatorData || !validatorData.operator?.discordUsername) {
                 logger.warn(`No operator info (discordUsername) found for validator ${validator}`);
                 return null;
             }
@@ -70,7 +70,7 @@ class ValidatorMonitorService {
                 }
             }
             
-            const messageContent = `**Validator Alert**\n\nHello ${validatorData.operatorInfo?.discordUsername},\n\n` +
+            const messageContent = `**Validator Alert**\n\nHello ${validatorData.operator?.discordUsername},\n\n` +
                 `Your validator ${validator} is ${alertReason}. Please check your node status.\n\n` +
                 `If you need assistance, please reach out in the <#${this.operatorsStartHereChannelId}> channel.`;
             
@@ -80,7 +80,7 @@ class ValidatorMonitorService {
             
             if (!process.env.SKIP_MSG) { 
                 try {
-                    recipient = this.dmOverrideRecipient ? this.dmOverrideRecipient : validatorData.operatorInfo?.discordUsername;
+                    recipient = this.dmOverrideRecipient ? this.dmOverrideRecipient : validatorData.operator?.discordUsername;
                     logger.info({ recipient }, "Recipient for DM");
                     const response = await this.client.sendMessageToOperator(
                         { discordUsername: recipient },
@@ -92,20 +92,20 @@ class ValidatorMonitorService {
                     );
                     dmSent = response.data.success;
                     if (dmSent) {
-                        logger.info(`Alert DM sent to ${recipient} for validator ${validatorData.operatorInfo?.discordUsername} with address ${validator}`);
+                        logger.info(`Alert DM sent to ${recipient} for validator ${validatorData.operator?.discordUsername} with address ${validator}`);
                     } else {
                         error = response.data.error || "API call to send DM returned false";
                         logger.warn(`Failed to send DM to ${recipient} for ${validator}: ${error}`);
                     }
                 } catch (dmError) {
                     error = dmError.message;
-                    logger.error(`Error sending DM for validator ${validatorData.operatorInfo?.discordUsername} with address ${validator} to ${recipient}: ${error}`);
+                    logger.error(`Error sending DM for validator ${validatorData.operator?.discordUsername} with address ${validator} to ${recipient}: ${error}`);
                 }
             }
             
             return {
                 validatorAddress: validator,
-                operatorDiscordUsername: validatorData.operatorInfo?.discordUsername, 
+                operatorDiscordUsername: validatorData.operator?.discordUsername, 
                 messageContent: messageContent,
                 missPercentage: missPercentage,
                 timestamp: new Date().toISOString(),

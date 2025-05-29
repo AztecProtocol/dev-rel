@@ -6,6 +6,7 @@ export interface Validator {
     nodeOperatorId: string; // GSI Partition Key: NodeOperatorIndex
     createdAt: number;
     updatedAt: number;
+    peerId?: string; // Optional peer network ID for linking with crawler data
 }
 
 class ValidatorService {
@@ -113,6 +114,24 @@ class ValidatorService {
             logger.error(
                 { error, validatorAddress },
                 "Service error deleting validator"
+            );
+            throw error;
+        }
+    }
+
+    /**
+     * Updates the peerId for a validator.
+     * @param validatorAddress The validator address.
+     * @param peerId The peer network ID to associate with the validator (null to remove).
+     * @returns True if update was successful, false otherwise.
+     */
+    public async updateValidatorPeerId(validatorAddress: string, peerId: string | null): Promise<boolean> {
+        try {
+            return await this.repository.updatePeerId(validatorAddress, peerId);
+        } catch (error) {
+            logger.error(
+                { error, validatorAddress, peerId },
+                "Service error updating validator peerId"
             );
             throw error;
         }

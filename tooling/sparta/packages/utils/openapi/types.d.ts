@@ -594,6 +594,45 @@ declare namespace Paths {
             export type $500 = Components.Schemas.OperatorError;
         }
     }
+    namespace UpdateValidator {
+        namespace Parameters {
+            export type DiscordId = string;
+            export type DiscordUsername = string;
+        }
+        export interface QueryParameters {
+            discordId?: Parameters.DiscordId;
+            discordUsername?: Parameters.DiscordUsername;
+        }
+        export interface RequestBody {
+            /**
+             * The validator address to update.
+             * example:
+             * 0x1234567890abcdef1234567890abcdef12345678
+             */
+            validatorAddress: string;
+            /**
+             * The peer network ID to associate with this validator. Use null to remove.
+             * example:
+             * 16Uiu2HAmJpn1h7BCnz2XqmeuoykU7J7f52o8S4DtU4LpjVCJD1RU
+             */
+            peerId?: string | null;
+        }
+        namespace Responses {
+            export interface $200 {
+                success?: boolean;
+                data?: {
+                    address?: string;
+                    peerId?: string | null;
+                    updatedAt?: number;
+                };
+            }
+            export type $400 = Components.Schemas.OperatorError;
+            export type $401 = Components.Schemas.OperatorError;
+            export type $403 = Components.Schemas.OperatorError;
+            export type $404 = Components.Schemas.OperatorError;
+            export type $500 = Components.Schemas.OperatorError;
+        }
+    }
 }
 
 export interface OperationMethods {
@@ -767,6 +806,16 @@ export interface OperationMethods {
     data?: any,
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.GetValidator.Responses.$200>
+  /**
+   * updateValidator - Update validator information
+   * 
+   * Updates validator information such as peer network ID.
+   */
+  'updateValidator'(
+    parameters?: Parameters<Paths.UpdateValidator.QueryParameters> | null,
+    data?: Paths.UpdateValidator.RequestBody,
+    config?: AxiosRequestConfig  
+  ): OperationResponse<Paths.UpdateValidator.Responses.$200>
   /**
    * addValidator - Add a new validator
    * 
@@ -995,6 +1044,16 @@ export interface PathsDictionary {
       data?: Paths.AddValidator.RequestBody,
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.AddValidator.Responses.$201>
+    /**
+     * updateValidator - Update validator information
+     * 
+     * Updates validator information such as peer network ID.
+     */
+    'put'(
+      parameters?: Parameters<Paths.UpdateValidator.QueryParameters> | null,
+      data?: Paths.UpdateValidator.RequestBody,
+      config?: AxiosRequestConfig  
+    ): OperationResponse<Paths.UpdateValidator.Responses.$200>
     /**
      * removeValidator - Remove a validator
      * 

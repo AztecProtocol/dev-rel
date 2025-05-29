@@ -134,6 +134,7 @@ The Discord client is configured through environment variables:
 - `BOT_TOKEN`: Discord bot token
 - `BOT_CLIENT_ID`: Discord application client ID
 - `GUILD_ID`: Discord server (guild) ID
+- `PEER_CRAWLER_AUTH_TOKEN`: Authentication token for the Nethermind peer crawler API (required for validator peer network data)
 
 ## Development
 

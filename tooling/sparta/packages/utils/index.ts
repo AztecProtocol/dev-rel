@@ -6,8 +6,9 @@
 // Note: Ethereum functionality has been moved to @sparta/ethereum package
 export { logger } from "./logger.js";
 export { default as dynamoDB } from "./dynamo-db.js";
+export * from "./rpc-client.js";
 // export * from "./inputValidator.js"; // Remove export - Discord specific
 export * from "./const/index.js";
 export type { OpenAPIV3 } from "openapi-types";
-import apiDocs from "./openapi/api-docs.json";
+import apiDocs from "./openapi/api-docs.json" with { type: "json" };
 export { apiDocs };

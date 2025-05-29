@@ -10,11 +10,12 @@
     },
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.427.0",
-        "@aws-sdk/lib-dynamodb": "^3.427.0",
         "@aws-sdk/client-s3": "^3.427.0",
-        "pino": "^8.16.0",
+        "@aws-sdk/lib-dynamodb": "^3.427.0",
+        "@chainsafe/enr": "^3.0.0",
         "dotenv": "^16.4.0",
-        "node-fetch": "^3.3.0"
+        "node-fetch": "^3.3.0",
+        "pino": "^8.16.0"
     },
     "devDependencies": {
         "@types/bun": "latest",

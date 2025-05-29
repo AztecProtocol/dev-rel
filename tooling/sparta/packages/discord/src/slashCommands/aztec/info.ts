@@ -38,7 +38,7 @@ export const get = async (
 • Current epoch: **${currentEpoch}** - *Era of combat*
 • Current slot: **${currentSlot}** - *Position in formation*
 • Validators on the set: **${validators.length}** - *Army size*
-• Active validators		: **${activeValidators}** - *Warriors in action*
+• Active validators : **${activeValidators}** - *Warriors in action*
 • Commander on duty (proposer): [${proposerNow}](https://sepolia.etherscan.io/address/${proposerNow}) - *Leading the charge*
 
 🏛️ The Aztec Network stands strong, warrior! 🏛️`,

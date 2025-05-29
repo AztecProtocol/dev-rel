@@ -4,11 +4,16 @@
  * @module sparta/discord/services
  */
 
-import { logger } from "@sparta/utils/logger";
+import { logger, sendJsonRpcRequest } from "@sparta/utils";
 
 // RPC endpoint URL
 const DEFAULT_RPC_URL = process.env.AZTEC_RPC_URL || "http://localhost:8080"; // Use env var or default
 const RPC_METHOD_VALIDATOR_STATS = "node_getValidatorsStats";
+
+// Peer network crawler endpoint
+const PEER_CRAWLER_URL = process.env.PEER_CRAWLER_URL || "https://aztec.nethermind.io/api/private/peers";
+const PEER_CRAWLER_AUTH_TOKEN = process.env.PEER_CRAWLER_AUTH_TOKEN;
+const DEFAULT_PEER_PAGE_SIZE = 2000; // Get more peers by default, can be overridden
 
 // --- Define types based on RPC response ---
 
@@ -60,6 +65,59 @@ interface RpcAttestationResult {
 	error?: string;
 }
 
+// --- Peer Network Types ---
+
+interface PeerIpInfo {
+	ip_address: string;
+	port: number;
+	as_name: string;
+	as_number: number;
+	city_name: string;
+	country_name: string;
+	country_iso: string;
+	continent_name: string;
+	continent_code: string;
+	latitude: number;
+	longitude: number;
+}
+
+interface PeerMultiAddress {
+	maddr: string;
+	ip_info: PeerIpInfo[];
+}
+
+interface PeerData {
+	id: string;
+	created_at: string;
+	last_seen: string;
+	client: string;
+	multi_addresses: PeerMultiAddress[];
+	protocols?: string[] | null;
+	block_height?: number | null;
+	spec_version?: string | null;
+	is_synced?: boolean | null;
+}
+
+interface PeerCrawlerResponse {
+	peers: PeerData[];
+}
+
+interface PeerNetworkSummary {
+	totalPeers: number;
+	syncedPeers: number;
+	clientDistribution: Record<string, number>;
+	countryDistribution: Record<string, number>;
+	avgBlockHeight?: number;
+	lastUpdated: number;
+	samplePeers: PeerData[]; // Store a few sample peers for display
+}
+
+interface ValidatorPeerInfo {
+	validatorAddress: string;
+	associatedPeers: PeerData[];
+	networkSummary: PeerNetworkSummary;
+}
+
 /**
  * Service for retrieving L2 blockchain information and validator data via RPC
  */
@@ -68,9 +126,15 @@ export class L2InfoService {
 	private rpcUrl: string;
 	private initialized: boolean = false;
 	
-	// Cache for validator stats
+	// Cache for validator stats (refreshed every epoch)
 	private validatorStatsCache: Record<string, RpcAttestationResult> | null = null;
 	private cachedEpoch: bigint | null = null;
+
+	// Cache for peer network data (refreshed every 10 epochs)
+	private peerNetworkCache: PeerNetworkSummary | null = null;
+	private peerDataMapCache: Map<string, PeerData> | null = null;
+	private peerCacheEpoch: bigint | null = null;
+	private readonly PEER_CACHE_EPOCH_INTERVAL = 10n; // Cache peer data every 10 epochs
 
 	private constructor() {
 		this.rpcUrl = DEFAULT_RPC_URL;
@@ -107,66 +171,17 @@ export class L2InfoService {
 	}
 
 	/**
-	 * Send a JSON-RPC request to the configured endpoint
-	 * @param method RPC method name
-	 * @param params Array of parameters to pass to the method
-	 * @returns The result field from the RPC response
-	 */
-	private async sendJsonRpcRequest(
-		method: string,
-		params: any[] = []
-	): Promise<any> {
-		try {
-			// Initialize if not already done
-			if (!this.initialized) {
-				await this.init();
-			}
-
-			const response = await fetch(this.rpcUrl, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					jsonrpc: "2.0",
-					method,
-					params,
-					id: 1, // Arbitrary ID
-				}),
-			});
-
-			if (!response.ok) {
-				throw new Error(
-					`HTTP error! status: ${response.status} ${response.statusText}`
-				);
-			}
-
-			const data: JsonRpcResponse = await response.json();
-
-			if (data.error) {
-				throw new Error(
-					`RPC error! code: ${data.error.code}, message: ${data.error.message}`
-				);
-			}
-
-			if (data.result === undefined) {
-				throw new Error("RPC response missing result field.");
-			}
-
-			return data.result;
-		} catch (error) {
-			logger.error(error,`Error in RPC call to ${method}`);
-			throw error;
-		}
-	}
-
-	/**
 	 * Get the latest L2 block tips
 	 * @returns The proven block number as a string
 	 */
 	public async getL2Tips(): Promise<string> {
 		try {
-			const result = await this.sendJsonRpcRequest("node_getL2Tips");
+			// Initialize if not already done
+			if (!this.initialized) {
+				await this.init();
+			}
+			
+			const result = await sendJsonRpcRequest(this.rpcUrl, "node_getL2Tips");
 			return result.proven.number as string;
 		} catch (error) {
 			logger.error(error, "Error getting L2 tips:");
@@ -181,9 +196,14 @@ export class L2InfoService {
 	 */
 	public async getArchiveSiblingPath(blockNumber: string): Promise<any> {
 		try {
+			// Initialize if not already done
+			if (!this.initialized) {
+				await this.init();
+			}
+			
 			// Assuming the RPC method takes blockNumber as a parameter.
 			// The previous version passed it twice, let's try with one first.
-			return await this.sendJsonRpcRequest("node_getArchiveSiblingPath", [
+			return await sendJsonRpcRequest(this.rpcUrl, "node_getArchiveSiblingPath", [
 				blockNumber,
 				blockNumber,
 			]);
@@ -205,7 +225,13 @@ export class L2InfoService {
 		targetAddress?: string
 	): Promise<RpcAttestationResult | Record<string, RpcAttestationResult>> {
 		try {
-			const data = (await this.sendJsonRpcRequest(
+			// Initialize if not already done
+			if (!this.initialized) {
+				await this.init();
+			}
+			
+			const data = (await sendJsonRpcRequest(
+				this.rpcUrl,
 				RPC_METHOD_VALIDATOR_STATS,
 				[]
 			)) as ValidatorsStatsResponse;
@@ -384,6 +410,287 @@ export class L2InfoService {
 			}
 			// No cache and fetch failed, return empty object
 			return {};
+		}
+	}
+
+	/**
+	 * Fetches peer network data from crawler API
+	 */
+	private async fetchPeerNetworkData(pageSize: number = DEFAULT_PEER_PAGE_SIZE): Promise<PeerCrawlerResponse> {
+		try {
+			// Check if auth token is available
+			if (!PEER_CRAWLER_AUTH_TOKEN) {
+				throw new Error("PEER_CRAWLER_AUTH_TOKEN environment variable is required but not set");
+			}
+
+			let allPeers: PeerData[] = [];
+			let nextPaginationToken: string | undefined = undefined;
+			let pageCount = 0;
+			const maxPages = 50; // Safety limit to prevent infinite loops
+
+			do {
+				// Build URL with query parameters
+				const url = new URL(PEER_CRAWLER_URL);
+				url.searchParams.set('page_size', pageSize.toString());
+				url.searchParams.set('latest', 'true');
+				
+				// Add pagination token if we have one
+				if (nextPaginationToken) {
+					url.searchParams.set('pagination_token', nextPaginationToken);
+				}
+
+				const response = await fetch(url.toString(), {
+					method: "GET",
+					headers: {
+						"Content-Type": "application/json",
+						"Authorization": `Basic ${PEER_CRAWLER_AUTH_TOKEN}`,
+					},
+				});
+
+				if (!response.ok) {
+					throw new Error(
+						`HTTP error! status: ${response.status} ${response.statusText}`
+					);
+				}
+
+				const data = await response.json();
+				
+				// Add peers from this page to our collection
+				if (data.peers && Array.isArray(data.peers)) {
+					allPeers.push(...data.peers);
+				}
+
+				// Check for next page
+				nextPaginationToken = data.next_pagination_token;
+				pageCount++;
+				
+				logger.info(`Fetched page ${pageCount} with ${data.peers?.length || 0} peers (total so far: ${allPeers.length})`);
+				
+				// Safety check to prevent infinite loops
+				if (pageCount >= maxPages) {
+					logger.warn(`Reached maximum page limit (${maxPages}) while fetching peer data`);
+					break;
+				}
+				
+			} while (nextPaginationToken);
+
+			logger.info(`Completed peer data fetch: ${pageCount} pages, ${allPeers.length} total peers`);
+
+			// Return in the same format as the original response
+			return {
+				peers: allPeers
+			};
+		} catch (error) {
+			logger.error(error, "Error fetching peer network data");
+			throw error;
+		}
+	}
+
+	/**
+	 * Processes raw peer data into a summary for efficient caching
+	 */
+	private processPeerData(peerData: PeerData[]): PeerNetworkSummary {
+		const clientDistribution: Record<string, number> = {};
+		const countryDistribution: Record<string, number> = {};
+		let syncedCount = 0;
+		let totalBlockHeight = 0;
+		let blockHeightCount = 0;
+
+		for (const peer of peerData) {
+			// Count by client type
+			clientDistribution[peer.client] = (clientDistribution[peer.client] || 0) + 1;
+
+			// Count by country (from first IP info if available)
+			const firstMultiAddr = peer.multi_addresses?.[0];
+			const firstIpInfo = firstMultiAddr?.ip_info?.[0];
+			if (firstIpInfo?.country_name) {
+				const country = firstIpInfo.country_name;
+				countryDistribution[country] = (countryDistribution[country] || 0) + 1;
+			}
+
+			// Count synced peers
+			if (peer.is_synced === true) {
+				syncedCount++;
+			}
+
+			// Calculate average block height
+			if (peer.block_height !== null && peer.block_height !== undefined) {
+				totalBlockHeight += peer.block_height;
+				blockHeightCount++;
+			}
+		}
+
+		// Take a sample of recent peers for display
+		const samplePeers = peerData
+			.sort((a, b) => new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime())
+			.slice(0, 10); // Top 10 most recently seen
+
+		return {
+			totalPeers: peerData.length,
+			syncedPeers: syncedCount,
+			clientDistribution,
+			countryDistribution,
+			avgBlockHeight: blockHeightCount > 0 ? Math.round(totalBlockHeight / blockHeightCount) : undefined,
+			lastUpdated: Date.now(),
+			samplePeers,
+		};
+	}
+
+	/**
+	 * Combines validator stats and peer data with separate caching intervals
+	 * Validator stats: refreshed every epoch
+	 * Peer data: refreshed every 10 epochs
+	 */
+	public async fetchCombinedNetworkData(
+		currentEpoch: bigint
+	): Promise<{ validatorStats: Record<string, RpcAttestationResult>; peerNetwork: PeerNetworkSummary; peerDataMap: Map<string, PeerData> }> {
+		try {
+			let needsValidatorStats = false;
+			let needsPeerData = false;
+
+			// Check if validator stats need refresh (every epoch)
+			if (!this.validatorStatsCache || this.cachedEpoch !== currentEpoch) {
+				needsValidatorStats = true;
+			}
+
+			// Check if peer data needs refresh (every 10 epochs)
+			const peerCacheEpoch = currentEpoch - (currentEpoch % this.PEER_CACHE_EPOCH_INTERVAL);
+			if (!this.peerNetworkCache || this.peerCacheEpoch !== peerCacheEpoch) {
+				needsPeerData = true;
+			}
+
+			// If nothing needs refresh, return cached data
+			if (!needsValidatorStats && !needsPeerData) {
+				logger.info(`Using cached data - validator stats epoch ${this.cachedEpoch}, peer data epoch ${this.peerCacheEpoch}`);
+				return {
+					validatorStats: this.validatorStatsCache!,
+					peerNetwork: this.peerNetworkCache!,
+					peerDataMap: this.peerDataMapCache || new Map(),
+				};
+			}
+
+			// Build array of fetch promises based on what needs refresh
+			const fetchPromises: Promise<any>[] = [];
+			let validatorPromiseIndex = -1;
+			let peerPromiseIndex = -1;
+
+			if (needsValidatorStats) {
+				validatorPromiseIndex = fetchPromises.length;
+				fetchPromises.push(this.fetchValidatorStats());
+				logger.info(`Fetching fresh validator stats for epoch ${currentEpoch} (previous: ${this.cachedEpoch})`);
+			}
+
+			if (needsPeerData) {
+				peerPromiseIndex = fetchPromises.length;
+				fetchPromises.push(this.fetchPeerNetworkData());
+				logger.info(`Fetching fresh peer data for cache epoch ${peerCacheEpoch} (previous: ${this.peerCacheEpoch})`);
+			}
+
+			// Fetch data as needed
+			const results = await Promise.all(fetchPromises);
+
+			// Update caches based on what was fetched
+			if (needsValidatorStats && validatorPromiseIndex >= 0) {
+				const validatorStats = results[validatorPromiseIndex] as Record<string, RpcAttestationResult>;
+				this.validatorStatsCache = validatorStats;
+				this.cachedEpoch = currentEpoch;
+			}
+
+			if (needsPeerData && peerPromiseIndex >= 0) {
+				const peerNetworkResponse = results[peerPromiseIndex] as PeerCrawlerResponse;
+				const peerNetworkSummary = this.processPeerData(peerNetworkResponse.peers);
+				
+				// Create peer data map for quick lookup
+				const peerDataMap = new Map<string, PeerData>();
+				for (const peer of peerNetworkResponse.peers) {
+					peerDataMap.set(peer.id, peer);
+				}
+
+				this.peerNetworkCache = peerNetworkSummary;
+				this.peerDataMapCache = peerDataMap;
+				this.peerCacheEpoch = peerCacheEpoch;
+			}
+
+			// Return combined data
+			return {
+				validatorStats: this.validatorStatsCache!,
+				peerNetwork: this.peerNetworkCache!,
+				peerDataMap: this.peerDataMapCache || new Map(),
+			};
+		} catch (error) {
+			logger.error(error, "Error fetching combined network data");
+			// If we have any cached data, return it even if fetch failed
+			if (this.validatorStatsCache || this.peerNetworkCache) {
+				logger.warn(`Returning stale cached data due to fetch error`);
+				return {
+					validatorStats: this.validatorStatsCache || {},
+					peerNetwork: this.peerNetworkCache || {
+						totalPeers: 0,
+						syncedPeers: 0,
+						clientDistribution: {},
+						countryDistribution: {},
+						lastUpdated: Date.now(),
+						samplePeers: [],
+					},
+					peerDataMap: this.peerDataMapCache || new Map(),
+				};
+			}
+			// No cache and fetch failed, return empty data
+			return {
+				validatorStats: {},
+				peerNetwork: {
+					totalPeers: 0,
+					syncedPeers: 0,
+					clientDistribution: {},
+					countryDistribution: {},
+					lastUpdated: Date.now(),
+					samplePeers: [],
+				},
+				peerDataMap: new Map(),
+			};
+		}
+	}
+
+	/**
+	 * Enriches validator data with specific peer information based on peerId
+	 * @param validators Array of validators with optional peerIds
+	 * @param currentEpoch Current epoch for validator stats
+	 * @returns Enriched validator data with peer information
+	 */
+	public async fetchEnrichedValidatorData(
+		validators: Array<{ validatorAddress: string; peerId?: string }>,
+		currentEpoch: bigint
+	): Promise<Array<{
+		validatorAddress: string;
+		validatorStats?: RpcAttestationResult;
+		peerData?: PeerData;
+		peerId?: string;
+	}>> {
+		try {
+			// Fetch both data sources using the new separate caching
+			const networkData = await this.fetchCombinedNetworkData(currentEpoch);
+			const validatorStats = networkData.validatorStats;
+			const peerDataMap = networkData.peerDataMap;
+
+			// Enrich each validator with its data
+			return validators.map(validator => {
+				const validatorStatsData = validatorStats[validator.validatorAddress.toLowerCase()];
+				const peerData = validator.peerId ? peerDataMap.get(validator.peerId) : undefined;
+
+				return {
+					validatorAddress: validator.validatorAddress,
+					validatorStats: validatorStatsData,
+					peerData,
+					peerId: validator.peerId,
+				};
+			});
+		} catch (error) {
+			logger.error(error, "Error fetching enriched validator data");
+			// Return basic structure on error
+			return validators.map(validator => ({
+				validatorAddress: validator.validatorAddress,
+				peerId: validator.peerId,
+			}));
 		}
 	}
 }

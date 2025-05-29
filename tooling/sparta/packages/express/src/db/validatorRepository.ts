@@ -297,6 +297,58 @@ export class ValidatorRepository {
 		}
 	}
 
+	async updatePeerId(
+		validatorAddress: string,
+		peerId: string | null
+	): Promise<boolean> {
+		try {
+			const updateExpression = peerId 
+				? "SET peerId = :peerId, updatedAt = :updatedAt"
+				: "REMOVE peerId SET updatedAt = :updatedAt";
+			
+			const expressionAttributeValues: any = {
+				":updatedAt": Date.now(),
+			};
+			
+			if (peerId) {
+				expressionAttributeValues[":peerId"] = peerId;
+			}
+
+			const command = new UpdateCommand({
+				TableName: this.tableName,
+				Key: { validatorAddress },
+				UpdateExpression: updateExpression,
+				ConditionExpression: "attribute_exists(validatorAddress)",
+				ExpressionAttributeValues: expressionAttributeValues,
+				ReturnValues: "NONE",
+			});
+			await this.client.send(command);
+			logger.info(
+				{ validatorAddress, peerId, tableName: this.tableName },
+				"Updated Validator peerId in repository"
+			);
+			return true;
+		} catch (error: any) {
+			logger.error(
+				{
+					error,
+					validatorAddress,
+					peerId,
+					tableName: this.tableName,
+				},
+				"Error updating Validator peerId in repository"
+			);
+			if (error.name === "ConditionalCheckFailedException") {
+				logger.warn(
+					{ validatorAddress },
+					"Validator not found for peerId update operation"
+				);
+				return false;
+			}
+			throw error;
+		}
+	}
+
 	async deleteByAddress(validatorAddress: string): Promise<boolean> {
 		try {
 			const command = new DeleteCommand({

@@ -63,6 +63,7 @@ export async function addValidator(
 		const client = await clientPromise;
 
 		// ---- 1. Approve Operator ----
+		let operatorWasAlreadyApproved = false;
 		try {
 			logger.info(`Attempting to approve operator: ${targetDiscordUsername}`);
 			await client.approveOperator(
@@ -74,7 +75,15 @@ export async function addValidator(
 			logger.info(`Operator ${targetDiscordUsername} approved successfully.`);
 		} catch (approvalError: any) {
 			logger.error(`Error approving operator ${targetDiscordUsername}:`, approvalError.response?.data || approvalError.message);
-			if (approvalError.response && approvalError.response.status === 404) {
+			
+			// Check if operator is already approved - this should not block the flow
+			// Only allow this specific 400 error to proceed, not any 400 status
+			if (approvalError.response && 
+				approvalError.response.status === 400 && 
+				approvalError.response.data?.error === "Operator is already approved") {
+				logger.info(`Operator ${targetDiscordUsername} is already approved, continuing with validator addition.`);
+				operatorWasAlreadyApproved = true;
+			} else if (approvalError.response && approvalError.response.status === 404) {
 				const errorEmbed = new EmbedBuilder()
 					.setTitle("❌ OPERATOR APPROVAL FAILED")
 					.setColor(0xff0000)
@@ -83,16 +92,18 @@ export async function addValidator(
 					.setFooter({ text: "Aztec Network Operator Management" });
 				await interaction.editReply({ embeds: [errorEmbed] });
 				return "Approval failed - Operator not found";
+			} else {
+				// Handle all other errors (including other 400 errors) as failures
+				const errorEmbed = new EmbedBuilder()
+					.setTitle("❌ OPERATOR APPROVAL FAILED")
+					.setColor(0xff0000)
+					.setDescription(`An error occurred while trying to approve \`${targetDiscordUsername}\`.`)
+					.addFields({ name: "Details", value: approvalError.response?.data?.error || approvalError.message || "Please check logs."})
+					.setTimestamp()
+					.setFooter({ text: "Aztec Network Operator Management" });
+				await interaction.editReply({ embeds: [errorEmbed] });
+				return "Approval error";
 			}
-			const errorEmbed = new EmbedBuilder()
-				.setTitle("❌ OPERATOR APPROVAL FAILED")
-				.setColor(0xff0000)
-				.setDescription(`An error occurred while trying to approve \`${targetDiscordUsername}\`.`)
-				.addFields({ name: "Details", value: approvalError.message || "Please check logs."})
-				.setTimestamp()
-				.setFooter({ text: "Aztec Network Operator Management" });
-			await interaction.editReply({ embeds: [errorEmbed] });
-			return "Approval error";
 		}
 
 		// ---- 2. Fetch Operator Details (to get ID and check existing validators) ----
@@ -147,21 +158,32 @@ export async function addValidator(
 
 			// ---- 5. Success Notification & DM ----
 			const displayAddress = `${validatorAddress.slice(0, 6)}...${validatorAddress.slice(-4)}`;
+			const approvalStatus = operatorWasAlreadyApproved ? "Already Approved" : "Newly Approved";
+			const titleText = operatorWasAlreadyApproved ? 
+				`✅ Validator Added (Operator Already Approved)` : 
+				`✅ Operator Approved & Validator Added`;
+			const descriptionText = operatorWasAlreadyApproved ?
+				`Operator \`${targetDiscordUsername}\` was already approved. Validator \`${displayAddress}\` has been added successfully.` :
+				`Operator \`${targetDiscordUsername}\` has been approved and validator \`${displayAddress}\` added successfully.`;
+			
 			const successEmbed = new EmbedBuilder()
-				.setTitle(`✅ Operator Approved & Validator Added`)
+				.setTitle(titleText)
 				.setColor(0x00ff00) // Green for success
 				.setTimestamp()
 				.setFooter({ text: "Sparta Validator Registration" })
-				.setDescription(`Operator \`${targetDiscordUsername}\` has been approved and validator \`${displayAddress}\` added successfully.`)
+				.setDescription(descriptionText)
 				.addFields(
 					{ name: "Operator", value: targetDiscordUsername, inline: true },
 					{ name: "Validator Address", value: validatorAddress, inline: false },
-					{ name: "Status", value: "Approved and Validator Added", inline: true }
+					{ name: "Status", value: `${approvalStatus} and Validator Added`, inline: true }
 				);
 
 			// Send DM to the operator
-			const dmContent = `Hear ye, hear ye, brave Spartan warrior! 🛡️ A moderator has **APPROVED** your entry and **ADDED** your validator to the Aztec network!\n\nYour validator address: \`${validatorAddress}\` is now registered.\n\n- Keep your shield up and your validator sharp! You can check its readiness with \`/operator my-stats\`.\n- A true Spartan upholds the line! Neglecting your duties could lead to your validator being slashed.\n\nShould you need guidance, seek aid in this channel or message <@411954463541166080> (my creator) directly.\n\nVictory favors the prepared! This is SPARTAAAA! 💪`;
-			const dmThreadName = `Auto-Notification: Approved & Validator Added - ${targetDiscordUsername}`;
+			const dmActionText = operatorWasAlreadyApproved ? "**ADDED** your validator" : "**APPROVED** your entry and **ADDED** your validator";
+			const dmContent = `Hear ye, hear ye, brave Spartan warrior! 🛡️ A moderator has ${dmActionText} to the Aztec network!\n\nYour validator address: \`${validatorAddress}\` is now registered.\n\n- Keep your shield up and your validator sharp! You can check its readiness with \`/operator my-stats\`.\n- A true Spartan upholds the line! Neglecting your duties could lead to your validator being slashed.\n\nShould you need guidance, seek aid in this channel or message <@411954463541166080> (my creator) directly.\n\nVictory favors the prepared! This is SPARTAAAA! 💪`;
+			const dmThreadName = operatorWasAlreadyApproved ? 
+				`Auto-Notification: Validator Added - ${targetDiscordUsername}` :
+				`Auto-Notification: Approved & Validator Added - ${targetDiscordUsername}`;
 			let dmStatusMessage = "A direct message has been sent to the operator.";
 
 			try {
@@ -182,7 +204,9 @@ export async function addValidator(
 			successEmbed.addFields({ name: "Operator Notification", value: dmStatusMessage });
 
 			await interaction.editReply({ embeds: [successEmbed] });
-			return "Operator approved and validator added successfully.";
+			return operatorWasAlreadyApproved ? 
+				"Validator added successfully (operator was already approved)." :
+				"Operator approved and validator added successfully.";
 
 		} catch (addValidatorError: any) {
 			logger.error(addValidatorError.response?.data || addValidatorError.message, `Error adding validator ${validatorAddress} for ${targetDiscordUsername}:`);
