@@ -2,7 +2,7 @@ import express from "express";
 import { logger } from "@sparta/utils";
 import { nodeOperatorService } from "../domain/operators/service";
 import { validatorService, type Validator } from "../domain/validators/service";
-import { getEthereumInstance } from "@sparta/ethereum";
+import { getEthereumInstance, l2InfoService } from "@sparta/ethereum";
 
 const router = express.Router();
 
@@ -132,8 +132,8 @@ router.get("/validators", async (_req, res) => {
  * @swagger
  * /api/validator:
  *   get:
- *     summary: Get validator information
- *     description: Retrieves validator information either by validator address or by operator (discordId/username).
+ *     summary: Get validator information by address
+ *     description: Retrieves detailed validator information by validator address, including associated operator details.
  *     tags: [Validator]
  *     operationId: getValidator
  *     security:
@@ -143,23 +143,11 @@ router.get("/validators", async (_req, res) => {
  *         name: address
  *         schema:
  *           type: string
- *         required: false
+ *         required: true
  *         description: The validator address to retrieve information for.
- *       - in: query
- *         name: discordId
- *         schema:
- *           type: string
- *         required: false
- *         description: The Discord ID of the operator to get validators for.
- *       - in: query
- *         name: discordUsername
- *         schema:
- *           type: string
- *         required: false
- *         description: The Discord username of the operator to get validators for.
  *     responses:
  *       200:
- *         description: The requested validator information or validators for an operator.
+ *         description: The requested validator information with operator details.
  *         content:
  *           application/json:
  *             schema:
@@ -167,14 +155,12 @@ router.get("/validators", async (_req, res) => {
  *               properties:
  *                 success:
  *                   type: boolean
+ *                   description: Indicates if the request was successful.
+ *                   example: true
  *                 data:
- *                   oneOf:
- *                     - $ref: '#/components/schemas/ValidatorResponse'
- *                     - type: array
- *                       items:
- *                         $ref: '#/components/schemas/ValidatorResponse'
+ *                   $ref: '#/components/schemas/ValidatorResponse'
  *       400:
- *         description: Bad Request - Missing or invalid query parameters
+ *         description: Bad Request - Missing or invalid address parameter
  *         content:
  *           application/json:
  *             schema:
@@ -186,7 +172,7 @@ router.get("/validators", async (_req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/OperatorError'
  *       404:
- *         description: Validator or operator not found
+ *         description: Validator not found
  *         content:
  *           application/json:
  *             schema:
@@ -201,103 +187,76 @@ router.get("/validators", async (_req, res) => {
 router.get("/", async (req, res) => {
 	try {
 		const address = req.query.address as string | undefined;
-		const discordId = req.query.discordId as string | undefined;
-		const discordUsername = req.query.discordUsername as string | undefined;
 		
-		// Require at least one parameter
-		if (!address && !discordId && !discordUsername) {
+		// Require address parameter
+		if (!address) {
 			return res.status(400).json({ 
-				error: "At least one parameter is required: address, discordId, or discordUsername" 
+				error: "Missing required parameter: address" 
 			});
 		}
-		
-		// If address is provided, get the specific validator
-		if (address) {
-			// Basic address validation
-			if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-				return res.status(400).json({
-					error: "Invalid validator address format",
-				});
-			}
-			
-			const validator = await validatorService.getValidatorByAddress(address);
-			
-			if (!validator) {
-				return res.status(404).json({ error: "Validator not found" });
-			}
-			
-			// Get Ethereum instance to check if validator is active in rollup
-			const ethereum = await getEthereumInstance();
-			const rollupInfo = await ethereum.getRollupInfo();
-			const isInRollup = rollupInfo.validators.includes(validator.validatorAddress);
-			
-			// Get operator information if available
-			let operator = null;
-			try {
-				operator = await nodeOperatorService.getOperatorByDiscordId(validator.nodeOperatorId);
-			} catch (error) {
-				logger.warn(
-					{ nodeOperatorId: validator.nodeOperatorId, validatorAddress: address },
-					"Could not find operator for validator"
-				);
-			}
 
-			
-			return res.status(200).json({
-				success: true,
-				data: {
-					address: validator.validatorAddress,
-					peerId: validator.peerId,
-					operatorId: validator.nodeOperatorId,
-					isActive: isInRollup,
-					operator: operator,
-					createdAt: validator.createdAt,
-					updatedAt: validator.updatedAt,
-				},
+		// Basic address validation
+		if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+			return res.status(400).json({
+				error: "Invalid validator address format",
 			});
 		}
+
+		await l2InfoService.updateValidatorDataIfNeeded();
 		
-		// Original logic for getting validators by operator
-		// Get Ethereum instance to access validators
+		const validator = await validatorService.getValidatorByAddress(address);
+		
+		if (!validator) {
+			return res.status(404).json({ error: "Validator not found" });
+		}
+		
+		// Get Ethereum instance to check if validator is active in rollup
 		const ethereum = await getEthereumInstance();
 		const rollupInfo = await ethereum.getRollupInfo();
+		const isInRollup = rollupInfo.validators.includes(validator.validatorAddress);
 		
-		let operatorId = discordId;
+		// Get operator information if available
 		let operator = null;
-		
-		if (discordId) {
-			operator = await nodeOperatorService.getOperatorByDiscordId(discordId);
-		} else if (discordUsername) {
-			operator = await nodeOperatorService.getOperatorByDiscordUsername(discordUsername);
-			if (operator) {
-				operatorId = operator.discordId;
-			}
+		try {
+			operator = await nodeOperatorService.getOperatorByDiscordId(validator.nodeOperatorId);
+		} catch (error) {
+			logger.warn(
+				{ nodeOperatorId: validator.nodeOperatorId, validatorAddress: address },
+				"Could not find operator for validator"
+			);
 		}
-		
-		if (!operator || !operatorId) {
-			return res.status(404).json({ error: "Operator not found" });
-		}
-		
-		// Get all validators for this operator
-		const validators = await validatorService.getValidatorsByNodeOperator(operatorId);
-		
-		// Get detailed info for each validator
-		const validatorDetails = validators.map(validator => {
-			const isInRollup = rollupInfo.validators.includes(validator.validatorAddress);
-			
-			return {
-				address: validator.validatorAddress,
-				peerId: validator.peerId,
-				operatorId: validator.nodeOperatorId,
-				isActive: isInRollup, // Whether the validator is active in the rollup
-			};
-		});
-		
+
 		return res.status(200).json({
 			success: true,
 			data: {
+				address: validator.validatorAddress,
+				peerId: validator.peerId,
+				operatorId: validator.nodeOperatorId,
+				isActive: isInRollup,
 				operator: operator,
-				validators: validatorDetails
+				createdAt: validator.createdAt,
+				updatedAt: validator.updatedAt,
+				// Include all processed validator stats
+				epoch: validator.epoch,
+				hasAttested24h: validator.hasAttested24h,
+				lastAttestationSlot: validator.lastAttestationSlot,
+				lastAttestationTimestamp: validator.lastAttestationTimestamp,
+				lastAttestationDate: validator.lastAttestationDate,
+				lastProposalSlot: validator.lastProposalSlot,
+				lastProposalTimestamp: validator.lastProposalTimestamp,
+				lastProposalDate: validator.lastProposalDate,
+				missedAttestationsCount: validator.missedAttestationsCount,
+				missedProposalsCount: validator.missedProposalsCount,
+				totalSlots: validator.totalSlots,
+				// Include all processed peer data
+				peerClient: validator.peerClient,
+				peerCountry: validator.peerCountry,
+				peerCity: validator.peerCity,
+				peerIpAddress: validator.peerIpAddress,
+				peerPort: validator.peerPort,
+				peerIsSynced: validator.peerIsSynced,
+				peerBlockHeight: validator.peerBlockHeight,
+				peerLastSeen: validator.peerLastSeen,
 			},
 		});
 	} catch (error) {

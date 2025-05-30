@@ -249,7 +249,7 @@ async function copyProductionData(): Promise<void> {
     console.log(`📥 Copying data from ${process.env.PROD_VALIDATORS_TABLE_NAME}...`);
     const validatorsData = await prodClient.send(new ScanCommand({
       TableName: process.env.PROD_VALIDATORS_TABLE_NAME,
-      Limit: 20
+      // Limit: 20
     }));
 
     if (validatorsData.Items && validatorsData.Items.length > 0) {
@@ -272,7 +272,7 @@ async function copyProductionData(): Promise<void> {
     console.log(`📥 Copying data from ${process.env.PROD_NODE_OPERATORS_TABLE_NAME}...`);
     const operatorsData = await prodClient.send(new ScanCommand({
       TableName: process.env.PROD_NODE_OPERATORS_TABLE_NAME,
-      Limit: 10
+      // Limit: 10
     }));
 
     if (operatorsData.Items && operatorsData.Items.length > 0) {

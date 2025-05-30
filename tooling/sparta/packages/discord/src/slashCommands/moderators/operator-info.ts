@@ -2,7 +2,7 @@ import { ChatInputCommandInteraction, EmbedBuilder } from "discord.js";
 import { logger } from "@sparta/utils";
 import * as dotenv from "dotenv";
 import { clientPromise } from "@sparta/utils/openapi/api/axios";
-import { getEthereumInstance, l2InfoService } from "@sparta/ethereum";
+import { getEthereumInstance } from "@sparta/ethereum";
 
 // Load environment variables
 dotenv.config();
@@ -111,140 +111,123 @@ export async function getOperatorInfo(
 				let totalValidators = 0;
 				const validatorDetails: ValidatorDetail[] = [];
 				
-				// Fetch enriched validator data for this operator's validators only
-				let enrichedValidators: Array<{
-					validatorAddress: string;
-					validatorStats?: any;
-					peerData?: any;
-					peerId?: string;
-				}> = [];
-				
 				// Process validator information if the operator has any
 				if (operator.validators && operator.validators.length > 0) {
 					hasValidators = true;
 					totalValidators = operator.validators.length;
 					
-					// Use fetchEnrichedValidatorData for efficient targeted data fetching
-					enrichedValidators = await l2InfoService.fetchEnrichedValidatorData(
-						operator.validators.map(v => ({
-							validatorAddress: v.validatorAddress,
-							peerId: (v as any).peerId
-						})),
-						BigInt(chainInfo.currentEpoch)
-					);
-					
-					// Process each validator with enriched data
-					for (const enrichedValidator of enrichedValidators) {
-						const validatorAddress = enrichedValidator.validatorAddress;
-						const validatorStats = enrichedValidator.validatorStats;
-						const peerData = enrichedValidator.peerData;
-						const peerId = enrichedValidator.peerId;
-						
-						// Check if validator is in set
-						const isInValidatorSet = chainInfo.validators.some(
-							(v: string) => v.toLowerCase() === validatorAddress.toLowerCase()
-						);
-						
-						// Check if validator is attesting (if in set)
-						let isAttesting = false;
-						let missPercentage = "N/A";
-						let missedProposalsInfo = "N/A";
-						let lastAttestationDate = "Never";
-						let lastProposalDate = "Never";
-						
-						if (isInValidatorSet) {
-							validatorsInSet++;
+					// Get detailed validator data for each validator
+					for (const validatorRef of operator.validators) {
+						try {
+							const validatorResponse = await client.getValidator({
+								address: validatorRef.validatorAddress
+							});
 							
-							// Get attestation stats from enriched data
-							if (validatorStats && validatorStats.totalSlots && validatorStats.missedAttestationsCount !== undefined) {
-								const missedAttestations = validatorStats.missedAttestationsCount;
-								const totalSlots = validatorStats.totalSlots;
-								const missed = (missedAttestations / totalSlots) * 100;
-								missPercentage = `${missed.toFixed(2)}% (${missedAttestations}/${totalSlots})`;
+							// Extract the actual validator data from the nested response
+							const validatorData = validatorResponse.data as any;
+							const validator = validatorData.success ? validatorData.data : validatorData;
+							
+							// Check if validator is in set
+							const isInValidatorSet = chainInfo.validators.some(
+								(v: string) => v.toLowerCase() === validator.address.toLowerCase()
+							);
+							
+							// Check if validator is attesting (if in set)
+							let isAttesting = false;
+							let missPercentage = "N/A";
+							let missedProposalsInfo = "N/A";
+							
+							if (isInValidatorSet) {
+								validatorsInSet++;
 								
-								// Active if missed less than 20% of attestations
-								isAttesting = missed < 20;
-								if (isAttesting) {
-									validatorsAttesting++;
+								// Get attestation stats from API response
+								if (validator.totalSlots && validator.missedAttestationsCount !== undefined) {
+									const missedAttestations = validator.missedAttestationsCount;
+									const totalSlots = validator.totalSlots;
+									const missed = (missedAttestations / totalSlots) * 100;
+									missPercentage = `${missed.toFixed(2)}% (${missedAttestations}/${totalSlots})`;
+									
+									// Active if missed less than 20% of attestations
+									isAttesting = missed < 20;
+									if (isAttesting) {
+										validatorsAttesting++;
+									}
 								}
-							}
-							
-							if (validatorStats) {
+								
 								// Handle proposal stats
-								if (validatorStats.missedProposalsCount !== undefined && validatorStats.totalSlots) {
-									const missedProposals = validatorStats.missedProposalsCount;
-									const totalSlots = validatorStats.totalSlots;
+								if (validator.missedProposalsCount !== undefined && validator.totalSlots) {
+									const missedProposals = validator.missedProposalsCount;
+									const totalSlots = validator.totalSlots;
 									const missedProposalPercent = (missedProposals / totalSlots) * 100;
 									missedProposalsInfo = `${missedProposalPercent.toFixed(2)}% (${missedProposals}/${totalSlots})`;
 								}
-								
-								// Handle last attestation timestamp
-								if (validatorStats.lastAttestationDate) {
-									lastAttestationDate = validatorStats.lastAttestationDate;
-								}
-								
-								// Handle last proposal timestamp
-								if (validatorStats.lastProposalDate) {
-									lastProposalDate = validatorStats.lastProposalDate;
-								}
-							}
-						}
-						
-						// Extract peer information if available
-						let peerLocation = "Unknown";
-						let peerStatus = "Unknown";
-						let peerIp = "Unknown";
-						let peerPort = "Unknown";
-						let peerLastSeen = "Unknown";
-						if (peerData) {
-							// Get location and IP from IP info
-							const firstIpInfo = peerData.multi_addresses?.[0]?.ip_info?.[0];
-							if (firstIpInfo) {
-								peerLocation = `${firstIpInfo.city_name}, ${firstIpInfo.country_name}`;
-								peerIp = firstIpInfo.ip_address || "Unknown";
-								peerPort = firstIpInfo.port.toString() || "Unknown";
 							}
 							
-							// Get last seen timestamp
-							if (peerData.last_seen) {
-								peerLastSeen = new Date(peerData.last_seen).toISOString();
-							}
+							// Extract peer information from API response
+							let peerLocation = "Unknown";
+							let peerStatus = "Unknown";
+							let peerIp = validator.peerIpAddress || "Unknown";
+							let peerPort = validator.peerPort?.toString() || "Unknown";
+							let peerLastSeen = validator.peerLastSeen || "Unknown";
 							
-							// Determine peer status
-							if (peerData.is_synced === true) {
-								peerStatus = "🟢 Synced";
-							} else if (peerData.is_synced === false) {
-								peerStatus = "🔴 Not synced";
-							} else {
-								// Check if recently seen (within 24 hours)
-								const lastSeen = new Date(peerData.last_seen);
-								const now = new Date();
-								const hoursSinceLastSeen = (now.getTime() - lastSeen.getTime()) / (1000 * 60 * 60);
+							if (validator.peerId) {
+								// Build location from API data
+								if (validator.peerCity && validator.peerCountry) {
+									peerLocation = `${validator.peerCity}, ${validator.peerCountry}`;
+								}
 								
-								if (hoursSinceLastSeen < 24) {
-									peerStatus = "🟢 Recently seen";
-								} else {
-									peerStatus = "🔴 Offline";
+								// Determine peer status from API data
+								if (validator.peerIsSynced === true) {
+									peerStatus = "🟢 Synced";
+								} else if (validator.peerIsSynced === false) {
+									peerStatus = "🔴 Not synced";
+								} else if (validator.peerLastSeen) {
+									// Check if recently seen (within 24 hours)
+									const lastSeen = new Date(validator.peerLastSeen);
+									const now = new Date();
+									const hoursSinceLastSeen = (now.getTime() - lastSeen.getTime()) / (1000 * 60 * 60);
+									
+									if (hoursSinceLastSeen < 24) {
+										peerStatus = "🟢 Recently seen";
+									} else {
+										peerStatus = "🔴 Offline";
+									}
+								}
+								
+								if (validator.peerLastSeen) {
+									peerLastSeen = new Date(validator.peerLastSeen).toISOString();
 								}
 							}
+							
+							// Add to validator details
+							validatorDetails.push({
+								address: validator.address,
+								inSet: isInValidatorSet,
+								attesting: isAttesting,
+								missPercentage: missPercentage,
+								missedProposalsInfo: missedProposalsInfo,
+								lastAttestationDate: validator.lastAttestationDate || "Never",
+								lastProposalDate: validator.lastProposalDate || "Never",
+								peerId: validator.peerId,
+								peerLocation: peerLocation,
+								peerStatus: peerStatus,
+								peerIp: peerIp,
+								peerPort: peerPort,
+								peerLastSeen: peerLastSeen,
+							});
+						} catch (error) {
+							logger.error(error, `Failed to fetch validator data for ${validatorRef.validatorAddress}`);
+							// Add a basic entry for failed validator
+							validatorDetails.push({
+								address: validatorRef.validatorAddress,
+								inSet: false,
+								attesting: false,
+								missPercentage: "Error loading data",
+								missedProposalsInfo: "Error loading data",
+								lastAttestationDate: "Error loading data",
+								lastProposalDate: "Error loading data",
+							});
 						}
-						
-						// Add to validator details
-						validatorDetails.push({
-							address: validatorAddress,
-							inSet: isInValidatorSet,
-							attesting: isAttesting,
-							missPercentage: missPercentage,
-							missedProposalsInfo: missedProposalsInfo,
-							lastAttestationDate: lastAttestationDate,
-							lastProposalDate: lastProposalDate,
-							peerId: peerId,
-							peerLocation: peerLocation,
-							peerStatus: peerStatus,
-							peerIp: peerIp,
-							peerPort: peerPort,
-							peerLastSeen: peerLastSeen,
-						});
 					}
 				}
 				

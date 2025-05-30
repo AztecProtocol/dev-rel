@@ -7,6 +7,29 @@ export interface Validator {
     createdAt: number;
     updatedAt: number;
     peerId?: string; // Optional peer network ID for linking with crawler data
+    
+    // Processed validator stats (updated each epoch)
+    epoch?: number; // Last epoch when stats were updated
+    hasAttested24h?: boolean;
+    lastAttestationSlot?: string; // Store as string to avoid BigInt serialization issues
+    lastAttestationTimestamp?: string;
+    lastAttestationDate?: string;
+    lastProposalSlot?: string;
+    lastProposalTimestamp?: string;
+    lastProposalDate?: string;
+    missedAttestationsCount?: number;
+    missedProposalsCount?: number;
+    totalSlots?: number;
+    
+    // Processed peer data (updated less frequently)
+    peerClient?: string;
+    peerCountry?: string;
+    peerCity?: string;
+    peerIpAddress?: string;
+    peerPort?: number;
+    peerIsSynced?: boolean;
+    peerBlockHeight?: number;
+    peerLastSeen?: string;
 }
 
 class ValidatorService {
@@ -133,6 +156,43 @@ class ValidatorService {
                 { error, validatorAddress, peerId },
                 "Service error updating validator peerId"
             );
+            throw error;
+        }
+    }
+
+    /**
+     * Updates validator stats with processed data
+     * @param validatorAddress The validator address
+     * @param statsData Processed stats data to update
+     * @returns True if update was successful
+     */
+    public async updateValidatorStats(
+        validatorAddress: string,
+        statsData: Partial<Validator>
+    ): Promise<boolean> {
+        try {
+            return await this.repository.updateValidatorStats(validatorAddress, statsData);
+        } catch (error) {
+            logger.error(
+                { error, validatorAddress },
+                "Service error updating validator stats"
+            );
+            throw error;
+        }
+    }
+
+    /**
+     * Batch update multiple validators' stats
+     * @param updates Array of validator address and stats data pairs
+     * @returns Number of successful updates
+     */
+    public async batchUpdateValidatorStats(
+        updates: Array<{ validatorAddress: string; statsData: Partial<Validator> }>
+    ): Promise<number> {
+        try {
+            return await this.repository.batchUpdateValidatorStats(updates);
+        } catch (error) {
+            logger.error(error, "Service error batch updating validator stats");
             throw error;
         }
     }

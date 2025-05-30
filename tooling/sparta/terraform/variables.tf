@@ -208,6 +208,22 @@ variable "aztec_rpc_url" {
   type        = string
 }
 
+# -----------------------------------------------------------------------------
+# Peer Crawler Configuration
+# -----------------------------------------------------------------------------
+variable "peer_crawler_url" {
+  description = "URL for the peer crawler"
+  type        = string
+}
+
+variable "peer_crawler_auth_token" {
+  description = "Auth token for the peer crawler"
+  type        = string
+  sensitive   = true
+}
+
+
+
 # =============================================================================
 # Outputs (Consider adding outputs for easy access to created resources)
 # =============================================================================

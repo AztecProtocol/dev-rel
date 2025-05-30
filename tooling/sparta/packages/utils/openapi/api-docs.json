@@ -1586,8 +1586,8 @@
     },
     "/api/validator": {
       "get": {
-        "summary": "Get validator information",
-        "description": "Retrieves validator information either by validator address or by operator (discordId/username).",
+        "summary": "Get validator information by address",
+        "description": "Retrieves detailed validator information by validator address, including associated operator details.",
         "tags": [
           "Validator"
         ],
@@ -1604,51 +1604,25 @@
             "schema": {
               "type": "string"
             },
-            "required": false,
+            "required": true,
             "description": "The validator address to retrieve information for."
-          },
-          {
-            "in": "query",
-            "name": "discordId",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord ID of the operator to get validators for."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord username of the operator to get validators for."
           }
         ],
         "responses": {
           "200": {
-            "description": "The requested validator information or validators for an operator.",
+            "description": "The requested validator information with operator details.",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
                     "success": {
-                      "type": "boolean"
+                      "type": "boolean",
+                      "description": "Indicates if the request was successful.",
+                      "example": true
                     },
                     "data": {
-                      "oneOf": [
-                        {
-                          "$ref": "#/components/schemas/ValidatorResponse"
-                        },
-                        {
-                          "type": "array",
-                          "items": {
-                            "$ref": "#/components/schemas/ValidatorResponse"
-                          }
-                        }
-                      ]
+                      "$ref": "#/components/schemas/ValidatorResponse"
                     }
                   }
                 }
@@ -1656,7 +1630,7 @@
             }
           },
           "400": {
-            "description": "Bad Request - Missing or invalid query parameters",
+            "description": "Bad Request - Missing or invalid address parameter",
             "content": {
               "application/json": {
                 "schema": {
@@ -1676,7 +1650,7 @@
             }
           },
           "404": {
-            "description": "Validator or operator not found",
+            "description": "Validator not found",
             "content": {
               "application/json": {
                 "schema": {

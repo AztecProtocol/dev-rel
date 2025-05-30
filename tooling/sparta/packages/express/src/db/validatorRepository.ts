@@ -377,6 +377,121 @@ export class ValidatorRepository {
 			throw error;
 		}
 	}
+
+	/**
+	 * Updates validator stats with processed data from RPC and peer crawler
+	 * @param validatorAddress The validator address
+	 * @param statsData Processed stats data to update
+	 * @returns True if update was successful
+	 */
+	async updateValidatorStats(
+		validatorAddress: string,
+		statsData: Partial<Validator>
+	): Promise<boolean> {
+		try {
+			// Build update expression dynamically based on provided fields
+			const updateExpressions: string[] = [];
+			const expressionAttributeNames: Record<string, string> = {};
+			const expressionAttributeValues: Record<string, any> = {};
+
+			// Always update the updatedAt timestamp
+			updateExpressions.push("#updatedAt = :updatedAt");
+			expressionAttributeNames["#updatedAt"] = "updatedAt";
+			expressionAttributeValues[":updatedAt"] = Date.now();
+
+			// Handle each stats field
+			const fieldsToUpdate = [
+				'epoch', 'hasAttested24h', 'lastAttestationSlot', 'lastAttestationTimestamp',
+				'lastAttestationDate', 'lastProposalSlot', 'lastProposalTimestamp', 
+				'lastProposalDate', 'missedAttestationsCount', 'missedProposalsCount', 
+				'totalSlots', 'peerClient', 'peerCountry', 'peerCity', 'peerIpAddress',
+				'peerPort', 'peerIsSynced', 'peerBlockHeight', 'peerLastSeen'
+			];
+
+			fieldsToUpdate.forEach(field => {
+				if (statsData[field as keyof Validator] !== undefined) {
+					updateExpressions.push(`#${field} = :${field}`);
+					expressionAttributeNames[`#${field}`] = field;
+					expressionAttributeValues[`:${field}`] = statsData[field as keyof Validator];
+				}
+			});
+
+			if (updateExpressions.length === 1) {
+				// Only updatedAt to update, nothing else provided
+				logger.warn({ validatorAddress }, "No stats data provided for update");
+				return false;
+			}
+
+			const command = new UpdateCommand({
+				TableName: this.tableName,
+				Key: { validatorAddress },
+				UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+				ExpressionAttributeNames: expressionAttributeNames,
+				ExpressionAttributeValues: expressionAttributeValues,
+				ConditionExpression: "attribute_exists(validatorAddress)", // Ensure validator exists
+			});
+
+			await this.client.send(command);
+			logger.debug(
+				{ validatorAddress, updatedFields: Object.keys(statsData) },
+				"Updated validator stats in repository"
+			);
+			return true;
+		} catch (error: any) {
+			if (error.name === "ConditionalCheckFailedException") {
+				logger.debug(
+					{ validatorAddress },
+					"Validator not found when trying to update stats"
+				);
+				return false;
+			}
+			logger.error(
+				{ error, validatorAddress },
+				"Error updating validator stats in repository"
+			);
+			throw new Error("Repository failed to update validator stats.");
+		}
+	}
+
+	/**
+	 * Batch update multiple validators' stats
+	 * @param updates Array of validator address and stats data pairs
+	 * @returns Number of successful updates
+	 */
+	async batchUpdateValidatorStats(
+		updates: Array<{ validatorAddress: string; statsData: Partial<Validator> }>
+	): Promise<number> {
+		let successCount = 0;
+		
+		// Process updates in batches to avoid overwhelming DynamoDB
+		const batchSize = 25; // DynamoDB batch write limit
+		for (let i = 0; i < updates.length; i += batchSize) {
+			const batch = updates.slice(i, i + batchSize);
+			
+			const promises = batch.map(async ({ validatorAddress, statsData }) => {
+				try {
+					const success = await this.updateValidatorStats(validatorAddress, statsData);
+					if (success) successCount++;
+					return success;
+				} catch (error) {
+					logger.error(
+						{ error, validatorAddress },
+						"Failed to update validator stats in batch"
+					);
+					return false;
+				}
+			});
+			
+			await Promise.all(promises);
+		}
+		
+		logger.info(
+			{ total: updates.length, successful: successCount },
+			"Completed batch validator stats update"
+		);
+		
+		return successCount;
+	}
 }
 
 export const validatorRepository = new ValidatorRepository();

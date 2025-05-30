@@ -497,7 +497,9 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "AZTEC_RPC_URL", value = var.aztec_rpc_url },
         { name = "AWS_REGION", value = var.aws_region },
         { name = "AWS_ACCESS_KEY_ID", value = var.aws_access_key_id },
-        { name = "AWS_SECRET_ACCESS_KEY", value = var.aws_secret_access_key }
+        { name = "AWS_SECRET_ACCESS_KEY", value = var.aws_secret_access_key },
+        { name = "PEER_CRAWLER_URL", value = var.peer_crawler_url },
+        { name = "PEER_CRAWLER_AUTH_TOKEN", value = var.peer_crawler_auth_token }
       ]
     }
   ])

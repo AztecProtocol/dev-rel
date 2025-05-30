@@ -448,18 +448,19 @@ declare namespace Paths {
     namespace GetValidator {
         namespace Parameters {
             export type Address = string;
-            export type DiscordId = string;
-            export type DiscordUsername = string;
         }
         export interface QueryParameters {
-            address?: Parameters.Address;
-            discordId?: Parameters.DiscordId;
-            discordUsername?: Parameters.DiscordUsername;
+            address: Parameters.Address;
         }
         namespace Responses {
             export interface $200 {
+                /**
+                 * Indicates if the request was successful.
+                 * example:
+                 * true
+                 */
                 success?: boolean;
-                data?: Components.Schemas.ValidatorResponse | Components.Schemas.ValidatorResponse[];
+                data?: Components.Schemas.ValidatorResponse;
             }
             export type $400 = Components.Schemas.OperatorError;
             export type $401 = Components.Schemas.OperatorError;
@@ -797,9 +798,9 @@ export interface OperationMethods {
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.GetAllValidators.Responses.$200>
   /**
-   * getValidator - Get validator information
+   * getValidator - Get validator information by address
    * 
-   * Retrieves validator information either by validator address or by operator (discordId/username).
+   * Retrieves detailed validator information by validator address, including associated operator details.
    */
   'getValidator'(
     parameters?: Parameters<Paths.GetValidator.QueryParameters> | null,
@@ -1025,9 +1026,9 @@ export interface PathsDictionary {
   }
   ['/api/validator']: {
     /**
-     * getValidator - Get validator information
+     * getValidator - Get validator information by address
      * 
-     * Retrieves validator information either by validator address or by operator (discordId/username).
+     * Retrieves detailed validator information by validator address, including associated operator details.
      */
     'get'(
       parameters?: Parameters<Paths.GetValidator.QueryParameters> | null,

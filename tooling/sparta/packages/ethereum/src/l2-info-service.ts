@@ -5,6 +5,7 @@
  */
 
 import { logger, sendJsonRpcRequest } from "@sparta/utils";
+import { getEthereumInstance } from "./ethereum";
 
 // RPC endpoint URL
 const DEFAULT_RPC_URL = process.env.AZTEC_RPC_URL || "http://localhost:8080"; // Use env var or default
@@ -126,15 +127,8 @@ export class L2InfoService {
 	private rpcUrl: string;
 	private initialized: boolean = false;
 	
-	// Cache for validator stats (refreshed every epoch)
-	private validatorStatsCache: Record<string, RpcAttestationResult> | null = null;
-	private cachedEpoch: bigint | null = null;
-
-	// Cache for peer network data (refreshed every 10 epochs)
-	private peerNetworkCache: PeerNetworkSummary | null = null;
-	private peerDataMapCache: Map<string, PeerData> | null = null;
-	private peerCacheEpoch: bigint | null = null;
-	private readonly PEER_CACHE_EPOCH_INTERVAL = 10n; // Cache peer data every 10 epochs
+	// Track the last epoch we updated the database for
+	private lastUpdatedEpoch: number | null = null;
 
 	private constructor() {
 		this.rpcUrl = DEFAULT_RPC_URL;
@@ -217,70 +211,53 @@ export class L2InfoService {
 	}
 
 	/**
-	 * Fetches validator stats via RPC and checks recent attestation.
-	 * @param targetAddress Optional Ethereum address to check (lowercase expected by RPC). If not provided, returns stats for all validators.
-	 * @returns Attestation status with details from RPC - single validator stats if targetAddress provided, all validator stats if not
+	 * Verifies if a provided proof is valid for a given block number
+	 * @param blockNumber The block number to check
+	 * @param proof The proof string to validate
+	 * @returns True if proof is valid, false otherwise
 	 */
-	public async fetchValidatorStats(
-		targetAddress?: string
-	): Promise<RpcAttestationResult | Record<string, RpcAttestationResult>> {
+	public async proveSynced(blockNumber: string, proof: string): Promise<boolean> {
+		if (process.env.BYPASS_SYNC_CHECK === "true") {
+			// logger.info("Sync check bypassed via environment variable.");
+			return true;
+		}
+
+		const tip = await this.getL2Tips();
+		if (Number(tip) > Number(blockNumber) + 100) {
+			// Adding a specific log message for this condition
+			logger.warn(`Proof is too old for block ${blockNumber}. Current tip: ${tip}`);
+			throw new Error("Proof is too old");
+		}
+
+		const rpcProof = await this.getArchiveSiblingPath(blockNumber);
+		if (rpcProof === proof) {
+			return true;
+		} else {
+			// Adding a log message for failed proof verification
+			logger.warn(`Proof mismatch for block ${blockNumber}. Expected: ${rpcProof}, Got: ${proof}`);
+			return false;
+		}
+	}
+
+	/**
+	 * Fetches raw validator stats from RPC
+	 * @returns Raw validator stats response
+	 */
+	private async fetchRawValidatorStats(): Promise<ValidatorsStatsResponse> {
 		try {
 			// Initialize if not already done
 			if (!this.initialized) {
 				await this.init();
 			}
 			
-			const data = (await sendJsonRpcRequest(
+			return (await sendJsonRpcRequest(
 				this.rpcUrl,
 				RPC_METHOD_VALIDATOR_STATS,
 				[]
 			)) as ValidatorsStatsResponse;
-
-			// If no target address specified, process and return all validator stats
-			if (!targetAddress) {
-				const allValidatorStats: Record<string, RpcAttestationResult> = {};
-				
-				for (const [address, validatorStats] of Object.entries(data.stats)) {
-					allValidatorStats[address] = this.processValidatorStats(address, validatorStats);
-				}
-				
-				return allValidatorStats;
-			}
-
-			// Process single validator (existing behavior)
-			const lowerCaseAddress = targetAddress.toLowerCase();
-			const validatorStats = data.stats[lowerCaseAddress];
-
-			if (!validatorStats) {
-				return {
-					hasAttested24h: false,
-					error: `Validator ${targetAddress} not found in node stats.`,
-				};
-			}
-
-			return this.processValidatorStats(lowerCaseAddress, validatorStats);
 		} catch (error) {
-			logger.error(error, "Error fetching or processing validator stats via RPC");
-			
-			// Return error result - single validator format if targetAddress provided, empty object if not
-			const errorResult = {
-				hasAttested24h: false,
-				error:
-					error instanceof Error
-						? error.message
-						: "Unknown error during RPC fetch",
-				lastAttestationSlot: undefined,
-				lastAttestationTimestamp: undefined,
-				lastAttestationDate: undefined,
-				lastProposalSlot: undefined,
-				lastProposalTimestamp: undefined,
-				lastProposalDate: undefined,
-				missedAttestationsCount: undefined,
-				missedProposalsCount: undefined,
-				totalSlots: undefined,
-			};
-			
-			return targetAddress ? errorResult : {};
+			logger.error(error, "Error fetching raw validator stats from RPC");
+			throw error;
 		}
 	}
 
@@ -344,73 +321,6 @@ export class L2InfoService {
 			totalSlots: validatorStats.totalSlots,
 			error: undefined, // No error if we got this far
 		};
-	}
-
-	/**
-	 * Verifies if a provided proof is valid for a given block number
-	 * @param blockNumber The block number to check
-	 * @param proof The proof string to validate
-	 * @returns True if proof is valid, false otherwise
-	 */
-	public async proveSynced(blockNumber: string, proof: string): Promise<boolean> {
-		if (process.env.BYPASS_SYNC_CHECK === "true") {
-			// logger.info("Sync check bypassed via environment variable.");
-			return true;
-		}
-
-		const tip = await this.getL2Tips();
-		if (Number(tip) > Number(blockNumber) + 100) {
-			// Adding a specific log message for this condition
-			logger.warn(`Proof is too old for block ${blockNumber}. Current tip: ${tip}`);
-			throw new Error("Proof is too old");
-		}
-
-		const rpcProof = await this.getArchiveSiblingPath(blockNumber);
-		if (rpcProof === proof) {
-			return true;
-		} else {
-			// Adding a log message for failed proof verification
-			logger.warn(`Proof mismatch for block ${blockNumber}. Expected: ${rpcProof}, Got: ${proof}`);
-			return false;
-		}
-	}
-
-	/**
-	 * Fetches validator stats with epoch-based caching. Only refetches if the current epoch 
-	 * is different from the cached epoch.
-	 * @param currentEpoch The current epoch from rollup info
-	 * @returns All validator stats from cache or fresh fetch
-	 */
-	public async fetchValidatorStatsWithCache(
-		currentEpoch: bigint
-	): Promise<Record<string, RpcAttestationResult>> {
-		try {
-			// Check if we have cached data and the epoch hasn't changed
-			if (this.validatorStatsCache && this.cachedEpoch === currentEpoch) {
-				logger.info(`Using cached validator stats for epoch ${currentEpoch}`);
-				return this.validatorStatsCache;
-			}
-
-			// Epoch changed or no cache exists, fetch fresh data
-			logger.info(`Fetching fresh validator stats for epoch ${currentEpoch} (previous: ${this.cachedEpoch})`);
-			
-			const freshStats = await this.fetchValidatorStats() as Record<string, RpcAttestationResult>;
-			
-			// Update cache
-			this.validatorStatsCache = freshStats;
-			this.cachedEpoch = currentEpoch;
-			
-			return freshStats;
-		} catch (error) {
-			logger.error(error, "Error fetching validator stats with cache");
-			// If we have cached data, return it even if fetch failed
-			if (this.validatorStatsCache) {
-				logger.warn(`Returning stale cached data for epoch ${this.cachedEpoch} due to fetch error`);
-				return this.validatorStatsCache;
-			}
-			// No cache and fetch failed, return empty object
-			return {};
-		}
 	}
 
 	/**
@@ -487,210 +397,232 @@ export class L2InfoService {
 	}
 
 	/**
-	 * Processes raw peer data into a summary for efficient caching
+	 * Main method to check epoch and update validator data if needed
+	 * @param currentEpoch Current epoch number
+	 * @returns Number of validators updated (0 if no update needed)
 	 */
-	private processPeerData(peerData: PeerData[]): PeerNetworkSummary {
-		const clientDistribution: Record<string, number> = {};
-		const countryDistribution: Record<string, number> = {};
-		let syncedCount = 0;
-		let totalBlockHeight = 0;
-		let blockHeightCount = 0;
-
-		for (const peer of peerData) {
-			// Count by client type
-			clientDistribution[peer.client] = (clientDistribution[peer.client] || 0) + 1;
-
-			// Count by country (from first IP info if available)
-			const firstMultiAddr = peer.multi_addresses?.[0];
-			const firstIpInfo = firstMultiAddr?.ip_info?.[0];
-			if (firstIpInfo?.country_name) {
-				const country = firstIpInfo.country_name;
-				countryDistribution[country] = (countryDistribution[country] || 0) + 1;
-			}
-
-			// Count synced peers
-			if (peer.is_synced === true) {
-				syncedCount++;
-			}
-
-			// Calculate average block height
-			if (peer.block_height !== null && peer.block_height !== undefined) {
-				totalBlockHeight += peer.block_height;
-				blockHeightCount++;
-			}
-		}
-
-		// Take a sample of recent peers for display
-		const samplePeers = peerData
-			.sort((a, b) => new Date(b.last_seen).getTime() - new Date(a.last_seen).getTime())
-			.slice(0, 10); // Top 10 most recently seen
-
-		return {
-			totalPeers: peerData.length,
-			syncedPeers: syncedCount,
-			clientDistribution,
-			countryDistribution,
-			avgBlockHeight: blockHeightCount > 0 ? Math.round(totalBlockHeight / blockHeightCount) : undefined,
-			lastUpdated: Date.now(),
-			samplePeers,
-		};
-	}
-
-	/**
-	 * Combines validator stats and peer data with separate caching intervals
-	 * Validator stats: refreshed every epoch
-	 * Peer data: refreshed every 10 epochs
-	 */
-	public async fetchCombinedNetworkData(
-		currentEpoch: bigint
-	): Promise<{ validatorStats: Record<string, RpcAttestationResult>; peerNetwork: PeerNetworkSummary; peerDataMap: Map<string, PeerData> }> {
+	public async updateValidatorDataIfNeeded(): Promise<number> {
 		try {
-			let needsValidatorStats = false;
-			let needsPeerData = false;
+			// Get Ethereum instance
+			const ethereum = await getEthereumInstance();
+			
+			// Get chain info directly
+			const {
+				currentEpoch: currentEpochNumber,
+			} = await ethereum.getRollupInfo();
+			
+			// Check if we need to update for this epoch
+			if (this.lastUpdatedEpoch === Number(currentEpochNumber)) {
+				logger.debug(`Data already updated for epoch ${currentEpochNumber}`);
+				return 0;
+			} else {
+				logger.info(`Epoch changed from ${this.lastUpdatedEpoch} to ${currentEpochNumber}, updating validator data`);
 
-			// Check if validator stats need refresh (every epoch)
-			if (!this.validatorStatsCache || this.cachedEpoch !== currentEpoch) {
-				needsValidatorStats = true;
-			}
-
-			// Check if peer data needs refresh (every 10 epochs)
-			const peerCacheEpoch = currentEpoch - (currentEpoch % this.PEER_CACHE_EPOCH_INTERVAL);
-			if (!this.peerNetworkCache || this.peerCacheEpoch !== peerCacheEpoch) {
-				needsPeerData = true;
-			}
-
-			// If nothing needs refresh, return cached data
-			if (!needsValidatorStats && !needsPeerData) {
-				logger.info(`Using cached data - validator stats epoch ${this.cachedEpoch}, peer data epoch ${this.peerCacheEpoch}`);
-				return {
-					validatorStats: this.validatorStatsCache!,
-					peerNetwork: this.peerNetworkCache!,
-					peerDataMap: this.peerDataMapCache || new Map(),
-				};
-			}
-
-			// Build array of fetch promises based on what needs refresh
-			const fetchPromises: Promise<any>[] = [];
-			let validatorPromiseIndex = -1;
-			let peerPromiseIndex = -1;
-
-			if (needsValidatorStats) {
-				validatorPromiseIndex = fetchPromises.length;
-				fetchPromises.push(this.fetchValidatorStats());
-				logger.info(`Fetching fresh validator stats for epoch ${currentEpoch} (previous: ${this.cachedEpoch})`);
-			}
-
-			if (needsPeerData) {
-				peerPromiseIndex = fetchPromises.length;
-				fetchPromises.push(this.fetchPeerNetworkData());
-				logger.info(`Fetching fresh peer data for cache epoch ${peerCacheEpoch} (previous: ${this.peerCacheEpoch})`);
-			}
-
-			// Fetch data as needed
-			const results = await Promise.all(fetchPromises);
-
-			// Update caches based on what was fetched
-			if (needsValidatorStats && validatorPromiseIndex >= 0) {
-				const validatorStats = results[validatorPromiseIndex] as Record<string, RpcAttestationResult>;
-				this.validatorStatsCache = validatorStats;
-				this.cachedEpoch = currentEpoch;
-			}
-
-			if (needsPeerData && peerPromiseIndex >= 0) {
-				const peerNetworkResponse = results[peerPromiseIndex] as PeerCrawlerResponse;
-				const peerNetworkSummary = this.processPeerData(peerNetworkResponse.peers);
+				// Get list of known validators from database to ensure we process all of them
+				const { validatorService } = await import("@sparta/api/src/domain/validators/service");
+				let allKnownValidators: string[] = [];
+				let nextPageToken: string | undefined = undefined;
 				
-				// Create peer data map for quick lookup
-				const peerDataMap = new Map<string, PeerData>();
-				for (const peer of peerNetworkResponse.peers) {
-					peerDataMap.set(peer.id, peer);
+				do {
+					const result = await validatorService.getAllValidators(nextPageToken);
+					allKnownValidators = allKnownValidators.concat(result.validators.map(v => v.validatorAddress));
+					nextPageToken = result.nextPageToken;
+				} while (nextPageToken);
+
+				logger.info(`Found ${allKnownValidators.length} known validators in database to process`);
+
+				// Grab fresh data from RPC and process it for all known validators
+				const processedStatsData = await this.processValidatorStatsForEpoch(Number(currentEpochNumber), allKnownValidators);
+
+				if (processedStatsData.length === 0) {
+					logger.warn("No validator stats data to update");
+					return 0;
 				}
 
-				this.peerNetworkCache = peerNetworkSummary;
-				this.peerDataMapCache = peerDataMap;
-				this.peerCacheEpoch = peerCacheEpoch;
-			}
+				// Update validator stats in database
+				const statsUpdates = processedStatsData.map(({ validatorAddress, statsData }) => ({
+					validatorAddress,
+					statsData
+				}));
 
-			// Return combined data
-			return {
-				validatorStats: this.validatorStatsCache!,
-				peerNetwork: this.peerNetworkCache!,
-				peerDataMap: this.peerDataMapCache || new Map(),
-			};
-		} catch (error) {
-			logger.error(error, "Error fetching combined network data");
-			// If we have any cached data, return it even if fetch failed
-			if (this.validatorStatsCache || this.peerNetworkCache) {
-				logger.warn(`Returning stale cached data due to fetch error`);
-				return {
-					validatorStats: this.validatorStatsCache || {},
-					peerNetwork: this.peerNetworkCache || {
-						totalPeers: 0,
-						syncedPeers: 0,
-						clientDistribution: {},
-						countryDistribution: {},
-						lastUpdated: Date.now(),
-						samplePeers: [],
+				const statsUpdatedCount = await validatorService.batchUpdateValidatorStats(statsUpdates);
+
+				// Process and update peer data for validators that have peer IDs
+				const validatorPeerMappings: Array<{ validatorAddress: string; peerId?: string }> = [];
+				
+				for (const { validatorAddress } of processedStatsData) {
+					const validator = await validatorService.getValidatorByAddress(validatorAddress);
+					if (validator?.peerId) {
+						validatorPeerMappings.push({
+							validatorAddress: validator.validatorAddress,
+							peerId: validator.peerId
+						});
+					}
+				}
+
+				let peerDataUpdated = 0;
+				if (validatorPeerMappings.length > 0) {
+					const processedPeerData = await this.processPeerDataForValidators(validatorPeerMappings);
+					
+					if (processedPeerData.length > 0) {
+						const peerUpdates = processedPeerData.map(({ validatorAddress, peerData }) => ({
+							validatorAddress,
+							statsData: peerData
+						}));
+						
+						peerDataUpdated = await validatorService.batchUpdateValidatorStats(peerUpdates);
+					}
+				}
+				
+				// Mark this epoch as updated
+				this.lastUpdatedEpoch = Number(currentEpochNumber);
+
+				logger.info(
+					{ 
+						epoch: currentEpochNumber, 
+						statsUpdated: statsUpdatedCount, 
+						peerDataUpdated,
+						totalProcessed: processedStatsData.length
 					},
-					peerDataMap: this.peerDataMapCache || new Map(),
-				};
+					"Validator data update completed"
+				);
+
+				return statsUpdatedCount;
 			}
-			// No cache and fetch failed, return empty data
-			return {
-				validatorStats: {},
-				peerNetwork: {
-					totalPeers: 0,
-					syncedPeers: 0,
-					clientDistribution: {},
-					countryDistribution: {},
-					lastUpdated: Date.now(),
-					samplePeers: [],
-				},
-				peerDataMap: new Map(),
-			};
+		} catch (error) {
+			logger.error(error, "Error updating validator data");
+			throw error;
 		}
 	}
 
 	/**
-	 * Enriches validator data with specific peer information based on peerId
-	 * @param validators Array of validators with optional peerIds
-	 * @param currentEpoch Current epoch for validator stats
-	 * @returns Enriched validator data with peer information
+	 * Processes validator stats for epoch-based database storage
+	 * @param currentEpoch Current epoch number
+	 * @param knownValidators Optional list of known validator addresses to limit processing
+	 * @returns Processed stats data ready for database storage
 	 */
-	public async fetchEnrichedValidatorData(
-		validators: Array<{ validatorAddress: string; peerId?: string }>,
-		currentEpoch: bigint
-	): Promise<Array<{
-		validatorAddress: string;
-		validatorStats?: RpcAttestationResult;
-		peerData?: PeerData;
-		peerId?: string;
-	}>> {
+	private async processValidatorStatsForEpoch(
+		currentEpoch: number,
+		knownValidators?: string[]
+	): Promise<Array<{ validatorAddress: string; statsData: any }>> {
 		try {
-			// Fetch both data sources using the new separate caching
-			const networkData = await this.fetchCombinedNetworkData(currentEpoch);
-			const validatorStats = networkData.validatorStats;
-			const peerDataMap = networkData.peerDataMap;
+			logger.info(`Processing validator stats for epoch ${currentEpoch}`);
 
-			// Enrich each validator with its data
-			return validators.map(validator => {
-				const validatorStatsData = validatorStats[validator.validatorAddress.toLowerCase()];
-				const peerData = validator.peerId ? peerDataMap.get(validator.peerId) : undefined;
+			// Fetch raw data from RPC
+			const rawValidatorStats = await this.fetchRawValidatorStats();
 
-				return {
-					validatorAddress: validator.validatorAddress,
-					validatorStats: validatorStatsData,
-					peerData,
-					peerId: validator.peerId,
-				};
-			});
+			// Prepare processed data for validators
+			const processedData: Array<{ validatorAddress: string; statsData: any }> = [];
+
+			// Get validators to process (either known validators or all from RPC)
+			const validatorsToProcess = knownValidators || Object.keys(rawValidatorStats.stats);
+
+			for (const validatorAddress of validatorsToProcess) {
+				const lowerCaseAddress = validatorAddress.toLowerCase();
+				const rawStats = rawValidatorStats.stats[lowerCaseAddress];
+
+				let statsData: any;
+
+				if (!rawStats) {
+					logger.debug(`No RPC stats found for validator ${validatorAddress}, using default values`);
+					
+					// Provide default values for validators without RPC stats
+					statsData = {
+						epoch: currentEpoch,
+						hasAttested24h: false,
+						lastAttestationSlot: null,
+						lastAttestationTimestamp: null,
+						lastAttestationDate: null,
+						lastProposalSlot: null,
+						lastProposalTimestamp: null,
+						lastProposalDate: null,
+						missedAttestationsCount: 0,
+						missedProposalsCount: 0,
+						totalSlots: 0,
+					};
+				} else {
+					// Process the raw stats
+					const processedStats = this.processValidatorStats(lowerCaseAddress, rawStats);
+
+					// Convert to database format (BigInt to string for storage)
+					statsData = {
+						epoch: currentEpoch,
+						hasAttested24h: processedStats.hasAttested24h,
+						lastAttestationSlot: processedStats.lastAttestationSlot?.toString(),
+						lastAttestationTimestamp: processedStats.lastAttestationTimestamp?.toString(),
+						lastAttestationDate: processedStats.lastAttestationDate,
+						lastProposalSlot: processedStats.lastProposalSlot?.toString(),
+						lastProposalTimestamp: processedStats.lastProposalTimestamp?.toString(),
+						lastProposalDate: processedStats.lastProposalDate,
+						missedAttestationsCount: processedStats.missedAttestationsCount,
+						missedProposalsCount: processedStats.missedProposalsCount,
+						totalSlots: processedStats.totalSlots,
+					};
+				}
+
+				processedData.push({ validatorAddress, statsData });
+			}
+
+			logger.info(
+				{ epoch: currentEpoch, total: processedData.length },
+				"Completed validator stats processing"
+			);
+
+			return processedData;
 		} catch (error) {
-			logger.error(error, "Error fetching enriched validator data");
-			// Return basic structure on error
-			return validators.map(validator => ({
-				validatorAddress: validator.validatorAddress,
-				peerId: validator.peerId,
-			}));
+			logger.error(error, "Error processing validator stats");
+			throw error;
+		}
+	}
+
+	/**
+	 * Process peer data for validators with peer IDs
+	 * @param validatorPeerMappings Array of {validatorAddress, peerId} objects
+	 * @returns Processed peer data for database storage
+	 */
+	private async processPeerDataForValidators(
+		validatorPeerMappings: Array<{ validatorAddress: string; peerId?: string }>
+	): Promise<Array<{ validatorAddress: string; peerData: any }>> {
+		try {
+			// Fetch fresh peer data
+			const peerNetworkResponse = await this.fetchPeerNetworkData();
+			const peerDataMap = new Map<string, PeerData>();
+			for (const peer of peerNetworkResponse.peers) {
+				peerDataMap.set(peer.id, peer);
+			}
+
+			const processedPeerData: Array<{ validatorAddress: string; peerData: any }> = [];
+
+			for (const mapping of validatorPeerMappings) {
+				if (!mapping.peerId) continue;
+
+				const peerData = peerDataMap.get(mapping.peerId);
+				if (!peerData) continue;
+
+				const firstMultiAddr = peerData.multi_addresses?.[0];
+				const firstIpInfo = firstMultiAddr?.ip_info?.[0];
+
+				const processedData = {
+					peerClient: peerData.client,
+					peerCountry: firstIpInfo?.country_name,
+					peerCity: firstIpInfo?.city_name,
+					peerIpAddress: firstIpInfo?.ip_address,
+					peerPort: firstIpInfo?.port,
+					peerIsSynced: peerData.is_synced,
+					peerBlockHeight: peerData.block_height,
+					peerLastSeen: peerData.last_seen,
+				};
+
+				processedPeerData.push({ 
+					validatorAddress: mapping.validatorAddress, 
+					peerData: processedData 
+				});
+			}
+
+			return processedPeerData;
+		} catch (error) {
+			logger.error(error, "Error processing peer data for validators");
+			throw error;
 		}
 	}
 }

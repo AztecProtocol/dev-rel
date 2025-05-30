@@ -22,6 +22,7 @@
         "@discordjs/rest": "^2.0.1",
         "@sparta/utils": "workspace:*",
         "@sparta/ethereum": "workspace:*",
+        "@sparta/api": "workspace:*",
         "discord-api-types": "^0.37.67",
         "discord.js": "^14.12.1",
         "openapi-client-axios": "^7.5.1",
