@@ -15,6 +15,7 @@ import { approveUser } from "./operator-approve.js";
 import { unapproveUser } from "./operator-unapprove.js";
 import { getOperatorInfo } from "./operator-info.js";
 import { addValidator } from "./add-validator.js";
+import { addMultipleValidators } from "./add-multiple.js";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -96,6 +97,29 @@ export default {
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
+				.setName(ModeratorSubcommands.AddMultiple)
+				.setDescription("Add multiple validators to one operator")
+				.addStringOption((option) =>
+					option
+						.setName("validator-addresses")
+						.setDescription("Comma-separated list of validator addresses")
+						.setRequired(true)
+				)
+				.addStringOption((option) =>
+					option
+						.setName("username")
+						.setDescription("The Discord username of the operator (preferred)")
+						.setRequired(false)
+				)
+				.addStringOption((option) =>
+					option
+						.setName("user-id")
+						.setDescription("The Discord ID of the operator (alternative)")
+						.setRequired(false)
+				)
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
 				.setName(ModeratorSubcommands.Help)
 				.setDescription("Display help for moderator commands")
 		),
@@ -130,6 +154,9 @@ export default {
 					break;
 				case ModeratorSubcommands.AddValidator:
 					await addValidator(interaction);
+					break;
+				case ModeratorSubcommands.AddMultiple:
+					await addMultipleValidators(interaction);
 					break;
 				default:
 					await interaction.editReply({

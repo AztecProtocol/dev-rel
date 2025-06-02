@@ -3,7 +3,7 @@ import { validatorRepository, ValidatorRepository } from "../../db/validatorRepo
 
 export interface Validator {
     validatorAddress: string; // Primary Key
-    nodeOperatorId: string; // GSI Partition Key: NodeOperatorIndex
+    nodeOperatorId?: string; // GSI Partition Key: NodeOperatorIndex - now optional
     createdAt: number;
     updatedAt: number;
     peerId?: string; // Optional peer network ID for linking with crawler data
@@ -122,6 +122,76 @@ class ValidatorService {
                 return undefined;
             }
             throw new Error("Service failed to create validator.");
+        }
+    }
+
+    /**
+     * Creates a new validator without an operator (for blockchain-only validators).
+     * @param validatorAddress The validator address.
+     * @returns The created Validator object or undefined if creation failed.
+     */
+    public async createValidatorWithoutOperator(
+        validatorAddress: string
+    ): Promise<Validator | undefined> {
+        try {
+            return await this.repository.createWithoutOperator(validatorAddress);
+        } catch (error: any) {
+            logger.error(
+                { error: error.message, validatorAddress },
+                "Service error creating validator without operator"
+            );
+            if (error.message.includes("already exists")) {
+                return undefined;
+            }
+            throw new Error("Service failed to create validator.");
+        }
+    }
+
+    /**
+     * Ensures a validator exists in the database, creating it if necessary.
+     * @param validatorAddress The validator address.
+     * @param nodeOperatorId Optional Discord ID of the node operator.
+     * @returns The existing or created Validator object.
+     */
+    public async ensureValidatorExists(
+        validatorAddress: string,
+        nodeOperatorId?: string
+    ): Promise<Validator> {
+        try {
+            let validator = await this.getValidatorByAddress(validatorAddress);
+            
+            if (!validator) {
+                if (nodeOperatorId) {
+                    validator = await this.createValidator(validatorAddress, nodeOperatorId);
+                } else {
+                    validator = await this.createValidatorWithoutOperator(validatorAddress);
+                }
+                
+                if (!validator) {
+                    throw new Error("Failed to create validator");
+                }
+                
+                logger.info(
+                    { validatorAddress, nodeOperatorId },
+                    "Created new validator in database"
+                );
+            } else if (nodeOperatorId && !validator.nodeOperatorId) {
+                // If validator exists without operator but we now have an operator, update it
+                await this.repository.updateNodeOperator(validatorAddress, nodeOperatorId);
+                validator.nodeOperatorId = nodeOperatorId;
+                logger.info(
+                    { validatorAddress, nodeOperatorId },
+                    "Associated existing validator with operator"
+                );
+            }
+            
+            return validator;
+        } catch (error) {
+            logger.error(
+                { error, validatorAddress, nodeOperatorId },
+                "Service error ensuring validator exists"
+            );
+            throw error;
         }
     }
 

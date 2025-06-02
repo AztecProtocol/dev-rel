@@ -65,7 +65,7 @@ jobs:
 
                 # --- DynamoDB ---
                 local_dynamo_db        = false
-                dynamodb_local_endpoint = "http://localhost:8000"
+                dynamodb_endpoint = "http://localhost:8000"
 
                 # --- Logging ---
                 log_level              = "debug"

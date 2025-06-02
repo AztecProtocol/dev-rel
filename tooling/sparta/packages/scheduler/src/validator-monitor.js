@@ -1,5 +1,4 @@
 const { logger, CHANNELS } = require("@sparta/utils");
-const { l2InfoService } = require("@sparta/ethereum");
 const { clientPromise } = require("@sparta/utils/openapi/api/axios");
 
 /**
@@ -31,47 +30,33 @@ class ValidatorMonitorService {
 
     /**
      * Check a single validator's status and send alerts if needed
-     * @param {string} validator - Validator address
-     * @param {Array} activeValidators - List of active validators
-     * @param {Object} allValidatorStats - Pre-fetched stats for all validators
+     * @param {Object} validator - Validator object from API
      */
-    async processValidator(validator, activeValidators, allValidatorStats) {
+    async processValidator(validator) {
         try {
-            const isInValidatorSet = activeValidators.includes(validator);
-
-            if (isInValidatorSet) {
-                const validatorStats = allValidatorStats[validator.toLowerCase()];
-                if (validatorStats && validatorStats.totalSlots && validatorStats.missedAttestationsCount !== undefined) {
-                    const missPercent = (validatorStats.missedAttestationsCount / validatorStats.totalSlots) * 100;
-                    if (missPercent < 20) return null; 
-                } else {
-                    return null; // No stats, assume working or cannot determine
-                }
-            }
-            
-            const { data: { data: validatorData } } = await this.client.getValidator({ address: validator });
-
-            if (!validatorData || !validatorData.operator?.discordUsername) {
-                logger.warn(`No operator info (discordUsername) found for validator ${validator}`);
+            if (!validator.operator?.discordUsername) {
+                logger.warn(`No operator info (discordUsername) found for validator ${validator.address}`);
                 return null;
             }
             
             let missPercentage = "N/A";
             let alertReason = "";
-            if (!isInValidatorSet) {
+            
+            if (!validator.isActive) {
                 alertReason = "not in active validator set";
-            } else {
-                const stats = allValidatorStats[validator.toLowerCase()];
-                if (stats && stats.totalSlots && stats.missedAttestationsCount !== undefined) {
-                    missPercentage = ((stats.missedAttestationsCount / stats.totalSlots) * 100).toFixed(2) + "%";
-                    alertReason = `missing attestations (${missPercentage})`;
-                } else {
-                     alertReason = "missing attestations (stats unavailable)";
+            } else if (validator.totalSlots && validator.missedAttestationsCount !== undefined) {
+                const missPercent = (validator.missedAttestationsCount / validator.totalSlots) * 100;
+                if (missPercent < 20) {
+                    return null; // Under 20% miss rate, no alert needed
                 }
+                missPercentage = missPercent.toFixed(2) + "%";
+                alertReason = `missing attestations (${missPercentage})`;
+            } else {
+                alertReason = "missing attestations (stats unavailable)";
             }
             
-            const messageContent = `**Validator Alert**\n\nHello ${validatorData.operator?.discordUsername},\n\n` +
-                `Your validator ${validator} is ${alertReason}. Please check your node status.\n\n` +
+            const messageContent = `**Validator Alert**\n\nHello ${validator.operator.discordUsername},\n\n` +
+                `Your validator ${validator.address} is ${alertReason}. Please check your node status.\n\n` +
                 `If you need assistance, please reach out in the <#${this.operatorsStartHereChannelId}> channel.`;
             
             let dmSent = false;
@@ -80,32 +65,38 @@ class ValidatorMonitorService {
             
             if (!process.env.SKIP_MSG) { 
                 try {
-                    recipient = this.dmOverrideRecipient ? this.dmOverrideRecipient : validatorData.operator?.discordUsername;
+                    recipient = this.dmOverrideRecipient ? this.dmOverrideRecipient : validator.operator.discordUsername;
                     logger.info({ recipient }, "Recipient for DM");
                     const response = await this.client.sendMessageToOperator(
                         { discordUsername: recipient },
                         { 
                             message: messageContent, 
-                            validatorAddress: validator, 
+                            validatorAddress: validator.address, 
                             threadName: "Validator Monitoring Alert" 
                         }
                     );
                     dmSent = response.data.success;
                     if (dmSent) {
-                        logger.info(`Alert DM sent to ${recipient} for validator ${validatorData.operator?.discordUsername} with address ${validator}`);
+                        logger.info(`Alert DM sent to ${recipient} for validator ${validator.operator.discordUsername} with address ${validator.address}`);
                     } else {
                         error = response.data.error || "API call to send DM returned false";
-                        logger.warn(`Failed to send DM to ${recipient} for ${validator}: ${error}`);
+                        logger.warn(`Failed to send DM to ${recipient} for ${validator.address}: ${error}`);
                     }
                 } catch (dmError) {
-                    error = dmError.message;
-                    logger.error(`Error sending DM for validator ${validatorData.operator?.discordUsername} with address ${validator} to ${recipient}: ${error}`);
+                    error = `DM API call failed: ${dmError.message}`;
+                    logger.error(`Error sending DM for validator ${validator.operator.discordUsername} with address ${validator.address} to ${recipient}: ${error}`, {
+                        status: dmError.response?.status,
+                        statusText: dmError.response?.statusText,
+                        endpoint: 'sendMessageToOperator',
+                        validatorAddress: validator.address,
+                        recipient: recipient
+                    });
                 }
             }
             
             return {
-                validatorAddress: validator,
-                operatorDiscordUsername: validatorData.operator?.discordUsername, 
+                validatorAddress: validator.address,
+                operatorDiscordUsername: validator.operator.discordUsername, 
                 messageContent: messageContent,
                 missPercentage: missPercentage,
                 timestamp: new Date().toISOString(),
@@ -113,8 +104,12 @@ class ValidatorMonitorService {
                 error: error
             };
         } catch (error) {
-            logger.error(`Error processing validator ${validator}: ${error.message}`);
-            return null; // Or return a report with the error
+            logger.error(`Error processing validator ${validator.address}: ${error.message}`, {
+                validatorAddress: validator.address,
+                errorStack: error.stack,
+                errorName: error.name
+            });
+            return null;
         }
     }
 
@@ -125,31 +120,39 @@ class ValidatorMonitorService {
         try {
             logger.info("Fetching validators to monitor...");
             
-            const response = await this.client.getAllValidators(); 
+            let response;
+            try {
+                response = await this.client.getAllValidators(); 
+            } catch (apiError) {
+                logger.error(`Failed to fetch validators from API: ${apiError.message}`, {
+                    status: apiError.response?.status,
+                    statusText: apiError.response?.statusText,
+                    endpoint: 'getAllValidators',
+                    url: apiError.config?.url,
+                    method: apiError.config?.method
+                });
+                throw new Error(`API call to getAllValidators failed with status ${apiError.response?.status || 'unknown'}: ${apiError.message}`);
+            }
+            
             const validatorsData = response?.data?.data;
 
-            let allKnownValidators = [];
-            if (validatorsData && validatorsData.knownValidators && Array.isArray(validatorsData.knownValidators.validators)) {
-                allKnownValidators = validatorsData.knownValidators.validators;
-            } else {
-                logger.warn("Could not retrieve known validators list or list is not in expected format.", validatorsData);
+            if (!validatorsData || !validatorsData.validators || !Array.isArray(validatorsData.validators)) {
+                logger.warn("Could not retrieve validators list or list is not in expected format.", validatorsData);
+                return [];
             }
 
-            if (allKnownValidators.length === 0) {
+            const allValidators = validatorsData.validators;
+            
+            if (allValidators.length === 0) {
                 logger.info("No known validators to monitor.");
-                return []; // No validators to process
+                return [];
             }
             
-            logger.info(`Found ${allKnownValidators.length} total known validators to check.`);
-            
-            // Fetch all validator stats at once for efficiency
-            logger.info("Fetching stats for all validators...");
-            const allValidatorStats = await l2InfoService.fetchValidatorStats(); // No targetAddress - gets all stats
-            logger.info(`Retrieved stats for ${Object.keys(allValidatorStats).length} validators from RPC.`);
+            logger.info(`Found ${allValidators.length} total known validators to check.`);
             
             const reports = [];
             const results = await Promise.allSettled(
-                allKnownValidators.map(validator => this.processValidator(validator, allKnownValidators, allValidatorStats))
+                allValidators.map(validator => this.processValidator(validator))
             );
             
             results.forEach(result => {
@@ -159,15 +162,23 @@ class ValidatorMonitorService {
             
             if (!process.env.SKIP_MSG) {
                 if (reports.length > 0) {
-                    await this.sendSummaryReport(reports);
+                    try {
+                        await this.sendSummaryReport(reports);
+                    } catch (summaryError) {
+                        logger.error(`Failed to send summary report: ${summaryError.message}`);
+                        // Don't throw here - we still want to return the reports even if summary fails
+                    }
                 }
             }
 
             logger.info(`Validator monitoring completed. Generated ${reports.length} alert reports.`);
             return reports;
         } catch (error) {
-            // logger.error(`Critical error in monitorValidators: ${error.message}`);
-            return error; // Return empty if monitor fails critically
+            logger.error(`Critical error in monitorValidators: ${error.message}`, {
+                errorStack: error.stack,
+                errorName: error.name
+            });
+            return []; // Return empty array if monitor fails critically
         }
     }
 
@@ -283,6 +294,73 @@ class ValidatorMonitorService {
             console.log(error);
             logger.error(`Error sending summary report to channel ${this.summaryChannelId}: ${error.message}`);
         }
+    }
+
+    /**
+     * Perform a health check on the API endpoints used by the validator monitor
+     * @returns {Object} Health check results with detailed information
+     */
+    async healthCheck() {
+        const results = {
+            timestamp: new Date().toISOString(),
+            overall: 'unknown',
+            checks: {
+                getAllValidators: { status: 'unknown', details: null }
+            },
+            summary: {
+                passed: 0,
+                failed: 0,
+                total: 1
+            }
+        };
+
+        // Test getAllValidators API
+        try {
+            logger.info('Health check: Testing getAllValidators API...');
+            const startTime = Date.now();
+            const response = await this.client.getAllValidators();
+            const responseTime = Date.now() - startTime;
+            
+            const validatorsData = response?.data?.data;
+            const validatorCount = validatorsData?.validators?.length || 0;
+            const hasStats = validatorsData?.validators?.[0]?.totalSlots !== undefined;
+            
+            results.checks.getAllValidators = {
+                status: 'healthy',
+                details: {
+                    responseTime: `${responseTime}ms`,
+                    statusCode: response?.status || 'unknown',
+                    validatorCount: validatorCount,
+                    dataStructure: validatorsData ? 'valid' : 'invalid',
+                    hasValidatorStats: hasStats
+                }
+            };
+            results.summary.passed++;
+            logger.info(`Health check: getAllValidators API - HEALTHY (${responseTime}ms, ${validatorCount} validators)`);
+        } catch (error) {
+            results.checks.getAllValidators = {
+                status: 'unhealthy',
+                details: {
+                    error: error.message,
+                    statusCode: error.response?.status || 'unknown',
+                    statusText: error.response?.statusText || 'unknown',
+                    url: error.config?.url || 'unknown'
+                }
+            };
+            results.summary.failed++;
+            logger.error(`Health check: getAllValidators API - UNHEALTHY: ${error.message}`, {
+                status: error.response?.status,
+                statusText: error.response?.statusText,
+                url: error.config?.url
+            });
+        }
+
+        // Determine overall health
+        results.overall = results.summary.failed === 0 ? 'healthy' : 'unhealthy';
+        
+        logger.info(`Health check completed: ${results.summary.passed}/${results.summary.total} checks passed. Overall: ${results.overall.toUpperCase()}`);
+        
+        return results;
     }
 }
 

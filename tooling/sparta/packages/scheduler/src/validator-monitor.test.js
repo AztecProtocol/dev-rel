@@ -99,6 +99,87 @@ class ValidatorMonitorTest {
         }
     }
 
+    /**
+     * Test error handling and improved error messages
+     */
+    async testErrorHandling() {
+        logger.info('\n🧪 Testing Error Handling...');
+        
+        try {
+            // Create a service with an invalid client to test error handling
+            const mockClient = {
+                getAllValidators: async () => {
+                    // Simulate an API error with status code
+                    const error = new Error('Request failed with status code 500');
+                    error.response = { status: 500, statusText: 'Internal Server Error' };
+                    error.config = { url: 'http://localhost:3000/api/validator/validators', method: 'GET' };
+                    throw error;
+                }
+            };
+            
+            const service = new ValidatorMonitorService(mockClient);
+            
+            // Run monitoring with the failing client
+            const reports = await service.monitorValidators();
+            
+            // Should still return an array (empty) even when API fails
+            this.assert(Array.isArray(reports), 'Monitor should return an array even when API fails');
+            this.assert(reports.length === 0, 'Monitor should return empty array when API fails');
+            
+            logger.info(`✅ Error handling validated - returns empty array on API failure`);
+            
+            return reports;
+            
+        } catch (error) {
+            this.assert(false, `Error handling test failed: ${error.message}`);
+            return [];
+        }
+    }
+
+    /**
+     * Test the health check functionality
+     */
+    async testHealthCheck() {
+        logger.info('\n🧪 Testing Health Check...');
+        
+        try {
+            // Create service instance
+            const service = await ValidatorMonitorService.new();
+            
+            // Run health check
+            const startTime = Date.now();
+            const healthResults = await service.healthCheck();
+            const endTime = Date.now();
+            const executionTime = endTime - startTime;
+            
+            // Assert on health check structure
+            this.assert(typeof healthResults === 'object', 'Health check should return an object');
+            this.assert(healthResults.hasOwnProperty('timestamp'), 'Health check should have timestamp');
+            this.assert(healthResults.hasOwnProperty('overall'), 'Health check should have overall status');
+            this.assert(healthResults.hasOwnProperty('checks'), 'Health check should have checks object');
+            this.assert(healthResults.hasOwnProperty('summary'), 'Health check should have summary object');
+            
+            // Assert on checks structure
+            this.assert(healthResults.checks.hasOwnProperty('getAllValidators'), 'Health check should include getAllValidators check');
+            
+            // Assert on summary structure
+            this.assert(typeof healthResults.summary.passed === 'number', 'Health check summary should have passed count');
+            this.assert(typeof healthResults.summary.failed === 'number', 'Health check summary should have failed count');
+            this.assert(typeof healthResults.summary.total === 'number', 'Health check summary should have total count');
+            this.assert(healthResults.summary.total === 1, 'Health check should have exactly 1 total check');
+            
+            this.assert(executionTime < 30000, 'Health check should complete within 30 seconds');
+            
+            logger.info(`📊 Health check completed in ${executionTime}ms, overall status: ${healthResults.overall}`);
+            logger.info(`📋 Health check results: ${healthResults.summary.passed}/${healthResults.summary.total} checks passed`);
+            
+            return healthResults;
+            
+        } catch (error) {
+            this.assert(false, `Health check test failed: ${error.message}`);
+            return null;
+        }
+    }
 
     /**
      * Run all tests
@@ -110,6 +191,8 @@ class ValidatorMonitorTest {
         
         // Run all test methods
         const reports = await this.testValidatorMonitoring();
+        await this.testErrorHandling();
+        await this.testHealthCheck();
         
         const suiteEndTime = Date.now();
         const totalTime = suiteEndTime - suiteStartTime;

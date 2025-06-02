@@ -243,12 +243,6 @@ declare namespace Paths {
              * 0x1234567890abcdef1234567890abcdef12345678
              */
             validatorAddress: string;
-            /**
-             * Whether to skip adding the validator on-chain. If true, only adds to database.
-             * example:
-             * false
-             */
-            skipOnChain?: boolean;
         }
         namespace Responses {
             export interface $201 {
@@ -258,6 +252,7 @@ declare namespace Paths {
             export type $400 = Components.Schemas.OperatorError;
             export type $401 = Components.Schemas.OperatorError;
             export type $404 = Components.Schemas.OperatorError;
+            export type $409 = Components.Schemas.OperatorError;
             export type $500 = Components.Schemas.OperatorError;
         }
     }
@@ -325,29 +320,23 @@ declare namespace Paths {
                  */
                 success?: boolean;
                 data?: {
-                    blockchainValidators?: {
+                    /**
+                     * Array of all validators with comprehensive information.
+                     */
+                    validators?: Components.Schemas.ValidatorResponse[];
+                    stats?: {
                         /**
-                         * List of all validator addresses from the blockchain.
+                         * Total number of validators.
                          */
-                        validators?: string[];
-                        stats?: {
-                            /**
-                             * Total number of validators in the blockchain.
-                             */
-                            totalValidators?: number;
-                        };
-                    };
-                    knownValidators?: {
+                        totalValidators?: number;
                         /**
-                         * List of validator addresses that have matching operators in the database.
+                         * Number of validators active in the current rollup.
                          */
-                        validators?: string[];
-                        stats?: {
-                            /**
-                             * Total number of validators with matching operators.
-                             */
-                            totalValidators?: number;
-                        };
+                        activeValidators?: number;
+                        /**
+                         * Number of validators with associated operators.
+                         */
+                        knownValidators?: number;
                     };
                 };
             }
@@ -410,7 +399,30 @@ declare namespace Paths {
                      * example:
                      * 42
                      */
-                    totalCount?: number;
+                    totalOperators?: number;
+                    /**
+                     * Counts of operators without validators.
+                     */
+                    operatorsWithoutValidators?: {
+                        /**
+                         * Count of approved operators without validators.
+                         * example:
+                         * 10
+                         */
+                        approved?: number;
+                        /**
+                         * Count of all operators without validators.
+                         * example:
+                         * 15
+                         */
+                        all?: number;
+                    };
+                    /**
+                     * Count of operators with more than one validator.
+                     * example:
+                     * 5
+                     */
+                    operatorsWithMultipleValidators?: number;
                 };
             }
             export type $401 = Components.Schemas.OperatorError;
@@ -468,14 +480,132 @@ declare namespace Paths {
             export type $500 = Components.Schemas.OperatorError;
         }
     }
+    namespace GetValidatorStats {
+        namespace Responses {
+            export interface $200 {
+                /**
+                 * Indicates if the request was successful.
+                 * example:
+                 * true
+                 */
+                success?: boolean;
+                data?: {
+                    network?: {
+                        /**
+                         * Total number of validators in the current rollup set.
+                         */
+                        totalValidatorsInSet?: number;
+                        /**
+                         * Number of validators who attested in the last 24 hours.
+                         */
+                        activeValidators?: number;
+                        /**
+                         * Number of validators who attested in the last 24 hours.
+                         */
+                        validatorsAttested24h?: number;
+                        /**
+                         * Number of validators who proposed blocks in the last 24 hours.
+                         */
+                        validatorsProposed24h?: number;
+                        /**
+                         * Number of validators that have associated peer IDs.
+                         */
+                        validatorsWithPeers?: number;
+                        /**
+                         * Average number of peers per validator.
+                         */
+                        averagePeersPerValidator?: number;
+                    };
+                    performance?: {
+                        /**
+                         * Average attestation miss rate across all validators (0-1).
+                         */
+                        networkAttestationMissRate?: number;
+                        /**
+                         * Average proposal miss rate across all validators (0-1).
+                         */
+                        networkProposalMissRate?: number;
+                        /**
+                         * Average block height across all synced peers.
+                         */
+                        averageBlockHeight?: number;
+                    };
+                    peers?: {
+                        /**
+                         * Total number of peers discovered by the crawler.
+                         */
+                        totalPeersInNetwork?: number;
+                        /**
+                         * Number of peers that are fully synced.
+                         */
+                        syncedPeers?: number;
+                        /**
+                         * Distribution of peers by client software.
+                         */
+                        clientDistribution?: {
+                            [name: string]: number;
+                        };
+                    };
+                    geography?: {
+                        /**
+                         * Distribution of peers by country.
+                         */
+                        countryDistribution?: {
+                            [name: string]: number;
+                        };
+                        /**
+                         * Country with the highest number of nodes.
+                         */
+                        topCountry?: {
+                            country?: string;
+                            count?: number;
+                        } | null;
+                    };
+                    infrastructure?: {
+                        /**
+                         * Distribution of peers by ISP/hosting provider.
+                         */
+                        ispDistribution?: {
+                            [name: string]: number;
+                        };
+                        /**
+                         * ISP with the highest number of nodes.
+                         */
+                        topISP?: {
+                            isp?: string;
+                            count?: number;
+                        } | null;
+                    };
+                    metadata?: {
+                        /**
+                         * Timestamp when the statistics were last updated.
+                         */
+                        lastUpdated?: number;
+                        /**
+                         * Current epoch number.
+                         */
+                        currentEpoch?: number;
+                        /**
+                         * Current slot number.
+                         */
+                        currentSlot?: number;
+                    };
+                };
+            }
+            export type $401 = Components.Schemas.OperatorError;
+            export type $500 = Components.Schemas.OperatorError;
+        }
+    }
     namespace RemoveValidator {
         namespace Parameters {
             export type DiscordId = string;
+            export type DiscordUsername = string;
             export type ValidatorAddress = string;
         }
         export interface QueryParameters {
             validatorAddress: Parameters.ValidatorAddress;
-            discordId: Parameters.DiscordId;
+            discordId?: Parameters.DiscordId;
+            discordUsername?: Parameters.DiscordUsername;
         }
         namespace Responses {
             export interface $204 {
@@ -790,7 +920,7 @@ export interface OperationMethods {
   /**
    * getAllValidators - Get all validators
    * 
-   * Retrieves a list of all validators in the system.
+   * Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources.
    */
   'getAllValidators'(
     parameters?: Parameters<UnknownParamsObject> | null,
@@ -837,6 +967,16 @@ export interface OperationMethods {
     data?: any,
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.RemoveValidator.Responses.$204>
+  /**
+   * getValidatorStats - Get validator network statistics
+   * 
+   * Retrieves comprehensive network-wide statistics about validators, peers, and network health.
+   */
+  'getValidatorStats'(
+    parameters?: Parameters<UnknownParamsObject> | null,
+    data?: any,
+    config?: AxiosRequestConfig  
+  ): OperationResponse<Paths.GetValidatorStats.Responses.$200>
 }
 
 export interface PathsDictionary {
@@ -1016,7 +1156,7 @@ export interface PathsDictionary {
     /**
      * getAllValidators - Get all validators
      * 
-     * Retrieves a list of all validators in the system.
+     * Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources.
      */
     'get'(
       parameters?: Parameters<UnknownParamsObject> | null,
@@ -1065,6 +1205,18 @@ export interface PathsDictionary {
       data?: any,
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.RemoveValidator.Responses.$204>
+  }
+  ['/api/validator/stats']: {
+    /**
+     * getValidatorStats - Get validator network statistics
+     * 
+     * Retrieves comprehensive network-wide statistics about validators, peers, and network health.
+     */
+    'get'(
+      parameters?: Parameters<UnknownParamsObject> | null,
+      data?: any,
+      config?: AxiosRequestConfig  
+    ): OperationResponse<Paths.GetValidatorStats.Responses.$200>
   }
 }
 

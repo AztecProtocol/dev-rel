@@ -253,6 +253,42 @@ export class ValidatorRepository {
 		}
 	}
 
+	async createWithoutOperator(
+		validatorAddress: string
+	): Promise<Validator> {
+		const now = Date.now();
+		const newValidator: Validator = {
+			validatorAddress,
+			createdAt: now,
+			updatedAt: now,
+		};
+
+		try {
+			const command = new PutCommand({
+				TableName: this.tableName,
+				Item: newValidator,
+				ConditionExpression: "attribute_not_exists(validatorAddress)",
+			});
+			await this.client.send(command);
+			logger.info(
+				{ validatorAddress, tableName: this.tableName },
+				"Created new Validator without operator in repository"
+			);
+			return newValidator;
+		} catch (error: any) {
+			logger.error(
+				{ error, validatorAddress, tableName: this.tableName },
+				"Error creating Validator without operator in repository"
+			);
+			if (error.name === "ConditionalCheckFailedException") {
+				throw new Error(
+					`Validator with address ${validatorAddress} already exists.`
+				);
+			}
+			throw new Error("Repository failed to create validator.");
+		}
+	}
+
 	async updateNodeOperator(
 		validatorAddress: string,
 		newNodeOperatorId: string

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "bun run src/local-invoke.js",
     "test": "SKIP_MSG=true bun run src/validator-monitor.test.js",
+    "health": "bun run src/health-check.js",
     "build": "rm -rf dist && esbuild ./src/*.js --entry-names=[dir]/[name]/index --bundle --minify --sourcemap --platform=node --target=node16.14 --outdir=dist &&  zip -r lambda-package.zip dist"
   },
   "dependencies": {

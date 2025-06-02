@@ -40,21 +40,6 @@ class NodeOperatorService {
 	}
 
 	/**
-	 * Retrieves all node operators that have no associated validators with pagination.
-	 * @param pageToken Optional token for pagination
-	 * @returns Object containing array of NodeOperator objects without validators and optional nextPageToken.
-	 */
-	public async getOperatorsWithoutValidators(pageToken?: string): Promise<{ operators: NodeOperator[]; nextPageToken?: string }> {
-		try {
-			return await this.repository.findOperatorsWithoutValidators(pageToken);
-		} catch (error) {
-			logger.error(error, "Service error getting operators without validators");
-			// Re-throw or handle specific service-level errors
-			throw error; // Re-throwing the repository error for now
-		}
-	}
-
-	/**
 	 * Counts the total number of node operators.
 	 * @returns The count of node operators.
 	 */
@@ -254,98 +239,6 @@ class NodeOperatorService {
 	}
 
 	/**
-	 * Adds a validator to an operator using the validator service.
-	 * @param discordId The Discord ID of the operator.
-	 * @param validatorAddress The validator address to add.
-	 * @returns True if the update was successful, false otherwise.
-	 */
-	public async addValidatorToOperator(
-		discordId: string,
-		validatorAddress: string
-	): Promise<boolean> {
-		try {
-			const operator = await this.repository.findByDiscordId(discordId);
-			
-			if (!operator) {
-				return false;
-			}
-			
-			// Create a new validator associated with this operator
-			const validator = await validatorService.createValidator(validatorAddress, discordId);
-			return !!validator;
-		} catch (error) {
-			logger.error(
-				{ error, discordId, validatorAddress },
-				"Service error adding validator to operator"
-			);
-			throw error;
-		}
-	}
-
-	/**
-	 * Updates the complete list of validators for an operator.
-	 * @param discordId The Discord ID of the operator.
-	 * @param validators Array of validator addresses to set.
-	 * @returns True if the update was successful, false otherwise.
-	 */
-	public async updateValidatorsList(
-		discordId: string,
-		validators: string[]
-	): Promise<boolean> {
-		try {
-			// First, check if the operator exists
-			const operator = await this.repository.findByDiscordId(discordId);
-			if (!operator) {
-				return false;
-			}
-			
-			// Get all current validators for this operator
-			const currentValidators = await validatorService.getValidatorsByNodeOperator(discordId);
-			const currentAddresses = currentValidators.map(v => v.validatorAddress);
-			
-			// Determine which validators to add and which to remove
-			const validatorsToAdd = validators.filter(addr => !currentAddresses.includes(addr));
-			const validatorsToRemove = currentAddresses.filter(addr => !validators.includes(addr));
-			
-			// Remove validators not in the new list
-			for (const addr of validatorsToRemove) {
-				await validatorService.deleteValidator(addr);
-			}
-			
-			// Add new validators
-			for (const addr of validatorsToAdd) {
-				await validatorService.createValidator(addr, discordId);
-			}
-			
-			return true;
-		} catch (error) {
-			logger.error(
-				{ error, discordId },
-				"Service error updating validators list"
-			);
-			throw error;
-		}
-	}
-
-	/**
-	 * Checks if an operator was slashed.
-	 * @param discordId The Discord ID of the operator to check.
-	 * @returns True if the operator was slashed, false otherwise.
-	 */
-	public async isOperatorSlashed(discordId: string): Promise<boolean> {
-		try {
-			const operator = await this.repository.findByDiscordId(discordId);
-			return operator?.wasSlashed === true;
-		} catch (error) {
-			logger.error(
-				{ error, discordId },
-				"Service error checking if operator was slashed"
-			);
-			throw error;
-		}
-	}
-
-	/**
 	 * Counts all node operators that have no associated validators and are approved.
 	 * @returns The count of approved node operators without validators.
 	 */
@@ -354,8 +247,37 @@ class NodeOperatorService {
 			return await this.repository.countApprovedOperatorsWithoutValidators();
 		} catch (error) {
 			logger.error(error, "Service error counting approved operators without validators");
-			// Re-throw or handle specific service-level errors
-			throw error; // Re-throwing the repository error for now
+			throw error;
+		}
+	}
+
+	/**
+	 * Counts operators without validators, both approved and all.
+	 * @returns Object with counts for approved and all operators without validators.
+	 */
+	public async countOperatorsWithoutValidators(): Promise<{ approved: number; all: number }> {
+		try {
+			const [approved, all] = await Promise.all([
+				this.repository.countApprovedOperatorsWithoutValidators(),
+				this.repository.countAllOperatorsWithoutValidators()
+			]);
+			return { approved, all };
+		} catch (error) {
+			logger.error(error, "Service error counting operators without validators");
+			throw error;
+		}
+	}
+
+	/**
+	 * Counts operators with multiple validators.
+	 * @returns The count of operators with more than one validator.
+	 */
+	public async countOperatorsWithMultipleValidators(): Promise<number> {
+		try {
+			return await this.repository.countOperatorsWithMultipleValidators();
+		} catch (error) {
+			logger.error(error, "Service error counting operators with multiple validators");
+			throw error;
 		}
 	}
 }

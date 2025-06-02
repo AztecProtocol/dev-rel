@@ -286,10 +286,26 @@ router.get("/", async (req: Request, res: Response) => {
  *                 stats:
  *                   type: object
  *                   properties:
- *                     totalCount:
+ *                     totalOperators:
  *                       type: number
  *                       description: Total number of registered operators.
  *                       example: 42
+ *                     operatorsWithoutValidators:
+ *                       type: object
+ *                       description: Counts of operators without validators.
+ *                       properties:
+ *                         approved:
+ *                           type: number
+ *                           description: Count of approved operators without validators.
+ *                           example: 10
+ *                         all:
+ *                           type: number
+ *                           description: Count of all operators without validators.
+ *                           example: 15
+ *                     operatorsWithMultipleValidators:
+ *                       type: number
+ *                       description: Count of operators with more than one validator.
+ *                       example: 5
  *       401:
  *         description: Unauthorized - Invalid or missing API key
  *         content:
@@ -305,18 +321,21 @@ router.get("/", async (req: Request, res: Response) => {
  */
 router.get("/stats", async (_req: Request, res: Response) => {
 	try {
-		// Get all operators
-		const allOperatorsCount = await nodeOperatorService.countOperators()
+		// Get total operator count
+		const totalOperators = await nodeOperatorService.countOperators();
 
-		// Get all operators with zero validators efficiently
-		const operatorsWithoutValidatorsCount = await nodeOperatorService.countApprovedOperatorsWithoutValidators();
+		// Get operators without validators (both approved and all)
+		const operatorsWithoutValidators = await nodeOperatorService.countOperatorsWithoutValidators();
 		
-		// Return stats object that can be expanded with more metrics in the future
+		// Get operators with multiple validators
+		const operatorsWithMultipleValidators = await nodeOperatorService.countOperatorsWithMultipleValidators();
+		
+		// Return stats object
 		res.status(200).json({
 			stats: {
-				totalOperators: allOperatorsCount,
-				operatorsWithoutValidators: operatorsWithoutValidatorsCount,
-				// Future stats can be added here
+				totalOperators,
+				operatorsWithoutValidators,
+				operatorsWithMultipleValidators
 			}
 		});
 	} catch (error) {
