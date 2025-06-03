@@ -1,3 +1,34 @@
-.env
-.env*
+# Git files
+.git
+.gitignore
+
+# Node.js dependencies
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build outputs (adjust if your build output is different)
 dist
+build
+.next
+
+# Terraform state and plugins
+terraform/.terraform
+*.tfstate
+*.tfstate.backup
+
+# Environment files
+.env*
+!.env.example
+
+# IDE/Editor folders
+.vscode
+.idea
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Other potential artifacts (add more as needed)
+*.log

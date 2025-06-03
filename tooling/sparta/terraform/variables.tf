@@ -15,12 +15,26 @@ variable "aws_region" {
   default     = "eu-west-2"
 }
 
+variable "aws_access_key_id" {
+  description = "AWS access key ID"
+  type        = string
+  sensitive   = true
+}
+
+
+variable "aws_secret_access_key" {
+  description = "AWS secret access key"
+  type        = string
+  sensitive   = true
+}
+
+
 variable "environment" {
-  description = "Deployment environment (staging/production)"
+  description = "Deployment environment (development/production)"
   type        = string
   validation {
-    condition     = contains(["production"], var.environment)
-    error_message = "Environment must be 'production'"
+    condition     = contains(["development", "production"], var.environment)
+    error_message = "Environment must be either 'development' or 'production'"
   }
 }
 
@@ -52,25 +66,8 @@ variable "ethereum_host" {
   type        = string
 }
 
-variable "minter_private_key" {
-  description = "Ethereum wallet private key for minting tokens"
-  type        = string
-  sensitive   = true
-}
-
-variable "withdrawer_private_key" {
-  description = "Ethereum wallet private key for withdrawing funds"
-  type        = string
-  sensitive   = true
-}
-
-variable "withdrawer_address" {
-  description = "Ethereum wallet address for withdrawing funds"
-  type        = string
-}
-
-variable "ethereum_registry_address" {
-  description = "Ethereum rollup contract address for L2 interactions"
+variable "staking_asset_handler_address" {
+  description = "Ethereum staking asset handler contract address for L2 interactions"
   type        = string
 }
 
@@ -79,59 +76,42 @@ variable "l1_chain_id" {
   type        = string
 }
 
-variable "funder_amount" {
-  description = "Default ETH value for transactions"
-  type        = string
-  default     = "20ether"
-}
-
-variable "funder_address_private_key" {
-  description = "Ethereum wallet private key for funding"
+variable "sparta_private_key" {
+  description = "Ethereum private key for the sparta account"
   type        = string
   sensitive   = true
 }
 
-variable "minimum_stake" {
-  description = "Minimum stake amount for staking"
+variable "sparta_address" {
+  description = "Ethereum address for the sparta account"
   type        = string
 }
 
-variable "approval_amount" {
-  description = "Approval amount for staking"
+
+
+
+
+
+
+# -----------------------------------------------------------------------------
+# DynamoDB Configuration
+# -----------------------------------------------------------------------------
+
+variable "local_dynamo_db" {
+  description = "Whether to use a local DynamoDB instance"
+  type        = bool
+  default     = false
+}
+
+variable "dynamodb_endpoint" {
+  description = "Endpoint URL for local DynamoDB"
   type        = string
+  default     = "http://localhost:8000"
 }
 
 # -----------------------------------------------------------------------------
-# SSH Configuration
+# Logging Configuration
 # -----------------------------------------------------------------------------
-variable "ssh_public_key" {
-  description = "Public SSH key for accessing EC2 instances"
-  type        = string
-}
-
-# -----------------------------------------------------------------------------
-# Google Sheets Configuration
-# -----------------------------------------------------------------------------
-variable "google_api_key" {
-  description = "Google API key for Google Sheets access"
-  type        = string
-  sensitive   = true
-}
-
-variable "spreadsheet_id" {
-  description = "Google Spreadsheet ID for data source"
-  type        = string
-}
-
-# -----------------------------------------------------------------------------
-# Aztec Configuration
-# -----------------------------------------------------------------------------
-variable "aztec_node_url" {
-  description = "URL for the Aztec node"
-  type        = string
-  default     = ""
-}
-
 variable "log_level" {
   description = "Log level for the application (trace, debug, info, warn, error, fatal)"
   type        = string
@@ -139,7 +119,114 @@ variable "log_level" {
 }
 
 variable "log_pretty_print" {
-  description = "Enable or disable colorful, pretty-printed logs"
+  description = "Enable pretty printing for logs (recommended false for production)"
+  type        = bool
+  default     = false
+}
+
+variable "private_subnet_cidrs" {
+  description = "List of CIDR blocks for private subnets (must match number of AZs)"
+  type        = list(string)
+  default     = ["10.10.101.0/24", "10.10.102.0/24"]
+}
+
+# variable "acm_certificate_arn" { ... } # REMOVED - Not needed for HTTP-only setup
+
+# variable "api_domain_name" {
+#   description = "Domain name for the API"
+#   type        = string
+# }
+
+# -----------------------------------------------------------------------------
+# Networking Configuration
+# -----------------------------------------------------------------------------
+variable "vpc_cidr" {
+  description = "CIDR block for the VPC"
+  type        = string
+  default     = "10.10.0.0/16"
+}
+
+variable "availability_zones" {
+  description = "List of Availability Zones to use for subnets"
+  type        = list(string)
+  default     = ["eu-west-2a", "eu-west-2b"] # Example for eu-west-2, adjust as needed
+}
+
+variable "public_subnet_cidrs" {
+  description = "List of CIDR blocks for public subnets (must match number of AZs)"
+  type        = list(string)
+  default     = ["10.10.1.0/24", "10.10.2.0/24"]
+}
+
+# -----------------------------------------------------------------------------
+# API Service Configuration
+# -----------------------------------------------------------------------------
+variable "api_port" {
+  description = "Port the API container listens on"
+  type        = number
+  default     = 3000
+}
+
+variable "backend_api_key" {
+  description = "API key for the backend"
+  type        = string
+  sensitive   = true
+}
+
+variable "api_desired_count" {
+  description = "Desired number of tasks for the API service"
+  type        = number
+  default     = 1 # Start with 1, can be overridden
+}
+
+variable "api_cpu" {
+  description = "CPU units to allocate for the API task (e.g., 256 = 0.25 vCPU)"
+  type        = string # Fargate uses string values for CPU/Memory
+  default     = "1024"
+}
+
+variable "api_memory" {
+  description = "Memory to allocate for the API task in MiB (e.g., 512)"
+  type        = string
+  default     = "2048"
+}
+
+# -----------------------------------------------------------------------------
+# Validator Monitor Configuration
+# -----------------------------------------------------------------------------
+variable "enable_validator_monitor_schedule" {
+  description = "Enable or disable the 12-hour schedule for the validator monitor Lambda function"
   type        = bool
   default     = true
 }
+
+# -----------------------------------------------------------------------------
+# Aztec RPC Configuration
+# -----------------------------------------------------------------------------
+variable "aztec_rpc_url" {
+  description = "URL for the Aztec RPC"
+  type        = string
+}
+
+# -----------------------------------------------------------------------------
+# Peer Crawler Configuration
+# -----------------------------------------------------------------------------
+variable "peer_crawler_url" {
+  description = "URL for the peer crawler"
+  type        = string
+}
+
+variable "peer_crawler_auth_token" {
+  description = "Auth token for the peer crawler"
+  type        = string
+  sensitive   = true
+}
+
+
+
+# =============================================================================
+# Outputs (Consider adding outputs for easy access to created resources)
+# =============================================================================
+# output "vpc_id" { value = aws_vpc.sparta_vpc.id }
+# output "alb_dns_name" { value = aws_lb.sparta_alb.dns_name }
+# ... etc.

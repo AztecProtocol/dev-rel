@@ -38,3 +38,6 @@ Thumbs.db
 bun.lockb
 yarn.lock
 package-lock.json
+.cursor/
+out.txt
+ops/
