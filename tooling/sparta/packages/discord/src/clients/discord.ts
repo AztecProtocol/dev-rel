@@ -25,7 +25,6 @@ import { ApiProvider } from "@sparta/utils/openapi/api/apiProvider";
 import commands from "../slashCommands/index";
 import { getNodeOperatorInfo } from "../slashCommands/operators/my-stats.js";
 import { get as getChainInfo } from "../slashCommands/aztec/info.js";
-import { showRegistrationHelp } from "../slashCommands/operators/help.js";
 
 // Command interface
 interface Command {
@@ -340,17 +339,6 @@ export class Discord {
 				
 			case 'operator_chain_info':
 				await getChainInfo(interaction as any);
-				break;
-				
-			case 'operator_registration_guide':
-				await showRegistrationHelp(interaction as any);
-				break;
-				
-			case 'operator_start_registration':
-				await interaction.reply({
-					content: "To register your validator, please use the `/operator start` command with the following parameters:\n\n• `address` - Your validator address (starting with 0x)\n• `block-number` - Block number from your node\n• `proof` - Your sync proof\n\nFor detailed instructions, click the **Registration Guide** button.",
-					flags: MessageFlags.Ephemeral,
-				});
 				break;
 				
 			case 'operator_add_validator':

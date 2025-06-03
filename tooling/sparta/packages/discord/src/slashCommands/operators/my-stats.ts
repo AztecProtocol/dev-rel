@@ -23,8 +23,6 @@ interface Validator {
 
 interface NodeOperator {
 	discordId: string;
-	walletAddress: string;
-	discordUsername?: string;
 	isApproved?: boolean;
 	createdAt: number;
 	updatedAt: number;
@@ -233,11 +231,6 @@ export async function getNodeOperatorInfo(
 						{
 							name: "🎭 Warrior Identity (Discord ID)",
 							value: `\`${operator.discordId}\``,
-							inline: true
-						},
-						{
-							name: "⚔️ Battle Address",
-							value: `\`${operator.walletAddress}\``,
 							inline: true
 						},
 						{

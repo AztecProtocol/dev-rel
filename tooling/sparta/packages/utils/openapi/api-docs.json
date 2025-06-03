@@ -150,32 +150,6 @@
           "error"
         ]
       },
-      "ModeratorMessageInput": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string",
-            "description": "The message content to send."
-          },
-          "channelId": {
-            "type": "string",
-            "description": "The Discord channel ID to send the message to."
-          }
-        },
-        "required": [
-          "message",
-          "channelId"
-        ]
-      },
-      "ModeratorError": {
-        "type": "object",
-        "properties": {
-          "error": {
-            "type": "string",
-            "description": "Error message describing the issue."
-          }
-        }
-      },
       "NodeOperator": {
         "type": "object",
         "properties": {
@@ -183,16 +157,6 @@
             "type": "string",
             "description": "The Discord user ID of the node operator.",
             "example": "123456789012345678"
-          },
-          "walletAddress": {
-            "type": "string",
-            "description": "The Ethereum wallet address associated with the node operator.",
-            "example": "0x1234567890abcdef1234567890abcdef12345678"
-          },
-          "discordUsername": {
-            "type": "string",
-            "description": "The Discord username of the node operator.",
-            "example": "user#1234"
           },
           "createdAt": {
             "type": "number",
@@ -221,7 +185,6 @@
         },
         "required": [
           "discordId",
-          "walletAddress",
           "createdAt",
           "updatedAt"
         ]
@@ -232,29 +195,10 @@
           "discordId": {
             "type": "string",
             "description": "The Discord user ID."
-          },
-          "walletAddress": {
-            "type": "string",
-            "description": "The Ethereum wallet address.",
-            "example": "0x1234567890abcdef1234567890abcdef12345678"
           }
         },
         "required": [
-          "discordId",
-          "walletAddress"
-        ]
-      },
-      "OperatorUpdateInput": {
-        "type": "object",
-        "properties": {
-          "walletAddress": {
-            "type": "string",
-            "description": "The new Ethereum wallet address.",
-            "example": "0xabcdef1234567890abcdef1234567890abcdef12"
-          }
-        },
-        "required": [
-          "walletAddress"
+          "discordId"
         ]
       },
       "OperatorError": {
@@ -272,10 +216,6 @@
           "discordId": {
             "type": "string",
             "description": "The Discord user ID of the node operator."
-          },
-          "walletAddress": {
-            "type": "string",
-            "description": "The Ethereum wallet address associated with the node operator."
           },
           "createdAt": {
             "type": "number",
@@ -456,81 +396,6 @@
         }
       }
     },
-    "/api/moderator/message": {
-      "post": {
-        "summary": "Send a message to a Discord channel",
-        "description": "Sends a message to a specified Discord channel.",
-        "tags": [
-          "Moderator"
-        ],
-        "operationId": "sendMessageToChannel",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ModeratorMessageInput"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Message sent successfully.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "success": {
-                      "type": "boolean"
-                    },
-                    "message": {
-                      "type": "string"
-                    }
-                  }
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Missing parameters or message body",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ModeratorError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ModeratorError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error or failed to send message",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ModeratorError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/operator/operators": {
       "get": {
         "summary": "Get node operators",
@@ -605,7 +470,7 @@
     "/api/operator": {
       "get": {
         "summary": "Get a specific node operator",
-        "description": "Retrieves a specific node operator using either their Discord ID or username.",
+        "description": "Retrieves a specific node operator using their Discord ID.",
         "tags": [
           "NodeOperator"
         ],
@@ -622,17 +487,8 @@
             "schema": {
               "type": "string"
             },
-            "required": false,
+            "required": true,
             "description": "The Discord ID of the operator to retrieve."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord username of the operator to retrieve."
           }
         ],
         "responses": {
@@ -690,7 +546,7 @@
       },
       "post": {
         "summary": "Create a new node operator",
-        "description": "Registers a new node operator with their Discord ID and wallet address.",
+        "description": "Registers a new node operator using their Discord ID. The Discord username will be automatically fetched from Discord API.",
         "tags": [
           "NodeOperator"
         ],
@@ -708,25 +564,7 @@
               "type": "string"
             },
             "required": true,
-            "description": "The Discord user ID."
-          },
-          {
-            "in": "query",
-            "name": "walletAddress",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "The Ethereum wallet address."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "The Discord username."
+            "description": "The Discord user ID. Required for creating a new operator."
           }
         ],
         "responses": {
@@ -741,7 +579,7 @@
             }
           },
           "400": {
-            "description": "Bad Request - Missing or invalid body parameters",
+            "description": "Bad Request - Missing or invalid parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -783,8 +621,8 @@
         }
       },
       "delete": {
-        "summary": "Delete an operator by Discord ID or username",
-        "description": "Removes a node operator registration using either their Discord ID or username.",
+        "summary": "Delete an operator by Discord ID",
+        "description": "Removes a node operator registration using their Discord ID.",
         "tags": [
           "NodeOperator"
         ],
@@ -801,17 +639,8 @@
             "schema": {
               "type": "string"
             },
-            "required": false,
+            "required": true,
             "description": "The Discord ID of the operator to delete."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord username of the operator to delete."
           }
         ],
         "responses": {
@@ -819,101 +648,7 @@
             "description": "Operator deleted successfully (No Content)."
           },
           "400": {
-            "description": "Bad Request - Missing discordId or discordUsername parameter",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Operator not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "summary": "Update operator's wallet address",
-        "description": "Updates the wallet address for a specific node operator using their Discord ID or username.",
-        "tags": [
-          "NodeOperator"
-        ],
-        "operationId": "updateOperator",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "discordId",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord ID of the operator to update."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord username of the operator to update."
-          },
-          {
-            "in": "query",
-            "name": "walletAddress",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "The new wallet address."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Operator updated successfully. Returns the updated operator.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NodeOperator"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Missing parameters",
+            "description": "Bad Request - Missing discordId parameter",
             "content": {
               "application/json": {
                 "schema": {
@@ -1035,88 +770,10 @@
         }
       }
     },
-    "/api/operator/address/{address}": {
-      "get": {
-        "summary": "Get operator by wallet address",
-        "description": "Retrieves a specific node operator using their wallet address.",
-        "tags": [
-          "NodeOperator"
-        ],
-        "operationId": "getOperatorByAddress",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "path",
-            "name": "address",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "The wallet address of the operator to retrieve."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "The requested node operator.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NodeOperator"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Missing or invalid address parameter",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Operator not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/operator/approve": {
       "put": {
         "summary": "Approve a node operator",
-        "description": "Approves a node operator using their Discord ID or username.",
+        "description": "Approves a node operator using their Discord ID.",
         "tags": [
           "NodeOperator"
         ],
@@ -1133,17 +790,8 @@
             "schema": {
               "type": "string"
             },
-            "required": false,
+            "required": true,
             "description": "The Discord ID of the operator to approve."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord username of the operator to approve."
           }
         ],
         "responses": {
@@ -1201,7 +849,7 @@
       },
       "delete": {
         "summary": "Unapprove a node operator",
-        "description": "Unapproves a node operator using their Discord ID or username.",
+        "description": "Unapproves a node operator using their Discord ID.",
         "tags": [
           "NodeOperator"
         ],
@@ -1218,17 +866,8 @@
             "schema": {
               "type": "string"
             },
-            "required": false,
+            "required": true,
             "description": "The Discord ID of the operator to unapprove."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord username of the operator to unapprove."
           }
         ],
         "responses": {
@@ -1288,7 +927,7 @@
     "/api/operator/slashed": {
       "delete": {
         "summary": "Remove slashed status from a node operator",
-        "description": "Removes the wasSlashed flag from a node operator using their Discord ID or username.",
+        "description": "Removes the wasSlashed flag from a node operator using their Discord ID.",
         "tags": [
           "NodeOperator"
         ],
@@ -1305,17 +944,8 @@
             "schema": {
               "type": "string"
             },
-            "required": false,
+            "required": true,
             "description": "The Discord ID of the operator to remove slashed status from."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord username of the operator to remove slashed status from."
           }
         ],
         "responses": {
@@ -1392,17 +1022,8 @@
             "schema": {
               "type": "string"
             },
-            "required": false,
+            "required": true,
             "description": "The Discord ID of the operator."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord username of the operator."
           }
         ],
         "requestBody": {
@@ -1415,24 +1036,6 @@
                   "message": {
                     "type": "string",
                     "description": "The message content to send."
-                  },
-                  "validatorAddress": {
-                    "type": "string",
-                    "nullable": true,
-                    "description": "Optional. The validator address associated with this message, for context.",
-                    "example": "0x1234567890abcdef1234567890abcdef12345678"
-                  },
-                  "parentChannelId": {
-                    "type": "string",
-                    "nullable": true,
-                    "description": "Optional. For development/testing only. Overrides the default parent channel ID for thread creation.",
-                    "example": "1329081299490570296"
-                  },
-                  "threadName": {
-                    "type": "string",
-                    "nullable": true,
-                    "description": "Optional. A custom name for the Discord thread. If not provided, a name will be generated.",
-                    "example": "Urgent Alert for Validator X"
                   }
                 },
                 "required": [
@@ -1589,8 +1192,8 @@
     },
     "/api/validator": {
       "get": {
-        "summary": "Get validator information by address",
-        "description": "Retrieves detailed validator information by validator address, including associated operator details.",
+        "summary": "Get validator information",
+        "description": "Retrieves validator information either by validator address or by operator's Discord ID.",
         "tags": [
           "Validator"
         ],
@@ -1607,13 +1210,22 @@
             "schema": {
               "type": "string"
             },
-            "required": true,
+            "required": false,
             "description": "The validator address to retrieve information for."
+          },
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord ID of the operator to retrieve validators for."
           }
         ],
         "responses": {
           "200": {
-            "description": "The requested validator information with operator details.",
+            "description": "The requested validator information or operator's validators.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1625,7 +1237,25 @@
                       "example": true
                     },
                     "data": {
-                      "$ref": "#/components/schemas/ValidatorResponse"
+                      "oneOf": [
+                        {
+                          "$ref": "#/components/schemas/ValidatorResponse"
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "operator": {
+                              "type": "object"
+                            },
+                            "validators": {
+                              "type": "array",
+                              "items": {
+                                "$ref": "#/components/schemas/ValidatorResponse"
+                              }
+                            }
+                          }
+                        }
+                      ]
                     }
                   }
                 }
@@ -1633,7 +1263,7 @@
             }
           },
           "400": {
-            "description": "Bad Request - Missing or invalid address parameter",
+            "description": "Bad Request - Missing or invalid parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -1653,7 +1283,7 @@
             }
           },
           "404": {
-            "description": "Validator not found",
+            "description": "Validator or operator not found",
             "content": {
               "application/json": {
                 "schema": {
@@ -1676,7 +1306,7 @@
       },
       "post": {
         "summary": "Add a new validator",
-        "description": "Adds a new validator and associates it with an operator.",
+        "description": "Adds a new validator and associates it with an operator. If the operator doesn't exist, it will be created automatically with approved status.",
         "tags": [
           "Validator"
         ],
@@ -1693,17 +1323,8 @@
             "schema": {
               "type": "string"
             },
-            "required": false,
-            "description": "The Discord ID of the operator to associate with this validator."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord username of the operator to associate with this validator."
+            "required": true,
+            "description": "The Discord ID of the operator to associate with this validator. If the operator doesn't exist, it will be created automatically."
           }
         ],
         "requestBody": {
@@ -1717,6 +1338,11 @@
                     "type": "string",
                     "description": "The validator address to add.",
                     "example": "0x1234567890abcdef1234567890abcdef12345678"
+                  },
+                  "skipOnChain": {
+                    "type": "boolean",
+                    "description": "Whether to skip on-chain validator addition (for testing).",
+                    "example": false
                   }
                 },
                 "required": [
@@ -1765,8 +1391,8 @@
               }
             }
           },
-          "404": {
-            "description": "Operator not found",
+          "403": {
+            "description": "Forbidden - Operator is not approved",
             "content": {
               "application/json": {
                 "schema": {
@@ -1816,17 +1442,8 @@
             "schema": {
               "type": "string"
             },
-            "required": false,
+            "required": true,
             "description": "The Discord ID of the operator who owns this validator."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord username of the operator who owns this validator."
           }
         ],
         "requestBody": {
@@ -1966,17 +1583,8 @@
             "schema": {
               "type": "string"
             },
-            "required": false,
+            "required": true,
             "description": "The Discord ID of the operator."
-          },
-          {
-            "in": "query",
-            "name": "discordUsername",
-            "schema": {
-              "type": "string"
-            },
-            "required": false,
-            "description": "The Discord username of the operator."
           }
         ],
         "responses": {
@@ -2077,10 +1685,6 @@
                             "validatorsWithPeers": {
                               "type": "number",
                               "description": "Number of validators that have associated peer IDs."
-                            },
-                            "averagePeersPerValidator": {
-                              "type": "number",
-                              "description": "Average number of peers per validator."
                             }
                           }
                         },
@@ -2094,10 +1698,6 @@
                             "networkProposalMissRate": {
                               "type": "number",
                               "description": "Average proposal miss rate across all validators (0-1)."
-                            },
-                            "averageBlockHeight": {
-                              "type": "number",
-                              "description": "Average block height across all synced peers."
                             }
                           }
                         },
@@ -2107,10 +1707,6 @@
                             "totalPeersInNetwork": {
                               "type": "number",
                               "description": "Total number of peers discovered by the crawler."
-                            },
-                            "syncedPeers": {
-                              "type": "number",
-                              "description": "Number of peers that are fully synced."
                             },
                             "clientDistribution": {
                               "type": "object",

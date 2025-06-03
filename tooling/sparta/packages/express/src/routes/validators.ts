@@ -171,13 +171,13 @@ router.get("/validators", async (_req, res) => {
 	return;
 });
 
-// GET /api/validator - returns a specific validator by address
+// GET /api/validator - returns validators for a specific operator by discordId
 /**
  * @swagger
  * /api/validator:
  *   get:
- *     summary: Get validator information by address
- *     description: Retrieves detailed validator information by validator address, including associated operator details.
+ *     summary: Get validator information
+ *     description: Retrieves validator information either by validator address or by operator's Discord ID.
  *     tags: [Validator]
  *     operationId: getValidator
  *     security:
@@ -187,11 +187,17 @@ router.get("/validators", async (_req, res) => {
  *         name: address
  *         schema:
  *           type: string
- *         required: true
+ *         required: false
  *         description: The validator address to retrieve information for.
+ *       - in: query
+ *         name: discordId
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: The Discord ID of the operator to retrieve validators for.
  *     responses:
  *       200:
- *         description: The requested validator information with operator details.
+ *         description: The requested validator information or operator's validators.
  *         content:
  *           application/json:
  *             schema:
@@ -202,9 +208,18 @@ router.get("/validators", async (_req, res) => {
  *                   description: Indicates if the request was successful.
  *                   example: true
  *                 data:
- *                   $ref: '#/components/schemas/ValidatorResponse'
+ *                   oneOf:
+ *                     - $ref: '#/components/schemas/ValidatorResponse'
+ *                     - type: object
+ *                       properties:
+ *                         operator:
+ *                           type: object
+ *                         validators:
+ *                           type: array
+ *                           items:
+ *                             $ref: '#/components/schemas/ValidatorResponse'
  *       400:
- *         description: Bad Request - Missing or invalid address parameter
+ *         description: Bad Request - Missing or invalid parameters
  *         content:
  *           application/json:
  *             schema:
@@ -216,7 +231,7 @@ router.get("/validators", async (_req, res) => {
  *             schema:
  *               $ref: '#/components/schemas/OperatorError'
  *       404:
- *         description: Validator not found
+ *         description: Validator or operator not found
  *         content:
  *           application/json:
  *             schema:
@@ -231,79 +246,103 @@ router.get("/validators", async (_req, res) => {
 router.get("/", async (req, res) => {
 	try {
 		const address = req.query.address as string | undefined;
+		const discordId = req.query.discordId as string | undefined;
 		
-		// Require address parameter
-		if (!address) {
-			return res.status(400).json({ 
-				error: "Missing required parameter: address" 
-			});
-		}
-
-		// Basic address validation
-		if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
-			return res.status(400).json({
-				error: "Invalid validator address format",
-			});
-		}
-
-		await l2InfoService.updateValidatorDataIfNeeded();
-		
-		const validator = await validatorService.getValidatorByAddress(address);
-		
-		if (!validator) {
-			return res.status(404).json({ error: "Validator not found" });
-		}
-		
-		// Get Ethereum instance to check if validator is active in rollup
-		const ethereum = await getEthereumInstance();
-		const rollupInfo = await ethereum.getRollupInfo();
-		const isInRollup = rollupInfo.validators.includes(validator.validatorAddress);
-		
-		// Get operator information if available
-		let operator = null;
-		if (validator.nodeOperatorId) {
-			try {
-				operator = await nodeOperatorService.getOperatorByDiscordId(validator.nodeOperatorId);
-			} catch (error) {
-				logger.warn(
-					{ nodeOperatorId: validator.nodeOperatorId, validatorAddress: address },
-					"Could not find operator for validator"
-				);
+		// Handle validator lookup by address
+		if (address) {
+			// Basic address validation
+			if (!/^0x[a-fA-F0-9]{40}$/.test(address)) {
+				return res.status(400).json({
+					error: "Invalid validator address format",
+				});
 			}
-		}
 
-		return res.status(200).json({
-			success: true,
-			data: {
-				address: validator.validatorAddress,
-				peerId: validator.peerId,
-				operatorId: validator.nodeOperatorId,
-				isActive: isInRollup,
-				operator: operator,
-				createdAt: validator.createdAt,
-				updatedAt: validator.updatedAt,
-				// Include all processed validator stats
-				epoch: validator.epoch,
-				hasAttested24h: validator.hasAttested24h,
-				lastAttestationSlot: validator.lastAttestationSlot,
-				lastAttestationTimestamp: validator.lastAttestationTimestamp,
-				lastAttestationDate: validator.lastAttestationDate,
-				lastProposalSlot: validator.lastProposalSlot,
-				lastProposalTimestamp: validator.lastProposalTimestamp,
-				lastProposalDate: validator.lastProposalDate,
-				missedAttestationsCount: validator.missedAttestationsCount,
-				missedProposalsCount: validator.missedProposalsCount,
-				totalSlots: validator.totalSlots,
-				// Include all processed peer data
-				peerClient: validator.peerClient,
-				peerCountry: validator.peerCountry,
-				peerCity: validator.peerCity,
-				peerIpAddress: validator.peerIpAddress,
-				peerPort: validator.peerPort,
-				peerIsSynced: validator.peerIsSynced,
-				peerBlockHeight: validator.peerBlockHeight,
-				peerLastSeen: validator.peerLastSeen,
-			},
+			await l2InfoService.updateValidatorDataIfNeeded();
+			
+			const validator = await validatorService.getValidatorByAddress(address);
+			
+			if (!validator) {
+				return res.status(404).json({ error: "Validator not found" });
+			}
+			
+			// Get Ethereum instance to check if validator is active in rollup
+			const ethereum = await getEthereumInstance();
+			const rollupInfo = await ethereum.getRollupInfo();
+			const isInRollup = rollupInfo.validators.includes(validator.validatorAddress);
+			
+			// Get operator information if available
+			let operator = null;
+			if (validator.nodeOperatorId) {
+				try {
+					operator = await nodeOperatorService.getOperatorByDiscordId(validator.nodeOperatorId);
+				} catch (error) {
+					logger.warn(
+						{ nodeOperatorId: validator.nodeOperatorId, validatorAddress: address },
+						"Could not find operator for validator"
+					);
+				}
+			}
+
+			return res.status(200).json({
+				success: true,
+				data: {
+					address: validator.validatorAddress,
+					peerId: validator.peerId,
+					operatorId: validator.nodeOperatorId,
+					isActive: isInRollup,
+					operator: operator,
+					createdAt: validator.createdAt,
+					updatedAt: validator.updatedAt,
+					// Include all processed validator stats
+					epoch: validator.epoch,
+					hasAttested24h: validator.hasAttested24h,
+					lastAttestationSlot: validator.lastAttestationSlot,
+					lastAttestationTimestamp: validator.lastAttestationTimestamp,
+					lastAttestationDate: validator.lastAttestationDate,
+					lastProposalSlot: validator.lastProposalSlot,
+					lastProposalTimestamp: validator.lastProposalTimestamp,
+					lastProposalDate: validator.lastProposalDate,
+					missedAttestationsCount: validator.missedAttestationsCount,
+					missedProposalsCount: validator.missedProposalsCount,
+					totalSlots: validator.totalSlots,
+					// Include all processed peer data
+					peerClient: validator.peerClient,
+					peerCountry: validator.peerCountry,
+					peerCity: validator.peerCity,
+					peerIpAddress: validator.peerIpAddress,
+					peerPort: validator.peerPort,
+					peerIsSynced: validator.peerIsSynced,
+					peerBlockHeight: validator.peerBlockHeight,
+					peerLastSeen: validator.peerLastSeen,
+				},
+			});
+		}
+		
+		// Handle operator validators lookup by discordId
+		if (discordId) {
+			const operator = await nodeOperatorService.getOperatorByDiscordId(discordId);
+			
+			if (!operator) {
+				return res.status(404).json({
+					error: "Node operator not found",
+				});
+			}
+			
+			// Fetch validators associated with this operator
+			const validators = await validatorService.getValidatorsByNodeOperator(operator.discordId);
+			
+			return res.status(200).json({
+				success: true,
+				data: {
+					operator: operator,
+					validators: validators
+				}
+			});
+		}
+		
+		// No valid parameters provided
+		return res.status(400).json({ 
+			error: "Missing required parameter: either address or discordId must be provided" 
 		});
 	} catch (error) {
 		logger.error(error, "Error retrieving validator");
@@ -318,7 +357,7 @@ router.get("/", async (req, res) => {
  * /api/validator:
  *   post:
  *     summary: Add a new validator
- *     description: Adds a new validator and associates it with an operator.
+ *     description: Adds a new validator and associates it with an operator. If the operator doesn't exist, it will be created automatically with approved status.
  *     tags: [Validator]
  *     operationId: addValidator
  *     security:
@@ -328,14 +367,8 @@ router.get("/", async (req, res) => {
  *         name: discordId
  *         schema:
  *           type: string
- *         required: false
- *         description: The Discord ID of the operator to associate with this validator.
- *       - in: query
- *         name: discordUsername
- *         schema:
- *           type: string
- *         required: false
- *         description: The Discord username of the operator to associate with this validator.
+ *         required: true
+ *         description: The Discord ID of the operator to associate with this validator. If the operator doesn't exist, it will be created automatically.
  *     requestBody:
  *       required: true
  *       content:
@@ -347,6 +380,10 @@ router.get("/", async (req, res) => {
  *                 type: string
  *                 description: The validator address to add.
  *                 example: "0x1234567890abcdef1234567890abcdef12345678"
+ *               skipOnChain:
+ *                 type: boolean
+ *                 description: Whether to skip on-chain validator addition (for testing).
+ *                 example: false
  *             required:
  *               - validatorAddress
  *     responses:
@@ -373,8 +410,8 @@ router.get("/", async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/OperatorError'
- *       404:
- *         description: Operator not found
+ *       403:
+ *         description: Forbidden - Operator is not approved
  *         content:
  *           application/json:
  *             schema:
@@ -394,9 +431,8 @@ router.get("/", async (req, res) => {
  */
 router.post("/", async (req, res) => {
 	try {
-		const { validatorAddress } = req.body;
+		const { validatorAddress, skipOnChain } = req.body;
 		const discordId = req.query.discordId as string | undefined;
-		const discordUsername = req.query.discordUsername as string | undefined;
 		
 		// Validate input parameters
 		if (!validatorAddress) {
@@ -405,9 +441,9 @@ router.post("/", async (req, res) => {
 			});
 		}
 		
-		if (!discordId && !discordUsername) {
+		if (!discordId) {
 			return res.status(400).json({
-				error: "Missing required parameter: either discordId or discordUsername must be provided as a query parameter",
+				error: "Missing required parameter: discordId must be provided as a query parameter",
 			});
 		}
 		
@@ -418,23 +454,23 @@ router.post("/", async (req, res) => {
 			});
 		}
 		
-		// Find operator by discordId or discordUsername
-		let operator;
-		let operatorId = discordId;
+		// Find or create operator by discordId
+		let operator = await nodeOperatorService.getOperatorByDiscordId(discordId);
 		
-		if (discordId) {
-			operator = await nodeOperatorService.getOperatorByDiscordId(discordId);
-		} else if (discordUsername) {
-			operator = await nodeOperatorService.getOperatorByDiscordUsername(discordUsername);
-			if (operator) {
-				operatorId = operator.discordId;
+		if (!operator) {
+			// Operator doesn't exist, create it
+			operator = await nodeOperatorService.createOperator(
+				discordId,
+				true // Set isApproved to true by default
+			);
+			
+			if (!operator) {
+				return res.status(500).json({
+					error: "Failed to create operator for validator addition",
+				});
 			}
-		}
-		
-		if (!operator || !operatorId) {
-			return res.status(404).json({
-				error: "Node operator not found",
-			});
+			
+			logger.info(`Created new operator ${discordId} for validator addition`);
 		}
 		
 		// Check if the operator is approved
@@ -458,7 +494,7 @@ router.post("/", async (req, res) => {
 		
 		if (existingValidator) {
 			// Validator exists in database - check if it belongs to this operator or is unclaimed
-			if (existingValidator.nodeOperatorId === operatorId) {
+			if (existingValidator.nodeOperatorId === discordId) {
 				return res.status(409).json({
 					error: "Validator already exists for this operator",
 				});
@@ -472,15 +508,15 @@ router.post("/", async (req, res) => {
 		}
 		
 		// Create or claim validator in database
-		await validatorService.ensureValidatorExists(validatorAddress, operatorId);
-		logger.info(`Ensured validator ${validatorAddress} exists and is assigned to operator ${operatorId}`);
+		await validatorService.ensureValidatorExists(validatorAddress, discordId);
+		logger.info(`Ensured validator ${validatorAddress} exists and is assigned to operator ${discordId}`);
 		
-		// Add validator to rollup if not already there
-		if (!isInRollup) {
+		// Add validator to rollup if not already there and not skipping on-chain
+		if (!isInRollup && !skipOnChain) {
 			await ethereum.addValidator(validatorAddress);
-			logger.info(`Added validator ${validatorAddress} to rollup for operator ${operatorId}`);
+			logger.info(`Added validator ${validatorAddress} to rollup for operator ${discordId}`);
 		} else {
-			logger.info(`Validator ${validatorAddress} already in rollup, skipping on-chain addition`);
+			logger.info(`Validator ${validatorAddress} ${isInRollup ? 'already in rollup' : 'skipping on-chain addition'}`);
 		}
 		
 		// Get the created validator with full information
@@ -547,14 +583,8 @@ router.post("/", async (req, res) => {
  *         name: discordId
  *         schema:
  *           type: string
- *         required: false
+ *         required: true
  *         description: The Discord ID of the operator who owns this validator.
- *       - in: query
- *         name: discordUsername
- *         schema:
- *           type: string
- *         required: false
- *         description: The Discord username of the operator who owns this validator.
  *     requestBody:
  *       required: true
  *       content:
@@ -628,7 +658,6 @@ router.put("/", async (req, res) => {
 	try {
 		const { validatorAddress, peerId } = req.body;
 		const discordId = req.query.discordId as string | undefined;
-		const discordUsername = req.query.discordUsername as string | undefined;
 		
 		// Validate input parameters
 		if (!validatorAddress) {
@@ -637,9 +666,9 @@ router.put("/", async (req, res) => {
 			});
 		}
 		
-		if (!discordId && !discordUsername) {
+		if (!discordId) {
 			return res.status(400).json({
-				error: "Missing required parameter: either discordId or discordUsername must be provided as a query parameter",
+				error: "Missing required parameter: discordId must be provided as a query parameter",
 			});
 		}
 		
@@ -660,20 +689,10 @@ router.put("/", async (req, res) => {
 			}
 		}
 		
-		// Find operator by discordId or discordUsername
-		let operator;
-		let operatorId = discordId;
+		// Find operator by discordId
+		const operator = await nodeOperatorService.getOperatorByDiscordId(discordId);
 		
-		if (discordId) {
-			operator = await nodeOperatorService.getOperatorByDiscordId(discordId);
-		} else if (discordUsername) {
-			operator = await nodeOperatorService.getOperatorByDiscordUsername(discordUsername);
-			if (operator) {
-				operatorId = operator.discordId;
-			}
-		}
-		
-		if (!operator || !operatorId) {
+		if (!operator) {
 			return res.status(404).json({
 				error: "Node operator not found",
 			});
@@ -688,7 +707,7 @@ router.put("/", async (req, res) => {
 			});
 		}
 		
-		if (!validator.nodeOperatorId || validator.nodeOperatorId !== operatorId) {
+		if (!validator.nodeOperatorId || validator.nodeOperatorId !== discordId) {
 			return res.status(404).json({
 				error: "Validator not found for this operator",
 			});
@@ -741,14 +760,8 @@ router.put("/", async (req, res) => {
  *         name: discordId
  *         schema:
  *           type: string
- *         required: false
+ *         required: true
  *         description: The Discord ID of the operator.
- *       - in: query
- *         name: discordUsername
- *         schema:
- *           type: string
- *         required: false
- *         description: The Discord username of the operator.
  *     responses:
  *       204:
  *         description: Validator removed successfully.
@@ -781,7 +794,6 @@ router.delete("/", async (req, res) => {
 	try {
 		const validatorAddress = req.query.validatorAddress as string;
 		const discordId = req.query.discordId as string | undefined;
-		const discordUsername = req.query.discordUsername as string | undefined;
 		
 		// Validate input parameters
 		if (!validatorAddress) {
@@ -790,9 +802,9 @@ router.delete("/", async (req, res) => {
 			});
 		}
 		
-		if (!discordId && !discordUsername) {
+		if (!discordId) {
 			return res.status(400).json({
-				error: "Missing required parameter: either discordId or discordUsername must be provided as a query parameter",
+				error: "Missing required parameter: discordId must be provided as a query parameter",
 			});
 		}
 		
@@ -803,20 +815,10 @@ router.delete("/", async (req, res) => {
 			});
 		}
 		
-		// Find operator by discordId or discordUsername
-		let operator;
-		let operatorId = discordId;
+		// Find operator by discordId
+		const operator = await nodeOperatorService.getOperatorByDiscordId(discordId);
 		
-		if (discordId) {
-			operator = await nodeOperatorService.getOperatorByDiscordId(discordId);
-		} else if (discordUsername) {
-			operator = await nodeOperatorService.getOperatorByDiscordUsername(discordUsername);
-			if (operator) {
-				operatorId = operator.discordId;
-			}
-		}
-		
-		if (!operator || !operatorId) {
+		if (!operator) {
 			return res.status(404).json({
 				error: "Node operator not found",
 			});
@@ -831,7 +833,7 @@ router.delete("/", async (req, res) => {
 			});
 		}
 		
-		if (!validator.nodeOperatorId || validator.nodeOperatorId !== operatorId) {
+		if (!validator.nodeOperatorId || validator.nodeOperatorId !== discordId) {
 			return res.status(404).json({
 				error: "Validator not found for this operator",
 			});
@@ -846,7 +848,7 @@ router.delete("/", async (req, res) => {
 			});
 		}
 		
-		logger.info(`Deleted validator ${validatorAddress} from operator ${operatorId}. It will be re-synced as unclaimed if still in the rollup.`);
+		logger.info(`Deleted validator ${validatorAddress} from operator ${discordId}. It will be re-synced as unclaimed if still in the rollup.`);
 		
 		// Note: We don't call ethereum.removeValidator() as this only removes the DB association
 		// The validator will be re-added as unclaimed on the next sync if it's still in the rollup

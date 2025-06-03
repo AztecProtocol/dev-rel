@@ -15,7 +15,6 @@ import { approveUser } from "./operator-approve.js";
 import { unapproveUser } from "./operator-unapprove.js";
 import { getOperatorInfo } from "./operator-info.js";
 import { addValidator } from "./add-validator.js";
-import { addMultipleValidators } from "./add-multiple.js";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -75,11 +74,11 @@ export default {
 		.addSubcommand((subcommand) =>
 			subcommand
 				.setName(ModeratorSubcommands.AddValidator)
-				.setDescription("Add a validator to the validator set")
+				.setDescription("Add one or more validators to an operator")
 				.addStringOption((option) =>
 					option
-						.setName("validator-address")
-						.setDescription("The validator address to add")
+						.setName("validator-addresses")
+						.setDescription("Comma-separated list of validator addresses")
 						.setRequired(true)
 				)
 				.addStringOption((option) =>
@@ -92,29 +91,6 @@ export default {
 					option
 						.setName("user-id")
 						.setDescription("The Discord ID of the user to add (alternative)")
-						.setRequired(false)
-				)
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName(ModeratorSubcommands.AddMultiple)
-				.setDescription("Add multiple validators to one operator")
-				.addStringOption((option) =>
-					option
-						.setName("validator-addresses")
-						.setDescription("Comma-separated list of validator addresses")
-						.setRequired(true)
-				)
-				.addStringOption((option) =>
-					option
-						.setName("username")
-						.setDescription("The Discord username of the operator (preferred)")
-						.setRequired(false)
-				)
-				.addStringOption((option) =>
-					option
-						.setName("user-id")
-						.setDescription("The Discord ID of the operator (alternative)")
 						.setRequired(false)
 				)
 		)
@@ -154,9 +130,6 @@ export default {
 					break;
 				case ModeratorSubcommands.AddValidator:
 					await addValidator(interaction);
-					break;
-				case ModeratorSubcommands.AddMultiple:
-					await addMultipleValidators(interaction);
 					break;
 				default:
 					await interaction.editReply({

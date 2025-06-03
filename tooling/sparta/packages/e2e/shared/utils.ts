@@ -6,7 +6,6 @@ export const API_KEY = "test_key_12345";
 // Test data
 export const testOperator = {
   discordId: "123456789012345678",
-  walletAddress: "0x1234567890abcdef1234567890abcdef12345678",
   discordUsername: "testuser#1234"
 };
 
@@ -33,9 +32,10 @@ export async function waitForEthereumReady(
 ): Promise<void> {
   const startTime = Date.now();
   const endpoint = "/api/ethereum/rollup/validators";
+  const apiUrl = process.env.API_URL || BASE_URL;
   let attempt = 0;
 
-  console.log(`Starting Ethereum health check by polling ${process.env.API_URL}${endpoint}...`);
+  console.log(`Starting Ethereum health check by polling ${apiUrl}${endpoint}...`);
 
   while (Date.now() - startTime < timeoutMs) {
     attempt++;
@@ -53,6 +53,7 @@ export async function waitForEthereumReady(
       }
 
     } catch (error: any) {
+      console.log("error", error);
       console.log(`⏳ Ethereum not ready yet - ${error.message} (attempt ${attempt})`);
     }
 
@@ -73,11 +74,14 @@ export async function waitForEthereumReady(
 
 // Helper functions
 export async function makeAPIRequest(method: string, endpoint: string, { params, data }: { params?: any, data?: any } = {}) {
+  const apiUrl = process.env.API_URL || BASE_URL;
+  const apiKey = process.env.BACKEND_API_KEY || API_KEY;
+  
   const config: AxiosRequestConfig = {
     method,
-    url: `${process.env.API_URL}${endpoint}`,
+    url: `${apiUrl}${endpoint}`,
     headers: {
-      "x-api-key": process.env.BACKEND_API_KEY,
+      "x-api-key": apiKey,
       "Content-Type": "application/json"
     },
     data,

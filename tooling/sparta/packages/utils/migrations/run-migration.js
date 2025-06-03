@@ -36,6 +36,7 @@ if (!migrationName) {
   console.log('  01_migrate_validators       - Create validators table');
   console.log('  02_populate_validators      - Populate validators from API');
   console.log('  03_add_wasslashed_field     - Add wasSlashed field and check for slashed validators');
+  console.log('  04_remove_discord_username_attribute - Remove discordUsername from node_operators table');
   process.exit(1);
 }
 
@@ -43,6 +44,10 @@ const migrationFile = join(__dirname, `${migrationName}.js`);
 
 if (!existsSync(migrationFile)) {
   console.error(`❌ Migration file not found: ${migrationFile}`);
+  // Check if the user tried to run the old name for the renamed script
+  if (migrationName === "03_remove_discord_username_attribute") {
+    console.error("ℹ️  Note: '03_remove_discord_username_attribute' has been renamed to '04_remove_discord_username_attribute'.");
+  }
   process.exit(1);
 }
 

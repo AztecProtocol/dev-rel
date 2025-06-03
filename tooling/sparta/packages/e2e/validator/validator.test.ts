@@ -14,22 +14,10 @@ describe("Validator E2E Tests", () => {
   // Cleanup before all tests
   beforeEach(async () => {
     try {
-      // Setup: Create and approve an operator first
-      console.log("🔧 Setting up approved operator for validator test...");
-      await makeAPIRequest("POST", "/api/operator", {
-        params: {
-          discordId: validatorTestOperator.discordId,
-          walletAddress: validatorTestOperator.walletAddress,
-          discordUsername: validatorTestOperator.discordUsername
-        }
-      });
-
-      // Approve the operator
-      await makeAPIRequest("PUT", "/api/operator/approve", {
-        params: { discordId: validatorTestOperator.discordId }
-      });
+      // No need to create operator here - it will be created automatically by validator addition
+      console.log("🔧 Setup - No operator pre-creation needed...");
     } catch (error) {
-      console.log("BeforeEach - Error setting up approved operator for validator test");
+      console.log("BeforeEach - Error during setup");
     }
   });
 
@@ -61,13 +49,13 @@ describe("Validator E2E Tests", () => {
                 try {
                   await makeAPIRequest("DELETE", "/api/validator", {
                     params: { 
-                      validatorAddress: validator.address, 
+                      validatorAddress: validator.validatorAddress, 
                       discordId: operatorId 
                     }
                   });
-                  console.log(`🗑️ Deleted validator ${validator.address} for operator ${operatorId}`);
+                  console.log(`🗑️ Deleted validator ${validator.validatorAddress} for operator ${operatorId}`);
                 } catch (deleteError: any) {
-                  console.log(`⚠️ Error deleting validator ${validator.address}: ${deleteError.response?.status} ${deleteError.response?.data?.error || deleteError.message}`);
+                  console.log(`⚠️ Error deleting validator ${validator.validatorAddress}: ${deleteError.response?.status} ${deleteError.response?.data?.error || deleteError.message}`);
                 }
               }
             } else {
@@ -113,21 +101,51 @@ describe("Validator E2E Tests", () => {
     expect(response.status).toBe(200);
     expect(response.data).toHaveProperty("success", true);
     expect(response.data).toHaveProperty("data");
-    expect(response.data.data).toHaveProperty("blockchainValidators");
-    expect(response.data.data).toHaveProperty("knownValidators");
-    expect(response.data.data.blockchainValidators).toHaveProperty("validators");
-    expect(response.data.data.blockchainValidators).toHaveProperty("stats");
-    expect(response.data.data.knownValidators).toHaveProperty("validators");
-    expect(response.data.data.knownValidators).toHaveProperty("stats");
+    expect(response.data.data).toHaveProperty("validators");
     
     // Verify structure
-    expect(Array.isArray(response.data.data.blockchainValidators.validators)).toBe(true);
-    expect(Array.isArray(response.data.data.knownValidators.validators)).toBe(true);
-    expect(typeof response.data.data.blockchainValidators.stats.totalValidators).toBe("number");
-    expect(typeof response.data.data.knownValidators.stats.totalValidators).toBe("number");
+    expect(Array.isArray(response.data.data.validators)).toBe(true);
     
-    console.log(`✅ Retrieved ${response.data.data.blockchainValidators.stats.totalValidators} blockchain validators`);
-    console.log(`✅ Found ${response.data.data.knownValidators.stats.totalValidators} validators with operators`);
+    // Verify validator structure if any validators exist
+    if (response.data.data.validators.length > 0) {
+      const validator = response.data.data.validators[0];
+      expect(validator).toHaveProperty("address");
+      expect(validator).toHaveProperty("isActive");
+      expect(validator).toHaveProperty("operator"); // Can be null
+      expect(validator).toHaveProperty("createdAt");
+      expect(validator).toHaveProperty("updatedAt");
+      expect(validator).toHaveProperty("epoch");
+      expect(validator).toHaveProperty("hasAttested24h");
+      expect(validator).toHaveProperty("lastAttestationSlot");
+      expect(validator).toHaveProperty("lastAttestationTimestamp");
+      expect(validator).toHaveProperty("lastAttestationDate");
+      expect(validator).toHaveProperty("lastProposalSlot");
+      expect(validator).toHaveProperty("lastProposalTimestamp");
+      expect(validator).toHaveProperty("lastProposalDate");
+      expect(validator).toHaveProperty("missedAttestationsCount");
+      expect(validator).toHaveProperty("missedProposalsCount");
+      expect(validator).toHaveProperty("totalSlots");
+      
+      // Verify data types
+      expect(typeof validator.address).toBe("string");
+      expect(typeof validator.isActive).toBe("boolean");
+      expect(typeof validator.createdAt).toBe("number");
+      expect(typeof validator.updatedAt).toBe("number");
+      expect(typeof validator.epoch).toBe("number");
+      expect(typeof validator.hasAttested24h).toBe("boolean");
+      expect(typeof validator.missedAttestationsCount).toBe("number");
+      expect(typeof validator.missedProposalsCount).toBe("number");
+      expect(typeof validator.totalSlots).toBe("number");
+    }
+    
+    console.log(`✅ Retrieved ${response.data.data.validators.length} validators`);
+    
+    // Count validators with and without operators
+    const validatorsWithOperators = response.data.data.validators.filter((v: any) => v.operator !== null);
+    const validatorsWithoutOperators = response.data.data.validators.filter((v: any) => v.operator === null);
+    
+    console.log(`✅ Found ${validatorsWithOperators.length} validators with operators`);
+    console.log(`✅ Found ${validatorsWithoutOperators.length} validators without operators`);
   });
 
   test("should add validator to approved operator and retrieve it", async () => {
@@ -159,10 +177,10 @@ describe("Validator E2E Tests", () => {
     expect(Array.isArray(getByOperatorResponse.data.data.validators)).toBe(true);
     
     const validatorFound = getByOperatorResponse.data.data.validators.find(
-      (v: any) => v.address === testValidatorAddress
+      (v: any) => v.validatorAddress === testValidatorAddress
     );
     expect(validatorFound).toBeTruthy();
-    expect(validatorFound.operatorId).toBe(validatorTestOperator.discordId);
+    expect(validatorFound.nodeOperatorId).toBe(validatorTestOperator.discordId);
     console.log("✅ Validator found in operator's validator list");
   });
 
@@ -199,7 +217,6 @@ describe("Validator E2E Tests", () => {
     
     // Validate operator information is included
     expect(validatorData.operator).toHaveProperty("discordId", validatorTestOperator.discordId);
-    expect(validatorData.operator).toHaveProperty("discordUsername", validatorTestOperator.discordUsername);
     
     console.log("✅ Validator retrieved by address successfully with correct data structure");
   });
@@ -245,22 +262,7 @@ describe("Validator E2E Tests", () => {
     let attempt = 0;
     
     // Step 1: Add validator to the operator (on-chain) with retries
-    console.log("➕ Adding validator on-chain...");
-
-    // Setup: Create a new operator
-    console.log("🔧 Setting up new operator for on-chain validator test...");
-    await makeAPIRequest("POST", "/api/operator", {
-      params: {
-        discordId: validatorTestOperator2.discordId,
-        walletAddress: validatorTestOperator2.walletAddress,
-        discordUsername: validatorTestOperator2.discordUsername
-      }
-    });
-
-    // Approve the operator
-    await makeAPIRequest("PUT", "/api/operator/approve", {
-      params: { discordId: validatorTestOperator2.discordId }
-    });
+    console.log("➕ Adding validator on-chain (operator will be created automatically)...");
 
     while (attempt < maxRetries) {
       try {
@@ -309,34 +311,43 @@ describe("Validator E2E Tests", () => {
     const getByAddressResponse = await makeAPIRequest("GET", "/api/validator", {
       params: { discordId: validatorTestOperator2.discordId }
     });
+
+    console.log(getByAddressResponse.data.data)
     const val = getByAddressResponse.data.data.validators[0];
     expect(getByAddressResponse.status).toBe(200);
     expect(getByAddressResponse.data).toHaveProperty("success", true);
-    expect(val).toHaveProperty("address", actualValidatorAddress);
-    expect(val).toHaveProperty("operatorId", validatorTestOperator2.discordId);
+    expect(val).toHaveProperty("validatorAddress", actualValidatorAddress);
+    expect(val).toHaveProperty("nodeOperatorId", validatorTestOperator2.discordId);
     console.log("✅ Validator confirmed in database as well");
     
     console.log("🎉 Full on-chain and database validation test completed successfully!");
   });
 
   test("should reject validator addition for unapproved operator", async () => {
-    // Setup: Create an unapproved operator
-    console.log("🔧 Setting up unapproved operator for rejection test...");
-    await makeAPIRequest("POST", "/api/operator", {
-      params: {
-        discordId: validatorTestOperator2.discordId,
-        walletAddress: validatorTestOperator2.walletAddress,
-        discordUsername: validatorTestOperator2.discordUsername
+    // Step 1: First add a validator to create the operator automatically (will be approved by default)
+    console.log("🔧 Creating operator automatically by adding first validator...");
+    await makeAPIRequest("POST", "/api/validator", {
+      params: { discordId: validatorTestOperator2.discordId },
+      data: { 
+        validatorAddress: testValidatorAddress,
+        skipOnChain: true
       }
     });
+    console.log("✅ Operator created automatically with first validator");
 
-    // Step 1: Try to add validator to unapproved operator (should fail)
-    console.log("❌ Attempting to add validator to unapproved operator...");
+    // Step 2: Unapprove the operator
+    console.log("❌ Unapproving operator for test...");
+    await makeAPIRequest("DELETE", "/api/operator/approve", {
+      params: { discordId: validatorTestOperator2.discordId }
+    });
+
+    // Step 3: Try to add another validator to unapproved operator (should fail)
+    console.log("❌ Attempting to add second validator to unapproved operator...");
     try {
       await makeAPIRequest("POST", "/api/validator", {
         params: { discordId: validatorTestOperator2.discordId },
         data: { 
-          validatorAddress: testValidatorAddress,
+          validatorAddress: testValidatorAddress2,
           skipOnChain: true
         }
       });
@@ -348,14 +359,15 @@ describe("Validator E2E Tests", () => {
       console.log("✅ Validator addition correctly rejected for unapproved operator");
     }
 
-    // Step 2: Verify validator was not added by checking operator's validators
-    console.log("🔍 Verifying validator was not added...");
+    // Step 4: Verify only the first validator was added (second was rejected)
+    console.log("🔍 Verifying only first validator was added...");
     const getByOperatorResponse = await makeAPIRequest("GET", "/api/validator", {
       params: { discordId: validatorTestOperator2.discordId }
     });
     expect(getByOperatorResponse.status).toBe(200);
-    expect(getByOperatorResponse.data.data.validators.length).toBe(0);
-    console.log("✅ Confirmed no validators were added to unapproved operator");
+    expect(getByOperatorResponse.data.data.validators.length).toBe(1);
+    expect(getByOperatorResponse.data.data.validators[0].validatorAddress).toBe(testValidatorAddress);
+    console.log("✅ Confirmed only first validator exists (second was rejected)");
   });
 
   test("should remove validator from operator", async () => {
@@ -413,35 +425,6 @@ describe("Validator E2E Tests", () => {
       expect([400, 404, 200]).toContain(error.response?.status || 200);
     }
     console.log("✅ Validator-operator association removal verified");
-  });
-
-  test("should handle validator lookup by username", async () => {
-    // Add validator
-    await makeAPIRequest("POST", "/api/validator", {
-      params: { discordUsername: validatorTestOperator.discordUsername },
-      data: { 
-        validatorAddress: testValidatorAddress,
-        skipOnChain: true
-      }
-    });
-
-    // Step 1: Retrieve validator using operator's discord username
-    console.log("🔍 Retrieving validators by operator username...");
-    const getByUsernameResponse = await makeAPIRequest("GET", "/api/validator", {
-      params: { discordUsername: validatorTestOperator.discordUsername }
-    });
-    expect(getByUsernameResponse.status).toBe(200);
-    expect(getByUsernameResponse.data).toHaveProperty("success", true);
-    expect(getByUsernameResponse.data.data).toHaveProperty("operator");
-    expect(getByUsernameResponse.data.data).toHaveProperty("validators");
-    expect(getByUsernameResponse.data.data.operator.discordUsername).toBe(validatorTestOperator.discordUsername);
-    
-    const validatorFound = getByUsernameResponse.data.data.validators.find(
-      (v: any) => v.address === testValidatorAddress
-    );
-    expect(validatorFound).toBeTruthy();
-    expect(validatorFound.operatorId).toBe(validatorTestOperator.discordId);
-    console.log("✅ Validator lookup by username verified");
   });
 
 }); 

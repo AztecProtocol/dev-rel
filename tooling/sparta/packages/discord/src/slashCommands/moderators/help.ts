@@ -56,12 +56,7 @@ export async function showModeratorHelp(
 				},
 				{
 					name: `/mod ${ModeratorSubcommands.AddValidator}`,
-					value: "Add a validator to the validator set\n`username` - The Discord username of the user to add (preferred)\n`user-id` - The Discord ID of the user to add (alternative)\n`validator-address` - The validator address to add (required)\n\n*Note: Provide either username or user-id*",
-					inline: false,
-				},
-				{
-					name: `/mod ${ModeratorSubcommands.AddMultiple}`,
-					value: "Add multiple validators to one operator\n`username` - The Discord username of the operator (preferred)\n`user-id` - The Discord ID of the operator (alternative)\n`validator-addresses` - Comma-separated list of validator addresses (required)\n\n*Note: Provide either username or user-id*\n*Example: 0x1234...,0x5678...,0x9abc...*",
+					value: "Add one or more validators to an operator\n`username` - The Discord username of the user to add (preferred)\n`user-id` - The Discord ID of the user to add (alternative)\n`validator-addresses` - Comma-separated list of validator addresses (required)\n\n*Note: Provide either username or user-id*\n*Example: 0x1234...,0x5678...,0x9abc... or just 0x1234... for single validator*",
 					inline: false,
 				},
 			])

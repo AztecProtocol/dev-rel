@@ -91,6 +91,24 @@ Populates the validators table with data from the API. Matches validators with o
 - Affected operators with their details
 - Any errors encountered during the process
 
+**Environment Variables**:
+* `DRY_RUN=true`: Perform a dry run without actual database writes.
+* `TEST_MODE=true`: Process only a small batch of items (useful for testing the script logic).
+* `VALIDATORS_TABLE_NAME`: Override the default validators table name.
+* `NODE_OPERATORS_TABLE_NAME`: Override the default node operators table name.
+
+### `04_remove_discord_username_attribute`
+
+Removes the `discordUsername` attribute from all items in the `node-operators` table. This is intended to be run after infrastructure changes (Terraform) have removed the attribute definition and the `DiscordUsernameIndex` GSI from the table schema.
+
+**Environment Variables**:
+* `DRY_RUN=true`: Perform a dry run without actual database writes (logs actions that would be taken).
+* `TEST_MODE=true`: Process only a small batch of items (e.g., 5 items) for testing.
+* `NODE_OPERATORS_TABLE_NAME`: (Required) The name of the node operators table to process.
+* `AWS_REGION`: (Optional) The AWS region for the DynamoDB table (defaults to `eu-west-2`).
+* `DYNAMODB_ENDPOINT`: (Optional) For use with a local DynamoDB instance (e.g., `http://localhost:8000`).
+* `LOCAL_DYNAMO_DB="true"`: (Optional) Signals usage of a local DynamoDB instance, often in conjunction with `DYNAMODB_ENDPOINT`.
+
 ## Backup System
 
 The migration system automatically creates backups before running any migration:

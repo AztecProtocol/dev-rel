@@ -113,10 +113,6 @@ async function createLocalTables(): Promise<void> {
           AttributeName: "walletAddress",
           AttributeType: "S",
         },
-        {
-          AttributeName: "discordUsername",
-          AttributeType: "S",
-        },
       ],
       KeySchema: [
         {
@@ -130,22 +126,6 @@ async function createLocalTables(): Promise<void> {
           KeySchema: [
             {
               AttributeName: "walletAddress",
-              KeyType: "HASH",
-            },
-          ],
-          Projection: {
-            ProjectionType: "ALL",
-          },
-          ProvisionedThroughput: {
-            ReadCapacityUnits: 5,
-            WriteCapacityUnits: 5,
-          },
-        },
-        {
-          IndexName: "DiscordUsernameIndex",
-          KeySchema: [
-            {
-              AttributeName: "discordUsername",
               KeyType: "HASH",
             },
           ],
@@ -244,48 +224,68 @@ async function copyProductionData(): Promise<void> {
     endpoint: LOCAL_ENDPOINT
   }));
 
-  // Copy validators data
+  // Copy validators data with pagination
   try {
     console.log(`📥 Copying data from ${process.env.PROD_VALIDATORS_TABLE_NAME}...`);
-    const validatorsData = await prodClient.send(new ScanCommand({
-      TableName: process.env.PROD_VALIDATORS_TABLE_NAME,
-      // Limit: 20
-    }));
+    let lastEvaluatedKey: Record<string, any> | undefined = undefined;
+    let totalValidators = 0;
+    let pageNum = 0;
 
-    if (validatorsData.Items && validatorsData.Items.length > 0) {
-      for (const item of validatorsData.Items) {
-        await localClient.send(new PutCommand({
-          TableName: process.env.VALIDATORS_TABLE_NAME,
-          Item: item
-        }));
+    do {
+      pageNum++;
+      const validatorsData = await prodClient.send(new ScanCommand({
+        TableName: process.env.PROD_VALIDATORS_TABLE_NAME,
+        ExclusiveStartKey: lastEvaluatedKey
+      }));
+
+      if (validatorsData.Items && validatorsData.Items.length > 0) {
+        for (const item of validatorsData.Items) {
+          await localClient.send(new PutCommand({
+            TableName: process.env.VALIDATORS_TABLE_NAME,
+            Item: item
+          }));
+        }
+        totalValidators += validatorsData.Items.length;
+        console.log(`📄 Validators page ${pageNum}: Copied ${validatorsData.Items.length} items. Total so far: ${totalValidators}`);
       }
-      console.log(`✅ Copied ${validatorsData.Items.length} validators`);
-    } else {
-      console.log("ℹ️ No validators data found in production");
-    }
+
+      lastEvaluatedKey = validatorsData.LastEvaluatedKey;
+    } while (lastEvaluatedKey);
+
+    console.log(`✅ Copied ${totalValidators} validators total`);
   } catch (error) {
     console.warn("⚠️ Could not copy validators data:", error);
   }
 
-  // Copy node operators data
+  // Copy node operators data with pagination
   try {
     console.log(`📥 Copying data from ${process.env.PROD_NODE_OPERATORS_TABLE_NAME}...`);
-    const operatorsData = await prodClient.send(new ScanCommand({
-      TableName: process.env.PROD_NODE_OPERATORS_TABLE_NAME,
-      // Limit: 10
-    }));
+    let lastEvaluatedKey: Record<string, any> | undefined = undefined;
+    let totalOperators = 0;
+    let pageNum = 0;
 
-    if (operatorsData.Items && operatorsData.Items.length > 0) {
-      for (const item of operatorsData.Items) {
-        await localClient.send(new PutCommand({
-          TableName: process.env.NODE_OPERATORS_TABLE_NAME,
-          Item: item
-        }));
+    do {
+      pageNum++;
+      const operatorsData = await prodClient.send(new ScanCommand({
+        TableName: process.env.PROD_NODE_OPERATORS_TABLE_NAME,
+        ExclusiveStartKey: lastEvaluatedKey
+      }));
+
+      if (operatorsData.Items && operatorsData.Items.length > 0) {
+        for (const item of operatorsData.Items) {
+          await localClient.send(new PutCommand({
+            TableName: process.env.NODE_OPERATORS_TABLE_NAME,
+            Item: item
+          }));
+        }
+        totalOperators += operatorsData.Items.length;
+        console.log(`📄 Operators page ${pageNum}: Copied ${operatorsData.Items.length} items. Total so far: ${totalOperators}`);
       }
-      console.log(`✅ Copied ${operatorsData.Items.length} node operators`);
-    } else {
-      console.log("ℹ️ No node operators data found in production");
-    }
+
+      lastEvaluatedKey = operatorsData.LastEvaluatedKey;
+    } while (lastEvaluatedKey);
+
+    console.log(`✅ Copied ${totalOperators} node operators total`);
   } catch (error) {
     console.warn("⚠️ Could not copy node operators data:", error);
   }

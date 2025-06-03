@@ -46,7 +46,6 @@ export async function addValidator(
 
 		// Get Discord user ID from interaction
 		const discordId = interaction.user.id;
-		const discordUsername = interaction.user.username;
 
 		try {
 			// Get API client
@@ -75,8 +74,7 @@ export async function addValidator(
 			// Call the POST /api/operator/validator endpoint
 			await client.addValidator(
 				{
-					discordId,
-					discordUsername,
+					discordId
 				},
 				{
 					validatorAddress,

@@ -303,32 +303,11 @@ resource "aws_dynamodb_table" "sparta_node_operators" {
     name = "discordId"
     type = "S"
   }
-  attribute {
-    name = "walletAddress"
-    type = "S"
-  }
-  attribute {
-    name = "discordUsername" # Attribute for DiscordUsernameIndex GSI
-    type = "S"
-  }
 
   # Define the primary hash key
   hash_key = "discordId"
 
   # Define Global Secondary Indexes
-  global_secondary_index {
-    name            = "WalletAddressIndex"
-    hash_key        = "walletAddress"
-    projection_type = "ALL" # Project all attributes
-    # PAY_PER_REQUEST billing mode applies to GSIs as well
-  }
-
-  global_secondary_index {
-    name            = "DiscordUsernameIndex" # The GSI used by the repository
-    hash_key        = "discordUsername"
-    projection_type = "ALL" # Project all attributes to ensure the GSI has all necessary data
-    # PAY_PER_REQUEST billing mode applies to GSIs as well
-  }
 
   # Enable Point-in-Time Recovery for backups (Recommended)
   point_in_time_recovery {

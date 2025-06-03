@@ -13,3 +13,6 @@ export * from "./roleAssigner";
 
 // Re-export message management utilities
 export * from "./messageManager";
+
+// Re-export Discord ID resolution utilities
+export * from "./discordIdResolver";

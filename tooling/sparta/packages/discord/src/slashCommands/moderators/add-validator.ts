@@ -5,13 +5,15 @@ import {
 import { logger } from "@sparta/utils";
 import * as dotenv from "dotenv";
 import { clientPromise } from "@sparta/utils/openapi/api/axios";
+import { resolveDiscordIdForApi } from "../../utils/discordIdResolver";
 // import { hasModeratorRole } from "../../utils/roles"; // Assuming a utility for moderator role check
 
 // Load environment variables
 dotenv.config();
 
 /**
- * Approves a node operator and adds their validator in a single command.
+ * Adds validator(s) to an operator. The operator will be created automatically if it doesn't exist.
+ * Supports single or multiple comma-separated validator addresses.
  * Intended for moderator use.
  */
 export async function addValidator(
@@ -25,7 +27,7 @@ export async function addValidator(
 		// Get Discord username and user ID from options
 		targetDiscordUsername = interaction.options.getString("username");
 		const targetDiscordUserId = interaction.options.getString("user-id");
-		const validatorAddress = interaction.options.getString("validator-address", true);
+		const validatorAddressesString = interaction.options.getString("validator-addresses", true);
 
 		// Validate that at least one parameter is provided
 		if (!targetDiscordUsername && !targetDiscordUserId) {
@@ -33,227 +35,252 @@ export async function addValidator(
 			return;
 		}
 
-		// If no username but user ID provided, try to fetch username from Discord
-		if (!targetDiscordUsername && targetDiscordUserId) {
-			try {
-				const user = await interaction.guild?.members.fetch(targetDiscordUserId);
-				if (!user) {
-					await interaction.editReply("User not found with the provided Discord ID.");
-					return;
-				}
-				targetDiscordUsername = user.user.username;
-			} catch (fetchError) {
-				await interaction.editReply("Unable to fetch user information from the provided Discord ID.");
-				return;
-			}
-		}
+		// Parse and validate validator addresses
+		const validatorAddresses = validatorAddressesString
+			.split(',')
+			.map(addr => addr.trim())
+			.filter(addr => addr.length > 0);
 
-		// At this point, targetDiscordUsername should be defined
-		if (!targetDiscordUsername) {
-			await interaction.editReply("Unable to determine Discord username.");
+		if (validatorAddresses.length === 0) {
+			await interaction.editReply("No valid validator addresses provided.");
 			return;
 		}
 
-		// Validate validator address format
-		if (!/^^0x[a-fA-F0-9]{40}$/.test(validatorAddress)) {
-			await interaction.editReply("Invalid Ethereum address format for validator.");
+		// Validate each validator address format
+		const invalidAddresses = validatorAddresses.filter(addr => !/^0x[a-fA-F0-9]{40}$/.test(addr));
+		if (invalidAddresses.length > 0) {
+			await interaction.editReply(`Invalid Ethereum address format for validators: ${invalidAddresses.join(', ')}`);
 			return "Invalid address format";
+		}
+
+		// Resolve Discord user information
+		const targetDiscordId = await resolveDiscordIdForApi(targetDiscordUsername, targetDiscordUserId);
+		
+		if (!targetDiscordId) {
+			await interaction.editReply("Unable to resolve Discord user. Please check the username or user ID.");
+			return "User resolution failed";
+		}
+
+		// If we didn't have a username but resolved one, try to get it for display purposes
+		if (!targetDiscordUsername && targetDiscordId) {
+			try {
+				const user = await interaction.guild?.members.fetch(targetDiscordId);
+				if (user) {
+					targetDiscordUsername = user.user.username;
+				}
+			} catch (fetchError) {
+				// Not critical if we can't get the username for display
+				targetDiscordUsername = `User-${targetDiscordId}`;
+			}
 		}
 
 		const client = await clientPromise;
 
-		// ---- 1. Approve Operator ----
-		let operatorWasAlreadyApproved = false;
-		try {
-			logger.info(`Attempting to approve operator: ${targetDiscordUsername}`);
-			await client.approveOperator(
-				{
-					discordUsername: targetDiscordUsername,
-				},
-				null // No body data for approval
-			);
-			logger.info(`Operator ${targetDiscordUsername} approved successfully.`);
-		} catch (approvalError: any) {
-			logger.error(`Error approving operator ${targetDiscordUsername}:`, approvalError.response?.data || approvalError.message);
-			
-			// Check if operator is already approved - this should not block the flow
-			// Only allow this specific 400 error to proceed, not any 400 status
-			if (approvalError.response && 
-				approvalError.response.status === 400 && 
-				approvalError.response.data?.error === "Operator is already approved") {
-				logger.info(`Operator ${targetDiscordUsername} is already approved, continuing with validator addition.`);
-				operatorWasAlreadyApproved = true;
-			} else if (approvalError.response && approvalError.response.status === 404) {
-				const errorEmbed = new EmbedBuilder()
-					.setTitle("❌ OPERATOR APPROVAL FAILED")
-					.setColor(0xff0000)
-					.setDescription(`No node operator found with Discord username: \`${targetDiscordUsername}\`. They need to register first.`)
-					.setTimestamp()
-					.setFooter({ text: "Aztec Network Operator Management" });
-				await interaction.editReply({ embeds: [errorEmbed] });
-				return "Approval failed - Operator not found";
-			} else {
-				// Handle all other errors (including other 400 errors) as failures
-				const errorEmbed = new EmbedBuilder()
-					.setTitle("❌ OPERATOR APPROVAL FAILED")
-					.setColor(0xff0000)
-					.setDescription(`An error occurred while trying to approve \`${targetDiscordUsername}\`.`)
-					.addFields({ name: "Details", value: approvalError.response?.data?.error || approvalError.message || "Please check logs."})
-					.setTimestamp()
-					.setFooter({ text: "Aztec Network Operator Management" });
-				await interaction.editReply({ embeds: [errorEmbed] });
-				return "Approval error";
+		// ---- Add Validator(s) (Operator will be created automatically if needed) ----
+		const results: Array<{address: string, success: boolean, error?: string}> = [];
+		const successfulAddresses: string[] = [];
+		const failedAddresses: Array<{address: string, error: string}> = [];
+		let operatorWasCreated = false;
+
+		for (const validatorAddress of validatorAddresses) {
+			try {
+				logger.info(`Attempting to add validator ${validatorAddress} for operator ${targetDiscordUsername} (ID: ${targetDiscordId})`);
+				const response = await client.addValidator(
+					{
+						discordId: targetDiscordId,
+					},
+					{
+						validatorAddress,
+					}
+				);
+				
+				// Check if this was the first successful call and if operator was newly created
+				if (!operatorWasCreated && (response.data?.data as any)?.operator?.createdAt) {
+					// If the operator's createdAt is very recent (within last minute), it was likely just created
+					const operatorAge = Date.now() - (response.data.data as any).operator.createdAt;
+					if (operatorAge < 60000) { // Less than 1 minute old
+						operatorWasCreated = true;
+						logger.info(`Operator ${targetDiscordUsername} appears to have been created during validator addition`);
+					}
+				}
+				
+				logger.info(`Successfully added validator ${validatorAddress} for ${targetDiscordUsername}.`);
+				results.push({ address: validatorAddress, success: true });
+				successfulAddresses.push(validatorAddress);
+
+			} catch (addValidatorError: any) {
+				logger.error(addValidatorError.response?.data || addValidatorError.message, `Error adding validator ${validatorAddress} for ${targetDiscordUsername}:`);
+				
+				let errorMessage = "Unknown error";
+				if (addValidatorError.response) {
+					if (addValidatorError.response.data?.error?.includes("Staking__AlreadyRegistered")) {
+						errorMessage = "Already registered on smart contract";
+					} else {
+						switch (addValidatorError.response.status) {
+							case 400:
+								errorMessage = "Invalid validator address format";
+								break;
+							case 403:
+								if (addValidatorError.response.data?.error === "Operator was slashed") {
+									errorMessage = "Operator was slashed";
+								} else {
+									errorMessage = "Operation forbidden";
+								}
+								break;
+							case 401:
+								errorMessage = "Authentication error";
+								break;
+							default:
+								errorMessage = "Server error";
+						}
+					}
+				} else {
+					errorMessage = "Connection error";
+				}
+				
+				results.push({ address: validatorAddress, success: false, error: errorMessage });
+				failedAddresses.push({ address: validatorAddress, error: errorMessage });
 			}
 		}
 
-		// ---- 2. Fetch Operator Details (to get ID and check existing validators) ----
-		let operatorData;
-		let targetDiscordId: string;
-		try {
-			const operatorResponse = await client.getOperator({
-				discordUsername: targetDiscordUsername,
-			});
-			operatorData = operatorResponse.data;
-
-			if (!operatorData || !operatorData.discordId) {
-				logger.error(`Could not retrieve operator details or ID for ${targetDiscordUsername} after approval.`);
-				const errorEmbed = new EmbedBuilder()
-					.setTitle("❌ DATA FETCH FAILED")
-					.setColor(0xff0000)
-					.setDescription(`Failed to retrieve operator details for \`${targetDiscordUsername}\` after approval. Cannot proceed with validator addition.`)
-					.setTimestamp()
-					.setFooter({ text: "Aztec Network Operator Management" });
-				await interaction.editReply({ embeds: [errorEmbed] });
-				return "Error fetching operator details post-approval";
+		// ---- Success/Error Notification & DM ----
+		const creationStatus = operatorWasCreated ? "Newly Created" : "Already Exists";
+		const isMultiple = validatorAddresses.length > 1;
+		const allSuccessful = successfulAddresses.length === validatorAddresses.length;
+		const someSuccessful = successfulAddresses.length > 0;
+		
+		let titleText: string;
+		let descriptionText: string;
+		let successColor: number;
+		
+		if (allSuccessful) {
+			successColor = 0x00ff00; // Green for complete success
+			if (isMultiple) {
+				titleText = operatorWasCreated 
+					? `✅ Operator Created & ${successfulAddresses.length} Validators Added`
+					: `✅ ${successfulAddresses.length} Validators Added`;
+				descriptionText = operatorWasCreated
+					? `Operator \`${targetDiscordUsername}\` has been created and ${successfulAddresses.length} validators added successfully.`
+					: `${successfulAddresses.length} validators have been added successfully to operator \`${targetDiscordUsername}\`.`;
+			} else {
+				titleText = operatorWasCreated 
+					? `✅ Operator Created & Validator Added`
+					: `✅ Validator Added`;
+				const displayAddress = successfulAddresses[0] ? `${successfulAddresses[0].slice(0, 6)}...${successfulAddresses[0].slice(-4)}` : "Unknown";
+				descriptionText = operatorWasCreated
+					? `Operator \`${targetDiscordUsername}\` has been created and validator \`${displayAddress}\` added successfully.`
+					: `Validator \`${displayAddress}\` has been added successfully to operator \`${targetDiscordUsername}\`.`;
 			}
-			targetDiscordId = operatorData.discordId;
-			logger.info(`Fetched operator details for ${targetDiscordUsername}, Discord ID: ${targetDiscordId}`);
-
-		} catch (fetchError: any) {
-			logger.error(`Error fetching operator details for ${targetDiscordUsername}:`, fetchError.response?.data || fetchError.message);
-			const errorEmbed = new EmbedBuilder()
-				.setTitle("❌ DATA FETCH FAILED")
-				.setColor(0xff0000)
-				.setDescription(`Could not fetch details for operator \`${targetDiscordUsername}\`.`)
-				.addFields({ name: "Details", value: fetchError.message || "Please check logs."})
-				.setTimestamp()
-				.setFooter({ text: "Aztec Network Operator Management" });
-			await interaction.editReply({ embeds: [errorEmbed] });
-			return "Error fetching operator data";
+		} else if (someSuccessful) {
+			successColor = 0xffa500; // Orange for partial success
+			titleText = `⚠️ Partial Success: ${successfulAddresses.length}/${validatorAddresses.length} Validators Added`;
+			descriptionText = `${successfulAddresses.length} out of ${validatorAddresses.length} validators were added successfully to operator \`${targetDiscordUsername}\`.`;
+		} else {
+			successColor = 0xff0000; // Red for failure
+			titleText = `❌ Failed to Add ${isMultiple ? 'Validators' : 'Validator'}`;
+			descriptionText = `Failed to add ${isMultiple ? 'any validators' : 'validator'} to operator \`${targetDiscordUsername}\`.`;
 		}
 		
-		// ---- 4. Add Validator ----
-		try {
-			logger.info(`Attempting to add validator ${validatorAddress} for operator ${targetDiscordUsername} (ID: ${targetDiscordId})`);
-			await client.addValidator(
-				{
-					discordId: targetDiscordId,
-					discordUsername: targetDiscordUsername,
-				},
-				{
-					validatorAddress,
-				}
+		const embed = new EmbedBuilder()
+			.setTitle(titleText)
+			.setColor(successColor)
+			.setTimestamp()
+			.setFooter({ text: "Sparta Validator Registration" })
+			.setDescription(descriptionText)
+			.addFields(
+				{ name: "Operator", value: targetDiscordUsername || `User-${targetDiscordId}`, inline: true },
+				{ name: "Creation Status", value: creationStatus, inline: true },
+				{ name: "Total Addresses", value: validatorAddresses.length.toString(), inline: true }
 			);
-			logger.info(`Successfully added validator ${validatorAddress} for ${targetDiscordUsername}.`);
 
-			// ---- 5. Success Notification & DM ----
-			const displayAddress = `${validatorAddress.slice(0, 6)}...${validatorAddress.slice(-4)}`;
-			const approvalStatus = operatorWasAlreadyApproved ? "Already Approved" : "Newly Approved";
-			const titleText = operatorWasAlreadyApproved ? 
-				`✅ Validator Added (Operator Already Approved)` : 
-				`✅ Operator Approved & Validator Added`;
-			const descriptionText = operatorWasAlreadyApproved ?
-				`Operator \`${targetDiscordUsername}\` was already approved. Validator \`${displayAddress}\` has been added successfully.` :
-				`Operator \`${targetDiscordUsername}\` has been approved and validator \`${displayAddress}\` added successfully.`;
+		// Add successful validators field
+		if (successfulAddresses.length > 0) {
+			if (isMultiple) {
+				const displayAddresses = successfulAddresses.map(addr => 
+					`• \`${addr.slice(0, 6)}...${addr.slice(-4)}\``
+				).join('\n');
+				embed.addFields({ 
+					name: `✅ Successfully Added (${successfulAddresses.length})`, 
+					value: displayAddresses.length > 1024 ? `${successfulAddresses.length} validators added successfully` : displayAddresses,
+					inline: false 
+				});
+			} else {
+				embed.addFields({ 
+					name: "Validator Address", 
+					value: successfulAddresses[0] || "Unknown", 
+					inline: false 
+				});
+			}
+		}
+
+		// Add failed validators field
+		if (failedAddresses.length > 0) {
+			const displayFailures = failedAddresses.map(item => 
+				`• \`${item.address.slice(0, 6)}...${item.address.slice(-4)}\` - ${item.error}`
+			).join('\n');
+			embed.addFields({ 
+				name: `❌ Failed (${failedAddresses.length})`, 
+				value: displayFailures.length > 1024 ? `${failedAddresses.length} validators failed to add` : displayFailures,
+				inline: false 
+			});
+		}
+
+		// Send DM to the operator if any validators were added successfully
+		if (successfulAddresses.length > 0) {
+			let dmActionText: string;
+			if (operatorWasCreated) {
+				dmActionText = isMultiple 
+					? "**REGISTERED** you as an operator and **ADDED** your validators"
+					: "**REGISTERED** you as an operator and **ADDED** your validator";
+			} else {
+				dmActionText = isMultiple 
+					? "**ADDED** your validators"
+					: "**ADDED** your validator";
+			}
 			
-			const successEmbed = new EmbedBuilder()
-				.setTitle(titleText)
-				.setColor(0x00ff00) // Green for success
-				.setTimestamp()
-				.setFooter({ text: "Sparta Validator Registration" })
-				.setDescription(descriptionText)
-				.addFields(
-					{ name: "Operator", value: targetDiscordUsername, inline: true },
-					{ name: "Validator Address", value: validatorAddress, inline: false },
-					{ name: "Status", value: `${approvalStatus} and Validator Added`, inline: true }
-				);
-
-			// Send DM to the operator
-			const dmActionText = operatorWasAlreadyApproved ? "**ADDED** your validator" : "**APPROVED** your entry and **ADDED** your validator";
-			const dmContent = `Hear ye, hear ye, brave Spartan warrior! 🛡️ A moderator has ${dmActionText} to the Aztec network!\n\nYour validator address: \`${validatorAddress}\` is now registered.\n\n- Keep your shield up and your validator sharp! You can check its readiness with \`/operator my-stats\`.\n- A true Spartan upholds the line! Neglecting your duties could lead to your validator being slashed.\n\nShould you need guidance, seek aid in this channel or message <@411954463541166080> (my creator) directly.\n\nVictory favors the prepared! This is SPARTAAAA! 💪`;
-			const dmThreadName = operatorWasAlreadyApproved ? 
-				`Auto-Notification: Validator Added - ${targetDiscordUsername}` :
-				`Auto-Notification: Approved & Validator Added - ${targetDiscordUsername}`;
+			const validatorList = isMultiple 
+				? successfulAddresses.map(addr => `\`${addr}\``).join('\n')
+				: `\`${successfulAddresses[0] || "Unknown"}\``;
+			
+			const dmContent = `Hear ye, hear ye, brave Spartan warrior! 🛡️ A moderator has ${dmActionText} to the Aztec network!\n\nYour validator ${isMultiple ? 'addresses' : 'address'}:\n${validatorList}\n\n- Keep your ${isMultiple ? 'shields' : 'shield'} up and your ${isMultiple ? 'validators' : 'validator'} sharp! You can check ${isMultiple ? 'their' : 'its'} readiness with \`/operator my-stats\`.\n- A true Spartan upholds the line! Neglecting your duties could lead to your ${isMultiple ? 'validators' : 'validator'} being slashed.\n\nShould you need guidance, seek aid in the support channels.\n\nVictory favors the prepared! This is SPARTAAAA! 💪`;
 			let dmStatusMessage = "A direct message has been sent to the operator.";
 
 			try {
 				const messageApiResponse = await client.sendMessageToOperator(
-					{ discordUsername: targetDiscordUsername },
-					{ message: dmContent, threadName: dmThreadName }
+					{ discordId: targetDiscordId },
+					{ message: dmContent }
 				);
 				if (messageApiResponse.data.success) {
-					logger.info(`Successfully sent combined approval & add DM to ${targetDiscordUsername}.`);
+					logger.info(`Successfully sent DM to ${targetDiscordUsername}.`);
 				} else {
-					logger.error(`Failed to send combined DM to ${targetDiscordUsername} via API: ${messageApiResponse.data.message || 'Unknown API error'}`);
+					logger.error(`Failed to send DM to ${targetDiscordUsername} via API: ${messageApiResponse.data.message || 'Unknown API error'}`);
 					dmStatusMessage = "Attempted to send DM to operator, but it may have failed. See logs.";
 				}
 			} catch (dmError: any) {
-				logger.error(`Exception sending combined DM to ${targetDiscordUsername}:`, dmError.response?.data || dmError.message);
+				logger.error(`Exception sending DM to ${targetDiscordUsername}:`, dmError.response?.data || dmError.message);
 				dmStatusMessage = "Error during DM attempt to operator. See logs.";
 			}
-			successEmbed.addFields({ name: "Operator Notification", value: dmStatusMessage });
+			embed.addFields({ name: "Operator Notification", value: dmStatusMessage });
+		}
 
-			await interaction.editReply({ embeds: [successEmbed] });
-			return operatorWasAlreadyApproved ? 
-				"Validator added successfully (operator was already approved)." :
-				"Operator approved and validator added successfully.";
-
-		} catch (addValidatorError: any) {
-			logger.error(addValidatorError.response?.data || addValidatorError.message, `Error adding validator ${validatorAddress} for ${targetDiscordUsername}:`);
-			const errorEmbed = new EmbedBuilder()
-				.setTitle(`❌ Validator Addition Failed for ${targetDiscordUsername}`)
-				.setColor(0xff0000)
-				.setTimestamp()
-				.setFooter({ text: "Sparta Validator Registration" });
-
-			if (addValidatorError.response) {
-				if (addValidatorError.response.data.error.includes("Staking__AlreadyRegistered")) {
-					errorEmbed.setDescription(`Behold!Validator \`${validatorAddress}\` is already registered on the smart contract for \`${targetDiscordUsername}\`, but I may not know about it. Please reach out to the moderator team. Stay strong!`);
-				} else {
-					switch (addValidatorError.response.status) {
-						case 400:
-							errorEmbed.setDescription(`Invalid validator address format provided for \`${targetDiscordUsername}\`: \`${validatorAddress}\`.`);
-							break;
-						case 403:
-							// Check if it's a slashing error or other forbidden operation
-							if (addValidatorError.response.data && addValidatorError.response.data.error === "Operator was slashed") {
-								errorEmbed.setDescription(`The operator \`${targetDiscordUsername}\` was previously slashed and cannot add validators.`);
-							} else {
-								errorEmbed.setDescription(`Operation forbidden for operator \`${targetDiscordUsername}\` when attempting to add validator. They may have restrictions or require further actions.`);
-							}
-							break;
-						case 404: // This would be unusual if getOperator succeeded
-							errorEmbed.setDescription(`Operator \`${targetDiscordUsername}\` not found during validator addition. Please verify their status.`);
-							break;
-						case 401:
-							errorEmbed.setDescription(`Authentication error while adding validator for \`${targetDiscordUsername}\`. Please try again later.`);
-							break;
-						default:
-								errorEmbed.setDescription(`An error occurred while adding validator for \`${targetDiscordUsername}\`. Please try again later.`);
-					}
-				}
-			} else {
-				errorEmbed.setDescription(`Connection error while adding validator for \`${targetDiscordUsername}\`. Please try again later.`);
-			}
-			await interaction.editReply({ embeds: [errorEmbed] });
-			return "Error adding validator";
+		await interaction.editReply({ embeds: [embed] });
+		
+		// Return appropriate success message
+		if (allSuccessful) {
+			return isMultiple 
+				? (operatorWasCreated ? "Operator created and validators added successfully." : "Validators added successfully.")
+				: (operatorWasCreated ? "Operator created and validator added successfully." : "Validator added successfully.");
+		} else if (someSuccessful) {
+			return `Partially successful: ${successfulAddresses.length}/${validatorAddresses.length} validators added.`;
+		} else {
+			return "Failed to add validators";
 		}
 
 	} catch (error: any) {
-		logger.error(`Unexpected error in operatorAdd command for ${targetDiscordUsername || 'unknown user'}:`, error);
+		logger.error(`Unexpected error in addValidator command for ${targetDiscordUsername || 'unknown user'}:`, error);
 		await interaction.editReply({
 			content: "An unexpected error occurred. Please try again later or check the logs.",
 		});
-		return "Unexpected error in operatorAdd command";
+		return "Unexpected error in addValidator command";
 	}
 }

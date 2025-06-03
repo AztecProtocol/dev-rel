@@ -48,7 +48,7 @@ const chainInfo = await ethereum.getChainInfo();
 
 ### L2 Info Service
 
-Service for retrieving Layer 2 information, primarily validator statistics and sync proofs.
+Service for retrieving Layer 2 information, primarily validator statistics.
 
 ```typescript
 import { l2InfoService } from '@sparta/ethereum';
@@ -68,17 +68,6 @@ async function getValidatorStats(validatorAddress: string) {
     }
   } catch (err) {
     console.error('Failed to get validator stats:', err);
-  }
-}
-
-// Example: Proving a node is synced (used in registration)
-async function checkSyncProof(blockNumber: string, proof: string) {
-  try {
-    const syncResult = await l2InfoService.proveSynced(blockNumber, proof);
-    console.log('Sync proof result:', syncResult);
-    // Depending on the RPC response structure, check if valid
-  } catch (err) {
-    console.error('Failed to check sync proof:', err);
   }
 }
 

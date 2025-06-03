@@ -5,8 +5,7 @@ import {
 	NodeOperatorSubcommands,
 } from "../../types.js";
 import { getNodeOperatorInfo } from "./my-stats.js";
-import { registerValidator } from "./register.js";
-import { showRegistrationHelp, showOperatorHelp } from "./help.js";
+import { showOperatorHelp } from "./help.js";
 import { addValidator } from "./add-validator.js";
 import { checkNodeReadiness } from "./is-ready.js";
 
@@ -26,29 +25,6 @@ export default {
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
-				.setName(NodeOperatorSubcommands.Start)
-				.setDescription("⚔️ Take the Spartan oath and join the ranks")
-				.addStringOption((option) =>
-					option
-						.setName("address")
-						.setDescription("Your warrior's Ethereum battle address")
-						.setRequired(true)
-				)
-				.addStringOption((option) =>
-					option
-						.setName("block-number")
-						.setDescription("Stronghold number for battle verification")
-						.setRequired(true)
-				)
-				.addStringOption((option) =>
-					option
-						.setName("proof")
-						.setDescription("Your forged sync proof of battle readiness")
-						.setRequired(true)
-				)
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
 				.setName(NodeOperatorSubcommands.AddValidator)
 				.setDescription("🗡️ Deploy additional validator to the front lines")
 				.addStringOption((option) =>
@@ -57,11 +33,6 @@ export default {
 						.setDescription("Battle address of the validator to deploy")
 						.setRequired(true)
 				)
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName(NodeOperatorSubcommands.StartHelp)
-				.setDescription("📋 Study the ancient ritual of Spartan warrior initiation")
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
@@ -83,12 +54,6 @@ export default {
 					break;
 				case NodeOperatorSubcommands.MyStats:
 					await getNodeOperatorInfo(interaction);
-					break;
-				case NodeOperatorSubcommands.Start:
-					await registerValidator(interaction);
-					break;
-				case NodeOperatorSubcommands.StartHelp:
-					await showRegistrationHelp(interaction);
 					break;
 				case NodeOperatorSubcommands.AddValidator:
 					await addValidator(interaction);

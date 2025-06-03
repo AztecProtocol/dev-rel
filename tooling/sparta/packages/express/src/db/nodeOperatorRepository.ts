@@ -13,7 +13,6 @@ import DynamoDBService from "@sparta/utils/dynamo-db.js"; // Import the shared s
 
 const NODE_OPERATORS_TABLE_NAME =
 	process.env.NODE_OPERATORS_TABLE_NAME || "sparta-node-operators-dev";
-const WALLET_ADDRESS_INDEX_NAME = "WalletAddressIndex";
 const DISCORD_USERNAME_INDEX_NAME = "DiscordUsernameIndex";
 
 // Instantiate the shared service for the node operators table
@@ -97,120 +96,6 @@ export class NodeOperatorRepository {
 		}
 	}
 
-	async findByDiscordUsername(
-		discordUsername: string
-	): Promise<NodeOperator | undefined> {
-		logger.info({
-			message: "findByDiscordUsername called",
-			inputUsername: discordUsername,
-			usernameLength: discordUsername?.length,
-			tableName: this.tableName,
-			indexName: DISCORD_USERNAME_INDEX_NAME
-		}, "Exact input to findByDiscordUsername");
-
-		try {
-			try {
-				// First try to use the index if it exists
-				const command = new QueryCommand({
-					TableName: this.tableName,
-					IndexName: DISCORD_USERNAME_INDEX_NAME,
-					KeyConditionExpression: "discordUsername = :discordUsername",
-					ExpressionAttributeValues: {
-						":discordUsername": discordUsername,
-					},
-				});
-				logger.info({ command }, "Attempting GSI QueryCommand");
-				const response = await this.client.send(command);
-				logger.info({ responseFromGSIQuery: response }, "Received response from GSI QueryCommand");
-
-				if (response.Items && response.Items.length > 0) {
-					logger.info({ foundItem: response.Items[0] }, "Found operator via GSI query");
-					return response.Items[0] as NodeOperator;
-				} else {
-					logger.info("No items found via GSI query for the given username.");
-					// Proceed to return undefined, will be caught by outer logic or fallback if index error occurred
-				}
-			} catch (indexError: any) {
-				logger.error({ indexError, details: JSON.stringify(indexError, Object.getOwnPropertyNames(indexError)) }, "Error during GSI Query attempt");
-				// If the index doesn't exist yet or is backfilling, fall back to scan
-				if (indexError.name === "ValidationException" && 
-					indexError.message && 
-					(indexError.message.includes("specified index") || 
-					 indexError.message.includes("Cannot read from backfilling global secondary index"))) {
-					logger.warn(
-						{ indexError, discordUsername, tableName: this.tableName },
-						"Index not ready or backfilling, falling back to scan for Discord username lookup"
-					);
-					
-					// Fall back to scan
-					const scanCommand = new ScanCommand({
-						TableName: this.tableName,
-						FilterExpression: "discordUsername = :discordUsername",
-						ExpressionAttributeValues: {
-							":discordUsername": discordUsername,
-						},
-					});
-					logger.info({ scanCommand }, "Attempting ScanCommand (fallback)");
-					const scanResponse = await this.client.send(scanCommand);
-					logger.info({ scanResponseFromFallback: scanResponse }, "Received response from fallback ScanCommand");
-
-					if (scanResponse.Items && scanResponse.Items.length > 0) {
-						logger.info({ foundItem: scanResponse.Items[0] }, "Found operator via fallback scan");
-						return scanResponse.Items[0] as NodeOperator;
-					} else {
-						logger.info("No items found via fallback scan for the given username.");
-						return undefined;
-					}
-				} else {
-					logger.error("Re-throwing unhandled GSI query error (not a known ValidationException for fallback).");
-					// Re-throw if it's a different error
-					throw indexError;
-				}
-			}
-		} catch (error) { // This catches errors re-thrown from the inner try/catch or direct errors if the GSI query itself failed unexpectedly.
-			logger.error(
-				{ error, details: JSON.stringify(error, Object.getOwnPropertyNames(error)), discordUsername, tableName: this.tableName },
-				"Error retrieving NodeOperator by Discord username in repository (outer catch)"
-			);
-			throw new Error( // This will be caught by the service/route layer
-				`Repository failed to retrieve node operator by Discord username. Original error: ${(error as Error).message}`
-			);
-		}
-		// This line should ideally not be reached if all paths return or throw.
-		// If the GSI query returned no items and no error occurred, it should have returned undefined.
-		logger.warn("findByDiscordUsername reached end of function without returning, returning undefined. This indicates a potential logic flaw if an operator was expected.");
-		return undefined;
-	}
-
-	async findByWalletAddress(
-		walletAddress: string
-	): Promise<NodeOperator | undefined> {
-		try {
-			// Consider normalizing the address if needed (e.g., to lowercase)
-			// const normalizedAddress = walletAddress.toLowerCase();
-			const command = new QueryCommand({
-				TableName: this.tableName,
-				IndexName: WALLET_ADDRESS_INDEX_NAME,
-				KeyConditionExpression: "walletAddress = :walletAddress",
-				ExpressionAttributeValues: {
-					":walletAddress": walletAddress, // Use normalizedAddress if normalizing
-				},
-			});
-			const response = await this.client.send(command);
-			return response.Items && response.Items.length > 0
-				? (response.Items[0] as NodeOperator)
-				: undefined;
-		} catch (error) {
-			logger.error(
-				{ error, walletAddress, tableName: this.tableName },
-				"Error querying NodeOperator by wallet address in repository"
-			);
-			throw new Error(
-				"Repository failed to retrieve node operator by address."
-			);
-		}
-	}
-
 	async countAll(): Promise<number> {
 		try {
 			// Use DynamoDB's COUNT select to efficiently count items without transferring data
@@ -255,15 +140,11 @@ export class NodeOperatorRepository {
 
 	async create(
 		discordId: string,
-		walletAddress: string,
-		discordUsername: string,
 		isApproved?: boolean
 	): Promise<NodeOperator> {
 		const now = Date.now();
 		const newOperator: NodeOperator = {
 			discordId,
-			walletAddress, // Consider normalizing address before saving
-			discordUsername,
 			...(isApproved !== undefined && { isApproved }),
 			createdAt: now,
 			updatedAt: now,
@@ -277,13 +158,13 @@ export class NodeOperatorRepository {
 			});
 			await this.client.send(command);
 			logger.info(
-				{ discordId, walletAddress, discordUsername, tableName: this.tableName },
+				{ discordId, tableName: this.tableName },
 				"Created new NodeOperator in repository"
 			);
 			return newOperator;
 		} catch (error: any) {
 			logger.error(
-				{ error, discordId, walletAddress, discordUsername, tableName: this.tableName },
+				{ error, discordId, tableName: this.tableName },
 				"Error creating NodeOperator in repository"
 			);
 			// Re-throw specific error types if needed for service layer handling
@@ -293,50 +174,6 @@ export class NodeOperatorRepository {
 				);
 			}
 			throw new Error("Repository failed to create node operator.");
-		}
-	}
-
-	async updateWallet(
-		discordId: string,
-		newWalletAddress: string
-	): Promise<boolean> {
-		try {
-			const command = new UpdateCommand({
-				TableName: this.tableName,
-				Key: { discordId },
-				UpdateExpression:
-					"SET walletAddress = :walletAddress, updatedAt = :updatedAt",
-				ConditionExpression: "attribute_exists(discordId)",
-				ExpressionAttributeValues: {
-					":walletAddress": newWalletAddress, // Consider normalizing
-					":updatedAt": Date.now(),
-				},
-				ReturnValues: "NONE",
-			});
-			await this.client.send(command);
-			logger.info(
-				{ discordId, newWalletAddress, tableName: this.tableName },
-				"Updated NodeOperator wallet address in repository"
-			);
-			return true;
-		} catch (error: any) {
-			logger.error(
-				{
-					error,
-					discordId,
-					newWalletAddress,
-					tableName: this.tableName,
-				},
-				"Error updating NodeOperator wallet address in repository"
-			);
-			if (error.name === "ConditionalCheckFailedException") {
-				logger.warn(
-					{ discordId },
-					"NodeOperator not found for update wallet operation"
-				);
-				return false;
-			}
-			throw error;
 		}
 	}
 

@@ -15,7 +15,6 @@ export enum ModeratorSubcommands {
 	Unapprove = "unapprove",
 	Help = "help",
 	AddValidator = "add-validator",
-	AddMultiple = "add-multiple",
 }
 
 // Node Operator command enums
@@ -25,8 +24,6 @@ export enum NodeOperatorSubcommandGroups {
 
 export enum NodeOperatorSubcommands {
 	MyStats = "my-stats",
-	Start = "start",
-	StartHelp = "start-help",
 	AddValidator = "add-validator",
 	Help = "help",
 	IsReady = "is-ready",

@@ -6,7 +6,7 @@
 
 import { getDiscordInstance } from "../clients/discord";
 import { logger } from "@sparta/utils";
-import type { Guild, GuildMember, Role as DiscordRole, TextChannel } from "discord.js";
+import { type Guild, type GuildMember, type Role as DiscordRole, type TextChannel } from "discord.js";
 import { REST } from "@discordjs/rest";
 import { Routes } from "discord-api-types/v10";
 import type { ApiProvider } from "@sparta/utils/openapi/api/apiProvider";
@@ -248,6 +248,108 @@ export class DiscordService {
 				"Error updating interaction reply"
 			);
 			return false;
+		}
+	}
+
+	/**
+	 * Fetches a Discord username from a Discord user ID
+	 * @param userId The Discord user ID
+	 * @returns Promise<string | null> The username or null if not found
+	 */
+	public async fetchUsernameFromDiscordId(userId: string): Promise<string | null> {
+		try {
+			// Validate userId parameter
+			if (!userId) {
+				logger.error("Cannot fetch username - userId is null, undefined, or empty");
+				return null;
+			}
+
+			// Ensure API client is initialized
+			if (!this.apiClient) {
+				await this.init();
+				if (!this.apiClient) {
+					logger.error("API client not initialized");
+					return null;
+				}
+			}
+
+			const discord = await getDiscordInstance();
+			const client = discord.getClient();
+
+			try {
+				// Get the user
+				const user = await client.users.fetch(userId);
+				if (!user) {
+					logger.error({ userId }, "Failed to find Discord user");
+					return null;
+				}
+
+				logger.info({ userId, username: user.username }, "Successfully fetched Discord username");
+				return user.username;
+			} catch (error) {
+				logger.error({ error, userId }, "Error fetching Discord user");
+				return null;
+			}
+		} catch (error) {
+			logger.error({ error, userId }, "Error in fetchUsernameFromDiscordId method");
+			return null;
+		}
+	}
+
+	/**
+	 * Fetches a Discord user ID from a Discord username
+	 * @param username The Discord username (without discriminator)
+	 * @returns Promise<string | null> The user ID or null if not found
+	 */
+	public async fetchDiscordIdFromUsername(username: string): Promise<string | null> {
+		try {
+			// Validate username parameter
+			if (!username) {
+				logger.error("Cannot fetch Discord ID - username is null, undefined, or empty");
+				return null;
+			}
+
+			// Ensure API client is initialized
+			if (!this.apiClient) {
+				await this.init();
+				if (!this.apiClient) {
+					logger.error("API client not initialized");
+					return null;
+				}
+			}
+
+			const discord = await getDiscordInstance();
+			const guild = await discord.getGuild(process.env.GUILD_ID as string);
+
+			try {
+				// Use Discord.js built-in query functionality to search for members by username
+				// This is much more efficient than fetching all members
+				const members = await guild.members.fetch({ 
+					query: username, 
+					limit: 1 
+				});
+
+				if (members.size === 0) {
+					logger.warn({ username }, "No Discord user found with this username in the guild");
+					return null;
+				}
+
+				// Get the first (and should be only) member from the search results
+				const foundMember = members.first();
+				if (!foundMember) {
+					logger.warn({ username }, "No Discord user found with this username in the guild");
+					return null;
+				}
+
+				logger.info({ username, userId: foundMember.user.id }, "Successfully found Discord ID from username");
+				return foundMember.user.id;
+			} catch (error) {
+				logger.error({ error, username }, "Error fetching Discord ID from username");
+				return null;
+			}
+		} catch (error) {
+			logger.error({ error, username }, "Error in fetchDiscordIdFromUsername method");
+			return null;
 		}
 	}
 

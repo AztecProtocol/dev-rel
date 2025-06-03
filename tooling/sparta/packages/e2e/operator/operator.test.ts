@@ -1,6 +1,6 @@
 import { describe, test, expect, beforeAll, afterEach } from "bun:test";
 import { 
-  testOperator, 
+  testOperator,
   updatedWalletAddress, 
   makeAPIRequest 
 } from "../shared/utils.js";
@@ -33,15 +33,12 @@ describe("Node Operator E2E Tests", () => {
     console.log("➕ Creating new node operator...");
     const createResponse = await makeAPIRequest("POST", "/api/operator", {
       params: {
-        discordId: testOperator.discordId,
-        walletAddress: testOperator.walletAddress,
-        discordUsername: testOperator.discordUsername
+        discordId: testOperator.discordId
       }
     });
     expect(createResponse.status).toBe(201);
     expect(createResponse.data).toHaveProperty("discordId", testOperator.discordId);
-    expect(createResponse.data).toHaveProperty("walletAddress", testOperator.walletAddress);
-    expect(createResponse.data).toHaveProperty("discordUsername", testOperator.discordUsername);
+    expect(createResponse.data).toHaveProperty("isApproved", true);
     console.log("✅ Node operator created successfully");
 
     // Step 2: Verify the operator exists by retrieving it
@@ -51,76 +48,25 @@ describe("Node Operator E2E Tests", () => {
     });
     expect(getOperatorResponse.status).toBe(200);
     expect(getOperatorResponse.data).toHaveProperty("discordId", testOperator.discordId);
-    expect(getOperatorResponse.data).toHaveProperty("walletAddress", testOperator.walletAddress);
-    expect(getOperatorResponse.data).toHaveProperty("discordUsername", testOperator.discordUsername);
+    expect(getOperatorResponse.data).toHaveProperty("isApproved", true);
     console.log("✅ Node operator retrieved and verified successfully");
   });
 
-  test("should update node operator wallet address", async () => {
-    // Setup: Create operator first
-    console.log("🔧 Setting up operator for wallet update test...");
-    await makeAPIRequest("POST", "/api/operator", {
-      params: {
-        discordId: testOperator.discordId,
-        walletAddress: testOperator.walletAddress,
-        discordUsername: testOperator.discordUsername
-      }
-    });
-
-    // Step 1: Update the node operator's wallet address
-    console.log("🔄 Updating node operator wallet address...");
-    const updateResponse = await makeAPIRequest("PUT", "/api/operator", {
-      params: {
-        discordId: testOperator.discordId,
-        walletAddress: updatedWalletAddress
-      }
-    });
-    expect(updateResponse.status).toBe(200);
-    expect(updateResponse.data).toHaveProperty("walletAddress", updatedWalletAddress);
-    console.log("✅ Node operator wallet updated successfully");
-
-    // Step 2: Verify the update by retrieving the operator
-    console.log("🔍 Retrieving operator to verify wallet update...");
-    const getOperatorResponse = await makeAPIRequest("GET", "/api/operator", {
-      params: { discordId: testOperator.discordId }
-    });
-    expect(getOperatorResponse.status).toBe(200);
-    expect(getOperatorResponse.data).toHaveProperty("discordId", testOperator.discordId);
-    expect(getOperatorResponse.data).toHaveProperty("walletAddress", updatedWalletAddress);
-    console.log("✅ Wallet address update verified successfully");
-
-    // Step 3: Also verify retrieval by new wallet address works
-    console.log("🔍 Retrieving operator by new wallet address...");
-    const getByWalletResponse = await makeAPIRequest("GET", "/api/operator", {
-      params: { walletAddress: updatedWalletAddress, discordId: testOperator.discordId }
-    });
-    expect(getByWalletResponse.status).toBe(200);
-    expect(getByWalletResponse.data).toHaveProperty("discordId", testOperator.discordId);
-    expect(getByWalletResponse.data).toHaveProperty("walletAddress", updatedWalletAddress);
-    console.log("✅ Retrieval by wallet address verified successfully");
-  });
-
-  test("should approve and unapprove node operator", async () => {
+  test("should verify operator is approved by default and can be unapproved", async () => {
     // Setup: Create operator first
     console.log("🔧 Setting up operator for approval test...");
-    await makeAPIRequest("POST", "/api/operator", {
+    const createResponse = await makeAPIRequest("POST", "/api/operator", {
       params: {
-        discordId: testOperator.discordId,
-        walletAddress: testOperator.walletAddress,
-        discordUsername: testOperator.discordUsername
+        discordId: testOperator.discordId
       }
     });
+    
+    // Verify operator is created with isApproved=true by default
+    expect(createResponse.status).toBe(201);
+    expect(createResponse.data).toHaveProperty("isApproved", true);
+    console.log("✅ Node operator created with isApproved=true by default");
 
-    // Step 1: Approve the operator
-    console.log("✅ Approving node operator...");
-    const approveResponse = await makeAPIRequest("PUT", "/api/operator/approve", {
-      params: { discordId: testOperator.discordId }
-    });
-    expect(approveResponse.status).toBe(200);
-    expect(approveResponse.data).toHaveProperty("isApproved", true);
-    console.log("✅ Node operator approved successfully");
-
-    // Step 2: Verify approval by retrieving the operator
+    // Step 1: Verify approval by retrieving the operator
     console.log("🔍 Retrieving operator to verify approval...");
     let getOperatorResponse = await makeAPIRequest("GET", "/api/operator", {
       params: { discordId: testOperator.discordId }
@@ -129,7 +75,7 @@ describe("Node Operator E2E Tests", () => {
     expect(getOperatorResponse.data).toHaveProperty("isApproved", true);
     console.log("✅ Operator approval verified successfully");
 
-    // Step 3: Unapprove the operator
+    // Step 2: Unapprove the operator
     console.log("❌ Unapproving node operator...");
     const unapproveResponse = await makeAPIRequest("DELETE", "/api/operator/approve", {
       params: { discordId: testOperator.discordId }
@@ -138,7 +84,7 @@ describe("Node Operator E2E Tests", () => {
     expect(unapproveResponse.data).toHaveProperty("isApproved", false);
     console.log("✅ Node operator unapproved successfully");
 
-    // Step 4: Verify unapproval by retrieving the operator
+    // Step 3: Verify unapproval by retrieving the operator
     console.log("🔍 Retrieving operator to verify unapproval...");
     getOperatorResponse = await makeAPIRequest("GET", "/api/operator", {
       params: { discordId: testOperator.discordId }
@@ -146,6 +92,24 @@ describe("Node Operator E2E Tests", () => {
     expect(getOperatorResponse.status).toBe(200);
     expect(getOperatorResponse.data).toHaveProperty("isApproved", false);
     console.log("✅ Operator unapproval verified successfully");
+
+    // Step 4: Re-approve the operator
+    console.log("✅ Re-approving node operator...");
+    const approveResponse = await makeAPIRequest("PUT", "/api/operator/approve", {
+      params: { discordId: testOperator.discordId }
+    });
+    expect(approveResponse.status).toBe(200);
+    expect(approveResponse.data).toHaveProperty("isApproved", true);
+    console.log("✅ Node operator re-approved successfully");
+
+    // Step 5: Verify re-approval
+    console.log("🔍 Retrieving operator to verify re-approval...");
+    getOperatorResponse = await makeAPIRequest("GET", "/api/operator", {
+      params: { discordId: testOperator.discordId }
+    });
+    expect(getOperatorResponse.status).toBe(200);
+    expect(getOperatorResponse.data).toHaveProperty("isApproved", true);
+    console.log("✅ Operator re-approval verified successfully");
   });
 
   test("should delete node operator", async () => {
@@ -153,9 +117,7 @@ describe("Node Operator E2E Tests", () => {
     console.log("🔧 Setting up operator for deletion test...");
     await makeAPIRequest("POST", "/api/operator", {
       params: {
-        discordId: testOperator.discordId,
-        walletAddress: testOperator.walletAddress,
-        discordUsername: testOperator.discordUsername
+        discordId: testOperator.discordId
       }
     });
 
@@ -186,6 +148,24 @@ describe("Node Operator E2E Tests", () => {
     } catch (error: any) {
       expect(error.response?.status).toBe(404);
       console.log("✅ Node operator deletion verified - 404 as expected");
+    }
+  });
+
+  test("should fail to create operator with missing parameters", async () => {
+    // Test that providing no discordId fails
+    console.log("❌ Testing creation with missing parameters...");
+    try {
+      await makeAPIRequest("POST", "/api/operator", {
+        params: {
+          // No discordId provided
+        }
+      });
+      // If we reach here, the request should have failed
+      expect(true).toBe(false);
+    } catch (error: any) {
+      expect(error.response?.status).toBe(400);
+      expect(error.response?.data?.error).toContain("discordId must be provided");
+      console.log("✅ Request correctly failed with missing parameters");
     }
   });
 }); 
