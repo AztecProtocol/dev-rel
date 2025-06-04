@@ -26,6 +26,7 @@ import {
 import { ForwarderBytecode } from "./bytecode/ForwarderBytecode.js";
 import { privateKeyToAccount } from "viem/accounts";
 import { logger } from "@sparta/utils";
+import { EpochSyncService } from "./epoch-sync-service.js";
 
 // Chain information data type
 export type ChainInfo = {
@@ -83,7 +84,21 @@ export function getExpectedAddress(args: [`0x${string}`], salt: Hex) {
 }
 
 export class Ethereum {
-	constructor(private rollup: any, private stakingAssetHandler: any, private publicClient: PublicClient, private walletClient: WalletClient) {}
+	private epochSyncService: EpochSyncService;
+
+	constructor(private rollup: any, private stakingAssetHandler: any, private publicClient: PublicClient, private walletClient: WalletClient) {
+		// Initialize the epoch sync service
+		this.epochSyncService = new EpochSyncService(this);
+		
+		// Start monitoring epoch changes automatically (unless disabled)
+		const enableEpochSync = process.env.ENABLE_EPOCH_SYNC !== "false"; // Defaults to enabled
+		if (enableEpochSync) {
+			this.epochSyncService.start();
+			logger.info("Ethereum instance initialized with epoch sync service");
+		} else {
+			logger.info("Ethereum instance initialized with epoch sync service disabled");
+		}
+	}
 
 	static new = async () => {
 		try {
@@ -134,6 +149,13 @@ export class Ethereum {
 				throw new Error(String(error));
 			}
 		}
+	};
+
+	/**
+	 * Stops the epoch sync service
+	 */
+	stopEpochSync = () => {
+		this.epochSyncService.stop();
 	};
 
 	getRollup = () => {

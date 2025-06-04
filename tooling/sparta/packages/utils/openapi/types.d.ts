@@ -394,10 +394,12 @@ declare namespace Paths {
         namespace Parameters {
             export type Address = string;
             export type DiscordId = string;
+            export type HistoryLimit = number;
         }
         export interface QueryParameters {
             address?: Parameters.Address;
             discordId?: Parameters.DiscordId;
+            historyLimit?: Parameters.HistoryLimit;
         }
         namespace Responses {
             export interface $200 {

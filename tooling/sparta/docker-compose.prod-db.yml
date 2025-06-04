@@ -55,8 +55,10 @@ services:
         # Database Table Names
         - NODE_OPERATORS_TABLE_NAME=sparta-node-operators-dev
         - VALIDATORS_TABLE_NAME=sparta-validators-dev
+        - NETWORK_STATS_TABLE_NAME=sparta-network-stats-dev
         - PROD_NODE_OPERATORS_TABLE_NAME=sparta-production-node-operators
         - PROD_VALIDATORS_TABLE_NAME=sparta-production-validators
+        - PROD_NETWORK_STATS_TABLE_NAME=sparta-production-network-stats
         
         # Discord Configuration
         - BOT_CLIENT_ID=${BOT_CLIENT_ID}

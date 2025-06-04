@@ -1221,6 +1221,18 @@
             },
             "required": false,
             "description": "The Discord ID of the operator to retrieve validators for."
+          },
+          {
+            "in": "query",
+            "name": "historyLimit",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000,
+              "default": 5
+            },
+            "required": false,
+            "description": "Maximum number of history entries to return (defaults to 5)."
           }
         ],
         "responses": {

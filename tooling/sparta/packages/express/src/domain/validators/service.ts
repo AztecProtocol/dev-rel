@@ -8,6 +8,9 @@ export interface Validator {
     updatedAt: number;
     peerId?: string; // Optional peer network ID for linking with crawler data
     
+    // Active status (updated by epoch sync service)
+    isActive?: boolean; // Whether this validator is currently in the rollup validator set
+    
     // Processed validator stats (updated each epoch)
     epoch?: number; // Last epoch when stats were updated
     hasAttested24h?: boolean;
@@ -20,6 +23,12 @@ export interface Validator {
     missedAttestationsCount?: number;
     missedProposalsCount?: number;
     totalSlots?: number;
+    
+    // Attestation history from RPC (append-only, never overwrite)
+    history?: Array<{
+        slot: string;
+        status: string;
+    }>;
     
     // Processed peer data (updated less frequently)
     peerClient?: string;
@@ -41,13 +50,15 @@ class ValidatorService {
     }
 
     /**
-     * Retrieves all validators with pagination.
-     * @param pageToken Optional token for pagination
-     * @returns Object containing array of Validator objects and optional nextPageToken.
+     * Retrieves all validators from the database.
+     * @param pageToken Optional pagination token.
+     * @param includeHistory Whether to include validator history (defaults to true).
+     * @param historyLimit Optional limit on number of history entries to return (defaults to 5).
+     * @returns A paginated list of Validator objects.
      */
-    public async getAllValidators(pageToken?: string): Promise<{ validators: Validator[]; nextPageToken?: string }> {
+    public async getAllValidators(pageToken?: string, includeHistory: boolean = true, historyLimit: number = 5): Promise<{ validators: Validator[]; nextPageToken?: string }> {
         try {
-            return await this.repository.findAll(pageToken);
+            return await this.repository.findAll(pageToken, includeHistory, historyLimit);
         } catch (error) {
             logger.error(error, "Service error getting all validators");
             throw error;
@@ -70,11 +81,12 @@ class ValidatorService {
     /**
      * Retrieves a validator by address.
      * @param validatorAddress The validator address.
+     * @param historyLimit Optional limit on number of history entries to return (defaults to 5).
      * @returns The Validator object or undefined if not found.
      */
-    public async getValidatorByAddress(validatorAddress: string): Promise<Validator | undefined> {
+    public async getValidatorByAddress(validatorAddress: string, historyLimit: number = 5): Promise<Validator | undefined> {
         try {
-            return await this.repository.findByAddress(validatorAddress);
+            return await this.repository.findByAddress(validatorAddress, true, historyLimit);
         } catch (error) {
             logger.error(
                 { error, validatorAddress },
@@ -87,11 +99,12 @@ class ValidatorService {
     /**
      * Retrieves all validators for a node operator.
      * @param nodeOperatorId The Discord ID of the node operator.
+     * @param historyLimit Optional limit on number of history entries to return (defaults to 5).
      * @returns Array of Validator objects.
      */
-    public async getValidatorsByNodeOperator(nodeOperatorId: string): Promise<Validator[]> {
+    public async getValidatorsByNodeOperator(nodeOperatorId: string, historyLimit: number = 5): Promise<Validator[]> {
         try {
-            return await this.repository.findByNodeOperator(nodeOperatorId);
+            return await this.repository.findByNodeOperator(nodeOperatorId, true, historyLimit);
         } catch (error) {
             logger.error(
                 { error, nodeOperatorId },

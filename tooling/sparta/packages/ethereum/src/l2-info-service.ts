@@ -11,11 +11,6 @@ import { getEthereumInstance } from "./ethereum";
 const DEFAULT_RPC_URL = process.env.AZTEC_RPC_URL || "http://localhost:8080"; // Use env var or default
 const RPC_METHOD_VALIDATOR_STATS = "node_getValidatorsStats";
 
-// Peer network crawler endpoint
-const PEER_CRAWLER_URL = process.env.PEER_CRAWLER_URL || "https://aztec.nethermind.io/api/private/peers";
-const PEER_CRAWLER_AUTH_TOKEN = process.env.PEER_CRAWLER_AUTH_TOKEN;
-const DEFAULT_PEER_PAGE_SIZE = 2000; // Get more peers by default, can be overridden
-
 // --- Define types based on RPC response ---
 
 interface SlotInfo {
@@ -32,7 +27,7 @@ interface ValidatorStats {
 	// Simplified missed stats for this use case, add more if needed
 	missedProposals: { count: number; rate?: number };
 	missedAttestations: { count: number; rate?: number };
-	// history: ValidatorStatusHistory; // Assuming history is not directly needed for this check
+	history: [{ slot: string, status: string }]; // Assuming history is not directly needed for this check
 }
 
 interface ValidatorsStatsResponse {
@@ -64,59 +59,6 @@ interface RpcAttestationResult {
 	missedProposalsCount?: number;
 	totalSlots?: number;
 	error?: string;
-}
-
-// --- Peer Network Types ---
-
-interface PeerIpInfo {
-	ip_address: string;
-	port: number;
-	as_name: string;
-	as_number: number;
-	city_name: string;
-	country_name: string;
-	country_iso: string;
-	continent_name: string;
-	continent_code: string;
-	latitude: number;
-	longitude: number;
-}
-
-interface PeerMultiAddress {
-	maddr: string;
-	ip_info: PeerIpInfo[];
-}
-
-interface PeerData {
-	id: string;
-	created_at: string;
-	last_seen: string;
-	client: string;
-	multi_addresses: PeerMultiAddress[];
-	protocols?: string[] | null;
-	block_height?: number | null;
-	spec_version?: string | null;
-	is_synced?: boolean | null;
-}
-
-interface PeerCrawlerResponse {
-	peers: PeerData[];
-}
-
-interface PeerNetworkSummary {
-	totalPeers: number;
-	syncedPeers: number;
-	clientDistribution: Record<string, number>;
-	countryDistribution: Record<string, number>;
-	avgBlockHeight?: number;
-	lastUpdated: number;
-	samplePeers: PeerData[]; // Store a few sample peers for display
-}
-
-interface ValidatorPeerInfo {
-	validatorAddress: string;
-	associatedPeers: PeerData[];
-	networkSummary: PeerNetworkSummary;
 }
 
 /**
@@ -159,21 +101,18 @@ export interface ValidatorNetworkStats {
 
 /**
  * Service for retrieving L2 blockchain information and validator data via RPC
+ * This service now calculates network statistics from database data
+ * (data sync is handled by EpochSyncService)
  */
 export class L2InfoService {
 	private static instance: L2InfoService | null = null;
-	private rpcUrl: string;
 	private initialized: boolean = false;
-	
-	// Track the last epoch we updated the database for
-	private lastUpdatedEpoch: number | null = null;
 	
 	// In-memory validator statistics
 	private validatorStats: ValidatorNetworkStats | null = null;
+	private lastCalculatedEpoch: number | null = null;
 
-	private constructor() {
-		this.rpcUrl = DEFAULT_RPC_URL;
-	}
+	private constructor() {}
 
 	/**
 	 * Gets the singleton instance of L2InfoService
@@ -186,19 +125,14 @@ export class L2InfoService {
 	}
 
 	/**
-	 * Initialize the service with custom RPC URL if provided
+	 * Initialize the service
 	 */
-	public async init(rpcUrl?: string): Promise<void> {
+	public async init(): Promise<void> {
 		if (this.initialized) return; // Already initialized
 
 		try {
-			// If AZTEC_NODE_URL is available in env, use it instead of default
-			this.rpcUrl =
-				rpcUrl || process.env.AZTEC_NODE_URL || DEFAULT_RPC_URL;
 			this.initialized = true;
-			logger.info(
-				`L2InfoService initialized with RPC URL: ${this.rpcUrl}`
-			);
+			logger.info("L2InfoService initialized");
 		} catch (error) {
 			logger.error(error, "Failed to initialize L2InfoService");
 			throw error;
@@ -206,588 +140,120 @@ export class L2InfoService {
 	}
 
 	/**
-	 * Fetches raw validator stats from RPC
-	 * @returns Raw validator stats response
-	 */
-	private async fetchRawValidatorStats(): Promise<ValidatorsStatsResponse> {
-		try {
-			// Initialize if not already done
-			if (!this.initialized) {
-				await this.init();
-			}
-			
-			return (await sendJsonRpcRequest(
-				this.rpcUrl,
-				RPC_METHOD_VALIDATOR_STATS,
-				[]
-			)) as ValidatorsStatsResponse;
-		} catch (error) {
-			logger.error(error, "Error fetching raw validator stats from RPC");
-			throw error;
-		}
-	}
-
-	/**
-	 * Helper method to process individual validator stats
-	 */
-	private processValidatorStats(address: string, validatorStats: any): RpcAttestationResult {
-		const lastAttestation = validatorStats.lastAttestation;
-		const lastProposal = validatorStats.lastProposal;
-		let hasAttested24h = false;
-		let lastAttestationTimestampBigInt: bigint | undefined = undefined;
-		let lastProposalTimestampBigInt: bigint | undefined = undefined;
-		let lastProposalSlotBigInt: bigint | undefined = undefined;
-		let lastProposalDate: string | undefined = undefined;
-
-		if (lastAttestation) {
-			try {
-				lastAttestationTimestampBigInt = BigInt(
-					lastAttestation.timestamp
-				);
-				const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
-				const twentyFourHoursAgoSeconds =
-					nowSeconds - BigInt(24 * 60 * 60);
-
-				if (
-					lastAttestationTimestampBigInt >=
-					twentyFourHoursAgoSeconds
-				) {
-					hasAttested24h = true;
-				}
-			} catch (e) {
-				logger.error(e, "Error converting attestation timestamp to BigInt");
-			}
-		}
-
-		if (lastProposal) {
-			try {
-				lastProposalTimestampBigInt = BigInt(
-					lastProposal.timestamp
-				);
-				lastProposalSlotBigInt = BigInt(lastProposal.slot);
-				lastProposalDate = lastProposal.date;
-			} catch (e) {
-				logger.error(e, "Error converting proposal timestamp/slot to BigInt");
-			}
-		}
-
-		return {
-			hasAttested24h,
-			lastAttestationSlot: lastAttestation
-				? BigInt(lastAttestation.slot)
-				: undefined,
-			lastAttestationTimestamp: lastAttestationTimestampBigInt,
-			lastAttestationDate: lastAttestation?.date,
-			lastProposalSlot: lastProposalSlotBigInt,
-			lastProposalTimestamp: lastProposalTimestampBigInt,
-			lastProposalDate: lastProposalDate,
-			missedAttestationsCount:
-				validatorStats.missedAttestations?.count,
-			missedProposalsCount: validatorStats.missedProposals?.count,
-			totalSlots: validatorStats.totalSlots,
-			error: undefined, // No error if we got this far
-		};
-	}
-
-	/**
-	 * Fetches peer network data from crawler API
-	 */
-	private async fetchPeerNetworkData(pageSize: number = DEFAULT_PEER_PAGE_SIZE): Promise<PeerCrawlerResponse> {
-		try {
-			// Check if auth token is available
-			if (!PEER_CRAWLER_AUTH_TOKEN) {
-				throw new Error("PEER_CRAWLER_AUTH_TOKEN environment variable is required but not set");
-			}
-
-			let allPeers: PeerData[] = [];
-			let nextPaginationToken: string | undefined = undefined;
-			let pageCount = 0;
-			const maxPages = 50; // Safety limit to prevent infinite loops
-
-			do {
-				// Build URL with query parameters
-				const url = new URL(PEER_CRAWLER_URL);
-				url.searchParams.set('page_size', pageSize.toString());
-				url.searchParams.set('latest', 'true');
-				
-				// Add pagination token if we have one
-				if (nextPaginationToken) {
-					url.searchParams.set('pagination_token', nextPaginationToken);
-				}
-
-				const response = await fetch(url.toString(), {
-					method: "GET",
-					headers: {
-						"Content-Type": "application/json",
-						"Authorization": `Basic ${PEER_CRAWLER_AUTH_TOKEN}`,
-					},
-				});
-
-				if (!response.ok) {
-					throw new Error(
-						`HTTP error! status: ${response.status} ${response.statusText}`
-					);
-				}
-
-				const data = await response.json();
-				
-				// Add peers from this page to our collection
-				if (data.peers && Array.isArray(data.peers)) {
-					allPeers.push(...data.peers);
-				}
-
-				// Check for next page
-				nextPaginationToken = data.next_pagination_token;
-				pageCount++;
-				
-				logger.info(`Fetched page ${pageCount} with ${data.peers?.length || 0} peers (total so far: ${allPeers.length})`);
-				
-				// Safety check to prevent infinite loops
-				if (pageCount >= maxPages) {
-					logger.warn(`Reached maximum page limit (${maxPages}) while fetching peer data`);
-					break;
-				}
-				
-			} while (nextPaginationToken);
-
-			logger.info(`Completed peer data fetch: ${pageCount} pages, ${allPeers.length} total peers`);
-
-			// Return in the same format as the original response
-			return {
-				peers: allPeers
-			};
-		} catch (error) {
-			logger.error(error, "Error fetching peer network data");
-			throw error;
-		}
-	}
-
-	/**
 	 * Get the current validator network statistics
+	 * Calculates from database if not cached or if epoch has changed
 	 */
-	public getValidatorStats(): ValidatorNetworkStats | null {
-		return this.validatorStats;
-	}
-
-	/**
-	 * Main method to check epoch and update validator data if needed
-	 * @returns Number of validators updated (0 if no update needed)
-	 */
-	public async updateValidatorDataIfNeeded(): Promise<number> {
+	public async getValidatorStats(): Promise<ValidatorNetworkStats | null> {
 		try {
-			// Get Ethereum instance to check current epoch and validator set
+			// Get current epoch
 			const ethereum = await getEthereumInstance();
 			const rollupInfo = await ethereum.getRollupInfo();
-			const currentEpochNumber = Number(rollupInfo.currentEpoch);
-			
-			// Check if we need to update for this epoch
-			if (this.lastUpdatedEpoch === currentEpochNumber) {
-				logger.debug(`Data already updated for epoch ${currentEpochNumber}`);
-				return 0;
+			const currentEpoch = Number(rollupInfo.currentEpoch);
+
+			// Check if we need to recalculate
+			if (this.lastCalculatedEpoch === currentEpoch && this.validatorStats) {
+				return this.validatorStats;
 			}
 
-			logger.info(`Epoch changed from ${this.lastUpdatedEpoch} to ${currentEpochNumber}, updating validator data`);
+			// Calculate fresh stats from database
+			await this.calculateNetworkStatsFromDatabase(currentEpoch, rollupInfo);
+			this.lastCalculatedEpoch = currentEpoch;
 
-			// Import validator service here to avoid circular dependencies
-			const { validatorService } = await import("@sparta/api/src/domain/validators/service");
-
-			// Step 1: Sync L1 validator data (blockchain validator set)
-			const l1ValidatorCount = await this.syncL1ValidatorData(rollupInfo.validators, validatorService);
-
-			// Step 2: Get all validators from database for L2 and peer data sync
-			let allValidators: string[] = [];
-			let nextPageToken: string | undefined = undefined;
-			
-			do {
-				const result = await validatorService.getAllValidators(nextPageToken);
-				allValidators = allValidators.concat(result.validators.map(v => v.validatorAddress));
-				nextPageToken = result.nextPageToken;
-			} while (nextPageToken);
-
-			// Step 3: Sync L2 validator data (Aztec RPC stats)
-			const l2Stats = await this.syncL2ValidatorDataAndGetStats(allValidators, currentEpochNumber, validatorService);
-
-			// Step 4: Sync peer data (crawler info)
-			const peerStats = await this.syncPeerDataAndGetStats(validatorService);
-
-			// Step 5: Calculate comprehensive network statistics
-			this.validatorStats = this.calculateNetworkStats(
-				rollupInfo,
-				l2Stats,
-				peerStats,
-				currentEpochNumber
-			);
-
-			// Mark this epoch as updated
-			this.lastUpdatedEpoch = currentEpochNumber;
-
-			logger.info(
-				{ 
-					epoch: currentEpochNumber,
-					l1Updates: l1ValidatorCount,
-					l2Updates: l2Stats.updateCount,
-					peerUpdates: peerStats.updateCount,
-					totalValidators: allValidators.length,
-					stats: this.validatorStats
-				},
-				"Validator data update completed"
-			);
-
-			return l2Stats.updateCount;
+			return this.validatorStats;
 		} catch (error) {
-			logger.error(error, "Error updating validator data");
-			throw error;
+			logger.error(error, "Error getting validator stats");
+			return null;
 		}
 	}
 
 	/**
-	 * Sync L1 validator data from blockchain
-	 * @param blockchainValidators Current validator set from rollup contract
-	 * @param validatorService Validator service instance
-	 * @returns Number of validators ensured in database
+	 * Calculate network statistics from database data
 	 */
-	private async syncL1ValidatorData(
-		blockchainValidators: string[],
-		validatorService: any
-	): Promise<number> {
+	private async calculateNetworkStatsFromDatabase(currentEpoch: number, rollupInfo: any): Promise<void> {
 		try {
-			logger.info(`Syncing L1 data: ensuring ${blockchainValidators.length} blockchain validators exist in database`);
-			
-			const ensurePromises = blockchainValidators.map(address => 
-				validatorService.ensureValidatorExists(address)
-			);
-			const results = await Promise.allSettled(ensurePromises);
-			
-			const successCount = results.filter(r => r.status === 'fulfilled').length;
-			const failureCount = results.length - successCount;
-			
-			if (failureCount > 0) {
-				logger.warn(`Failed to ensure ${failureCount} validators exist in database`);
-			}
-			
-			logger.info(`L1 sync completed: ${successCount} validators ensured in database`);
-			return successCount;
-		} catch (error) {
-			logger.error(error, "Error syncing L1 validator data");
-			throw error;
-		}
-	}
+			// Import repositories dynamically to avoid circular dependencies
+			const { networkStatsRepository } = await import("@sparta/api/src/db/networkStatsRepository");
 
-	/**
-	 * Sync L2 validator data from Aztec RPC
-	 * @param validatorAddresses All validator addresses to sync
-	 * @param currentEpoch Current epoch number
-	 * @param validatorService Validator service instance
-	 * @returns Number of validators updated and statistics
-	 */
-	private async syncL2ValidatorDataAndGetStats(
-		validatorAddresses: string[],
-		currentEpoch: number,
-		validatorService: any
-	): Promise<{ 
-		updateCount: number; 
-		rawStats: ValidatorsStatsResponse;
-		validatorsAttested24h: number;
-		validatorsProposed24h: number;
-		totalAttestationMissRate: number;
-		totalProposalMissRate: number;
-	}> {
-		try {
-			logger.info(`Syncing L2 data: processing stats for ${validatorAddresses.length} validators`);
-			
-			// Fetch raw validator stats from Aztec RPC
-			const rawValidatorStats = await this.fetchRawValidatorStats();
-			
-			// Process stats for each validator
-			const statsUpdates: Array<{ validatorAddress: string; statsData: any }> = [];
-			let validatorsAttested24h = 0;
-			let validatorsProposed24h = 0;
-			let totalAttestationMissRate = 0;
-			let totalProposalMissRate = 0;
-			let validatorsWithStats = 0;
-			
-			for (const validatorAddress of validatorAddresses) {
-				const lowerCaseAddress = validatorAddress.toLowerCase();
-				const rawStats = rawValidatorStats.stats[lowerCaseAddress];
-				
-				let statsData: any;
-				
-				if (!rawStats) {
-					logger.debug(`No RPC stats found for validator ${validatorAddress}, using default values`);
-					
-					// Provide default values for validators without RPC stats
-					statsData = {
-						epoch: currentEpoch,
-						hasAttested24h: false,
-						lastAttestationSlot: null,
-						lastAttestationTimestamp: null,
-						lastAttestationDate: null,
-						lastProposalSlot: null,
-						lastProposalTimestamp: null,
-						lastProposalDate: null,
-						missedAttestationsCount: 0,
-						missedProposalsCount: 0,
-						totalSlots: 0,
-					};
-				} else {
-					// Process the raw stats
-					const processedStats = this.processValidatorStats(lowerCaseAddress, rawStats);
-					
-					// Count validators who attested/proposed in 24h
-					if (processedStats.hasAttested24h) {
-						validatorsAttested24h++;
-					}
-					
-					// Check if proposed in last 24h
-					if (processedStats.lastProposalTimestamp) {
-						const nowSeconds = BigInt(Math.floor(Date.now() / 1000));
-						const twentyFourHoursAgoSeconds = nowSeconds - BigInt(24 * 60 * 60);
-						if (processedStats.lastProposalTimestamp >= twentyFourHoursAgoSeconds) {
-							validatorsProposed24h++;
-						}
-					}
-					
-					// Calculate miss rates
-					if (rawStats.missedAttestations && typeof rawStats.missedAttestations.rate === 'number') {
-						totalAttestationMissRate += rawStats.missedAttestations.rate;
-						validatorsWithStats++;
-					}
-					if (rawStats.missedProposals && typeof rawStats.missedProposals.rate === 'number') {
-						totalProposalMissRate += rawStats.missedProposals.rate;
-					}
-					
-					// Convert to database format (BigInt to string for storage)
-					statsData = {
-						epoch: currentEpoch,
-						hasAttested24h: processedStats.hasAttested24h,
-						lastAttestationSlot: processedStats.lastAttestationSlot?.toString(),
-						lastAttestationTimestamp: processedStats.lastAttestationTimestamp?.toString(),
-						lastAttestationDate: processedStats.lastAttestationDate,
-						lastProposalSlot: processedStats.lastProposalSlot?.toString(),
-						lastProposalTimestamp: processedStats.lastProposalTimestamp?.toString(),
-						lastProposalDate: processedStats.lastProposalDate,
-						missedAttestationsCount: processedStats.missedAttestationsCount,
-						missedProposalsCount: processedStats.missedProposalsCount,
-						totalSlots: processedStats.totalSlots,
-					};
-				}
-				
-				statsUpdates.push({ validatorAddress, statsData });
-			}
-			
-			// Batch update validator stats
-			const updateCount = await validatorService.batchUpdateValidatorStats(statsUpdates);
-			
-			// Calculate average miss rates
-			const avgAttestationMissRate = validatorsWithStats > 0 ? totalAttestationMissRate / validatorsWithStats : 0;
-			const avgProposalMissRate = validatorsWithStats > 0 ? totalProposalMissRate / validatorsWithStats : 0;
-			
-			logger.info(`L2 sync completed: updated stats for ${updateCount} validators`);
-			
-			return {
-				updateCount,
-				rawStats: rawValidatorStats,
-				validatorsAttested24h,
-				validatorsProposed24h,
-				totalAttestationMissRate: avgAttestationMissRate,
-				totalProposalMissRate: avgProposalMissRate
-			};
-		} catch (error) {
-			logger.error(error, "Error syncing L2 validator data");
-			throw error;
-		}
-	}
+			// Get the latest network stats from database (stored by EpochSyncService)
+			const latestNetworkStats = await networkStatsRepository.findLatest();
 
-	/**
-	 * Sync peer data from crawler
-	 * @param validatorService Validator service instance
-	 * @returns Number of validators updated with peer data and statistics
-	 */
-	private async syncPeerDataAndGetStats(validatorService: any): Promise<{
-		updateCount: number;
-		totalPeers: number;
-		countryDistribution: Record<string, number>;
-		clientDistribution: Record<string, number>;
-		ispDistribution: Record<string, number>;
-		validatorsWithPeers: number;
-		peerDataMap: Map<string, PeerData>;
-	}> {
-		try {
-			logger.info("Syncing peer data from crawler");
-			
-			// Get all validators with peer IDs
-			let validatorsWithPeers: Array<{ validatorAddress: string; peerId: string }> = [];
-			let nextPageToken: string | undefined = undefined;
-			
-			do {
-				const result: { validators: any[]; nextPageToken?: string } = await validatorService.getAllValidators(nextPageToken);
-				for (const validator of result.validators) {
-					if (validator.peerId) {
-						validatorsWithPeers.push({
-							validatorAddress: validator.validatorAddress,
-							peerId: validator.peerId
-						});
-					}
-				}
-				nextPageToken = result.nextPageToken;
-			} while (nextPageToken);
-			
-			// Initialize stats
-			const countryDistribution: Record<string, number> = {};
-			const clientDistribution: Record<string, number> = {};
-			const ispDistribution: Record<string, number> = {};
-			
-			// Fetch peer data from crawler
-			const peerNetworkResponse = await this.fetchPeerNetworkData();
-			const peerDataMap = new Map<string, PeerData>();
-			
-			// Process all peers for statistics
-			for (const peer of peerNetworkResponse.peers) {
-				peerDataMap.set(peer.id, peer);
-				
-				// Client distribution
-				if (peer.client) {
-					clientDistribution[peer.client] = (clientDistribution[peer.client] || 0) + 1;
-				}
-				
-				// Country and ISP distribution
-				const firstMultiAddr = peer.multi_addresses?.[0];
-				const firstIpInfo = firstMultiAddr?.ip_info?.[0];
-				if (firstIpInfo) {
-					// Country
-					if (firstIpInfo.country_name) {
-						countryDistribution[firstIpInfo.country_name] = 
-							(countryDistribution[firstIpInfo.country_name] || 0) + 1;
-					}
-					// ISP
-					if (firstIpInfo.as_name) {
-						ispDistribution[firstIpInfo.as_name] = 
-							(ispDistribution[firstIpInfo.as_name] || 0) + 1;
-					}
-				}
-			}
-			
-			// Process peer data updates for validators
-			const peerUpdates: Array<{ validatorAddress: string; statsData: any }> = [];
-			
-			for (const { validatorAddress, peerId } of validatorsWithPeers) {
-				const peerData = peerDataMap.get(peerId);
-				if (!peerData) {
-					logger.debug(`No peer data found for validator ${validatorAddress} with peerId ${peerId}`);
-					continue;
-				}
-				
-				const firstMultiAddr = peerData.multi_addresses?.[0];
-				const firstIpInfo = firstMultiAddr?.ip_info?.[0];
-				
-				const processedPeerData = {
-					peerClient: peerData.client,
-					peerCountry: firstIpInfo?.country_name,
-					peerCity: firstIpInfo?.city_name,
-					peerIpAddress: firstIpInfo?.ip_address,
-					peerPort: firstIpInfo?.port,
-					peerIsSynced: peerData.is_synced,
-					peerBlockHeight: peerData.block_height,
-					peerLastSeen: peerData.last_seen,
+			if (latestNetworkStats && latestNetworkStats.epochNumber === currentEpoch) {
+				// We have current epoch stats, use them directly
+				this.validatorStats = {
+					// Basic counts
+					totalValidatorsInSet: latestNetworkStats.totalValidatorsInSet,
+					activeValidators: latestNetworkStats.activeValidators,
+					totalPeersInNetwork: latestNetworkStats.totalPeersInNetwork,
+					
+					// Performance metrics
+					networkAttestationMissRate: latestNetworkStats.networkAttestationMissRate,
+					networkProposalMissRate: latestNetworkStats.networkProposalMissRate,
+					
+					// Geographic distribution
+					countryDistribution: latestNetworkStats.countryDistribution,
+					topCountry: latestNetworkStats.topCountry || null,
+					top3Countries: latestNetworkStats.top3Countries,
+					
+					// Client distribution
+					clientDistribution: latestNetworkStats.clientDistribution,
+					
+					// ISP distribution
+					ispDistribution: latestNetworkStats.ispDistribution,
+					topISP: latestNetworkStats.topISP || null,
+					
+					// Activity metrics
+					validatorsAttested24h: latestNetworkStats.validatorsAttested24h,
+					validatorsProposed24h: latestNetworkStats.validatorsProposed24h,
+					
+					// Network health
+					validatorsWithPeers: latestNetworkStats.validatorsWithPeers,
+					
+					// Timing
+					lastUpdated: latestNetworkStats.timestamp,
+					currentEpoch: latestNetworkStats.epochNumber,
+					currentSlot: latestNetworkStats.currentSlot,
 				};
 				
-				peerUpdates.push({
-					validatorAddress,
-					statsData: processedPeerData
-				});
+				logger.info(
+					{ epochNumber: currentEpoch, timestamp: latestNetworkStats.timestamp },
+					"Using cached network stats from database"
+				);
+			} else {
+				// No current stats available, log warning
+				logger.warn(
+					{ 
+						currentEpoch, 
+						latestStatsEpoch: latestNetworkStats?.epochNumber,
+						latestStatsTimestamp: latestNetworkStats?.timestamp 
+					},
+					"No current network stats available in database"
+				);
+				
+				// Return empty stats structure
+				this.validatorStats = {
+					totalValidatorsInSet: rollupInfo.validators.length,
+					activeValidators: 0,
+					totalPeersInNetwork: 0,
+					networkAttestationMissRate: 0,
+					networkProposalMissRate: 0,
+					countryDistribution: {},
+					topCountry: null,
+					top3Countries: [],
+					clientDistribution: {},
+					ispDistribution: {},
+					topISP: null,
+					validatorsAttested24h: 0,
+					validatorsProposed24h: 0,
+					validatorsWithPeers: 0,
+					lastUpdated: Date.now(),
+					currentEpoch,
+					currentSlot: Number(rollupInfo.currentSlot),
+				};
 			}
-			
-			// Batch update peer data
-			const updateCount = await validatorService.batchUpdateValidatorStats(peerUpdates);
-			
-			logger.info(`Peer sync completed: updated peer data for ${updateCount} validators`);
-			
-			return {
-				updateCount,
-				totalPeers: peerNetworkResponse.peers.length,
-				countryDistribution,
-				clientDistribution,
-				ispDistribution,
-				validatorsWithPeers: validatorsWithPeers.length,
-				peerDataMap
-			};
 		} catch (error) {
-			logger.error(error, "Error syncing peer data");
+			logger.error(error, "Error calculating network stats from database");
 			throw error;
 		}
-	}
-
-	/**
-	 * Calculate comprehensive network statistics from all data sources
-	 */
-	private calculateNetworkStats(
-		rollupInfo: any,
-		l2Stats: any,
-		peerStats: any,
-		currentEpoch: number
-	): ValidatorNetworkStats {
-		// Find top country
-		let topCountry: { country: string; count: number } | null = null;
-		for (const [country, count] of Object.entries(peerStats.countryDistribution)) {
-			if (!topCountry || (count as number) > topCountry.count) {
-				topCountry = { country, count: count as number };
-			}
-		}
-		
-		// Find top ISP
-		let topISP: { isp: string; count: number } | null = null;
-		for (const [isp, count] of Object.entries(peerStats.ispDistribution)) {
-			if (!topISP || (count as number) > topISP.count) {
-				topISP = { isp, count: count as number };
-			}
-		}
-		
-		// Find top 3 countries
-		const top3Countries: Array<{ country: string; count: number }> = [];
-		const countryEntries = Object.entries(peerStats.countryDistribution);
-		
-		// Sort countries by count in descending order and take top 3
-		const sortedCountries = countryEntries
-			.map(([country, count]) => ({ country, count: count as number }))
-			.sort((a, b) => b.count - a.count)
-			.slice(0, 3);
-		
-		top3Countries.push(...sortedCountries);
-		
-		return {
-			// Basic counts
-			totalValidatorsInSet: rollupInfo.validators.length,
-			activeValidators: l2Stats.validatorsAttested24h,
-			totalPeersInNetwork: peerStats.totalPeers,
-			
-			// Performance metrics
-			networkAttestationMissRate: l2Stats.totalAttestationMissRate,
-			networkProposalMissRate: l2Stats.totalProposalMissRate,
-			
-			// Geographic distribution
-			countryDistribution: peerStats.countryDistribution,
-			topCountry,
-			top3Countries,
-			
-			// Client distribution
-			clientDistribution: peerStats.clientDistribution,
-			
-			// ISP distribution
-			ispDistribution: peerStats.ispDistribution,
-			topISP,
-			
-			// Activity metrics
-			validatorsAttested24h: l2Stats.validatorsAttested24h,
-			validatorsProposed24h: l2Stats.validatorsProposed24h,
-			
-			// Network health
-			validatorsWithPeers: peerStats.validatorsWithPeers,
-			
-			// Timing
-			lastUpdated: Date.now(),
-			currentEpoch: currentEpoch,
-			currentSlot: Number(rollupInfo.currentSlot),
-		};
 	}
 }
 

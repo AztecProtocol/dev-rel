@@ -42,8 +42,8 @@ class ValidatorMonitorService {
             let missPercentage = "N/A";
             let alertReason = "";
             
-            if (!validator.isActive) {
-                alertReason = "not in active validator set";
+            if (!validator.hasAttested24h) {
+                alertReason = "not attesting in the last 24 hours";
             } else if (validator.totalSlots && validator.missedAttestationsCount !== undefined) {
                 const missPercent = (validator.missedAttestationsCount / validator.totalSlots) * 100;
                 if (missPercent < 20) {
@@ -202,8 +202,8 @@ class ValidatorMonitorService {
             // Pre-calculate each report line to know exact sizes
             const reportLines = reports.map(report => {
                 const operatorName = report.operatorDiscordUsername === "N/A" ? (report.operatorId || "Unknown") : report.operatorDiscordUsername;
-                const status = report.messageContent.includes('not in active validator set') ? 
-                    'Not in validator set' : `Missing attestations (${report.missPercentage})`;
+                const status = report.messageContent.includes('not attesting in the last 24 hours') ? 
+                    'Not attesting (24h)' : `Missing attestations (${report.missPercentage})`;
                 const result = report.dmSent ? 'Alert sent' : `Alert failed: ${report.error ? String(report.error).substring(0, 100) : 'Unknown'}`;
                 
                 return `- **${report.validatorAddress}** (${operatorName}): ${status} - ${result}\n`;

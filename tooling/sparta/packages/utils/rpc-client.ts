@@ -39,7 +39,7 @@ export async function sendJsonRpcRequest(
 	rpcUrl: string,
 	method: string,
 	params: any[] = [],
-	timeoutMs: number = 5000
+	timeoutMs: number = 30000
 ): Promise<any> {
 	try {
 		const controller = new AbortController();

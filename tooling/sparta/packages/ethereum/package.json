@@ -6,7 +6,8 @@
         "types": "tsc"
     },
     "dependencies": {
-        "@sparta/utils": "^0.1.0",
+        "@sparta/utils": "workspace:*",
+        "@sparta/api": "workspace:*",
         "pino": "^8.16.0",
         "viem": "^2.0.0"
     },

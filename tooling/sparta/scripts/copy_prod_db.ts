@@ -65,7 +65,11 @@ async function cleanupLocalTables(): Promise<void> {
     console.log(`📋 Found ${existingTables.TableNames.length} existing tables`);
 
     // Delete tables if they exist
-    const tablesToDelete = [process.env.NODE_OPERATORS_TABLE_NAME, process.env.VALIDATORS_TABLE_NAME];
+    const tablesToDelete = [
+      process.env.NODE_OPERATORS_TABLE_NAME,
+      process.env.VALIDATORS_TABLE_NAME,
+      process.env.NETWORK_STATS_TABLE_NAME
+    ];
     
     for (const tableName of tablesToDelete) {
       if (existingTables.TableNames.includes(tableName || "")) {
@@ -207,6 +211,60 @@ async function createLocalTables(): Promise<void> {
     }
   }
 
+  // Create network stats table
+  console.log(`🏗️  Creating table: ${process.env.NETWORK_STATS_TABLE_NAME}`);
+  try {
+    await localClient.send(new CreateTableCommand({
+      TableName: process.env.NETWORK_STATS_TABLE_NAME,
+      AttributeDefinitions: [
+        {
+          AttributeName: "epochNumber",
+          AttributeType: "N",
+        },
+        {
+          AttributeName: "timestamp",
+          AttributeType: "N",
+        },
+      ],
+      KeySchema: [
+        {
+          AttributeName: "epochNumber",
+          KeyType: "HASH", // Partition key
+        },
+      ],
+      GlobalSecondaryIndexes: [
+        {
+          IndexName: "TimestampIndex",
+          KeySchema: [
+            {
+              AttributeName: "timestamp",
+              KeyType: "HASH",
+            },
+          ],
+          Projection: {
+            ProjectionType: "ALL",
+          },
+          ProvisionedThroughput: {
+            ReadCapacityUnits: 5,
+            WriteCapacityUnits: 5,
+          },
+        },
+      ],
+      ProvisionedThroughput: {
+        ReadCapacityUnits: 5,
+        WriteCapacityUnits: 5,
+      },
+    }));
+    console.log(`✅ Created table: ${process.env.NETWORK_STATS_TABLE_NAME}`);
+  } catch (error: any) {
+    if (error.name === "ResourceInUseException") {
+      console.log(`ℹ️ Table ${process.env.NETWORK_STATS_TABLE_NAME} already exists`);
+    } else {
+      console.error({ error }, `Failed to create table: ${process.env.NETWORK_STATS_TABLE_NAME}`);
+      throw error;
+    }
+  }
+
   // Wait for tables to be active
   console.log("⏳ Waiting for tables to become active...");
   await new Promise(resolve => setTimeout(resolve, 5000));
@@ -288,6 +346,39 @@ async function copyProductionData(): Promise<void> {
     console.log(`✅ Copied ${totalOperators} node operators total`);
   } catch (error) {
     console.warn("⚠️ Could not copy node operators data:", error);
+  }
+
+  // Copy network stats data with pagination
+  try {
+    console.log(`📥 Copying data from ${process.env.PROD_NETWORK_STATS_TABLE_NAME}...`);
+    let lastEvaluatedKey: Record<string, any> | undefined = undefined;
+    let totalStats = 0;
+    let pageNum = 0;
+
+    do {
+      pageNum++;
+      const networkStatsData = await prodClient.send(new ScanCommand({
+        TableName: process.env.PROD_NETWORK_STATS_TABLE_NAME,
+        ExclusiveStartKey: lastEvaluatedKey
+      }));
+
+      if (networkStatsData.Items && networkStatsData.Items.length > 0) {
+        for (const item of networkStatsData.Items) {
+          await localClient.send(new PutCommand({
+            TableName: process.env.NETWORK_STATS_TABLE_NAME,
+            Item: item
+          }));
+        }
+        totalStats += networkStatsData.Items.length;
+        console.log(`📄 Network stats page ${pageNum}: Copied ${networkStatsData.Items.length} items. Total so far: ${totalStats}`);
+      }
+
+      lastEvaluatedKey = networkStatsData.LastEvaluatedKey;
+    } while (lastEvaluatedKey);
+
+    console.log(`✅ Copied ${totalStats} network stats total`);
+  } catch (error) {
+    console.warn("⚠️ Could not copy network stats data:", error);
   }
 }
 

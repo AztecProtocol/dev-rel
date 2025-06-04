@@ -12,14 +12,14 @@ const router = express.Router();
  * /api/validator/validators:
  *   get:
  *     summary: Get all validators
- *     description: Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources.
+ *     description: Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources. Always includes the 5 latest history slots for each validator.
  *     tags: [Validator]
  *     operationId: getAllValidators
  *     security:
  *       - ApiKeyAuth: []
  *     responses:
  *       200:
- *         description: A comprehensive list of all validators with available information.
+ *         description: A comprehensive list of all validators with available information, including 5 latest history slots for each validator.
  *         content:
  *           application/json:
  *             schema:
@@ -36,7 +36,7 @@ const router = express.Router();
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/ValidatorResponse'
- *                       description: Array of all validators with comprehensive information.
+ *                       description: Array of all validators with comprehensive information and 5 latest history slots.
  *                     stats:
  *                       type: object
  *                       properties:
@@ -62,94 +62,60 @@ const router = express.Router();
  *             schema:
  *               $ref: '#/components/schemas/OperatorError'
  */
-router.get("/validators", async (_req, res) => {
+router.get("/validators", async (req, res) => {
 	try {
-		// Update validator data if needed (syncs L1, L2, and peer data)
-		await l2InfoService.updateValidatorDataIfNeeded();
 		
-		// Get Ethereum instance to retrieve current blockchain state
-		const ethereum = await getEthereumInstance();
-		const rollupInfo = await ethereum.getRollupInfo();
-		const activeValidatorAddresses = new Set(rollupInfo.validators.map(addr => addr.toLowerCase()));
+		// Remove manual sync call - data is now synced automatically by epoch listener
 		
-		// Get all validators from database with pagination
-		let allValidators: Validator[] = [];
-		let nextPageToken: string | undefined = undefined;
+		// Get all validators from database with 5 latest history slots
+		logger.info("Starting validator fetch from database");
+		const result = await validatorService.getAllValidators(undefined, true, 5);
+		const allValidators = result.validators;
 		
-		do {
-			const result = await validatorService.getAllValidators(nextPageToken);
-			allValidators = allValidators.concat(result.validators);
-			nextPageToken = result.nextPageToken;
-			logger.debug(`Retrieved ${result.validators.length} validators from database, total so far: ${allValidators.length}`);
-		} while (nextPageToken);
+		logger.info(`Retrieved ${allValidators.length} validators from database`);
 		
 		logger.info(`Processing ${allValidators.length} validators for comprehensive response`);
 		
-		// Build comprehensive validator information
-		const validatorDetails = await Promise.allSettled(
-			allValidators.map(async (validator) => {
-				try {
-					const isActive = activeValidatorAddresses.has(validator.validatorAddress.toLowerCase());
-					
-					// Get operator information if available
-					let operator = null;
-					if (validator.nodeOperatorId) {
-						try {
-							operator = await nodeOperatorService.getOperatorByDiscordId(validator.nodeOperatorId);
-						} catch (error) {
-							logger.warn(
-								{ nodeOperatorId: validator.nodeOperatorId, validatorAddress: validator.validatorAddress },
-								"Could not find operator for validator"
-							);
-						}
-					}
+		// Build comprehensive validator information (now including history)
+		const successfulValidators = allValidators.map((validator) => {
+			const validatorResponse: any = {
+				address: validator.validatorAddress,
+				peerId: validator.peerId,
+				operatorId: validator.nodeOperatorId,
+				createdAt: validator.createdAt,
+				updatedAt: validator.updatedAt,
+				// Include all processed validator stats
+				epoch: validator.epoch,
+				hasAttested24h: validator.hasAttested24h,
+				lastAttestationSlot: validator.lastAttestationSlot,
+				lastAttestationTimestamp: validator.lastAttestationTimestamp,
+				lastAttestationDate: validator.lastAttestationDate,
+				lastProposalSlot: validator.lastProposalSlot,
+				lastProposalTimestamp: validator.lastProposalTimestamp,
+				lastProposalDate: validator.lastProposalDate,
+				missedAttestationsCount: validator.missedAttestationsCount,
+				missedProposalsCount: validator.missedProposalsCount,
+				totalSlots: validator.totalSlots,
+				// Include 5 latest history slots
+				history: validator.history || [],
+				// Include all processed peer data
+				peerClient: validator.peerClient,
+				peerCountry: validator.peerCountry,
+				peerCity: validator.peerCity,
+				peerIpAddress: validator.peerIpAddress,
+				peerPort: validator.peerPort,
+				peerIsSynced: validator.peerIsSynced,
+				peerBlockHeight: validator.peerBlockHeight,
+				peerLastSeen: validator.peerLastSeen,
+			};
 
-					return {
-						address: validator.validatorAddress,
-						peerId: validator.peerId,
-						operatorId: validator.nodeOperatorId,
-						isActive: isActive,
-						operator: operator,
-						createdAt: validator.createdAt,
-						updatedAt: validator.updatedAt,
-						// Include all processed validator stats
-						epoch: validator.epoch,
-						hasAttested24h: validator.hasAttested24h,
-						lastAttestationSlot: validator.lastAttestationSlot,
-						lastAttestationTimestamp: validator.lastAttestationTimestamp,
-						lastAttestationDate: validator.lastAttestationDate,
-						lastProposalSlot: validator.lastProposalSlot,
-						lastProposalTimestamp: validator.lastProposalTimestamp,
-						lastProposalDate: validator.lastProposalDate,
-						missedAttestationsCount: validator.missedAttestationsCount,
-						missedProposalsCount: validator.missedProposalsCount,
-						totalSlots: validator.totalSlots,
-						// Include all processed peer data
-						peerClient: validator.peerClient,
-						peerCountry: validator.peerCountry,
-						peerCity: validator.peerCity,
-						peerIpAddress: validator.peerIpAddress,
-						peerPort: validator.peerPort,
-						peerIsSynced: validator.peerIsSynced,
-						peerBlockHeight: validator.peerBlockHeight,
-						peerLastSeen: validator.peerLastSeen,
-					};
-				} catch (error) {
-					logger.error({ error, validatorAddress: validator.validatorAddress }, "Error processing validator details");
-					return null;
-				}
-			})
-		);
-		
-		// Filter out failed promises and null results
-		const successfulValidators = validatorDetails
-			.filter(result => result.status === 'fulfilled' && result.value !== null)
-			.map(result => (result as PromiseFulfilledResult<any>).value);
+			return validatorResponse;
+		});
 		
 		// Calculate statistics
 		const stats = {
 			totalValidators: successfulValidators.length,
-			activeValidators: successfulValidators.filter(v => v.isActive).length,
+			activeValidators: successfulValidators.filter(v => v.hasAttested24h).length,
 			knownValidators: successfulValidators.filter(v => v.operatorId).length,
 		};
 		
@@ -195,6 +161,15 @@ router.get("/validators", async (_req, res) => {
  *           type: string
  *         required: false
  *         description: The Discord ID of the operator to retrieve validators for.
+ *       - in: query
+ *         name: historyLimit
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *           maximum: 1000
+ *           default: 100
+ *         required: false
+ *         description: Maximum number of history entries to return (defaults to 100).
  *     responses:
  *       200:
  *         description: The requested validator information or operator's validators.
@@ -247,6 +222,14 @@ router.get("/", async (req, res) => {
 	try {
 		const address = req.query.address as string | undefined;
 		const discordId = req.query.discordId as string | undefined;
+		const historyLimit = req.query.historyLimit ? parseInt(req.query.historyLimit as string) : 100;
+		
+		// Validate historyLimit
+		if (isNaN(historyLimit) || historyLimit < 0 || historyLimit > 1000) {
+			return res.status(400).json({
+				error: "Invalid historyLimit parameter. Must be a number between 0 and 1000.",
+			});
+		}
 		
 		// Handle validator lookup by address
 		if (address) {
@@ -257,9 +240,9 @@ router.get("/", async (req, res) => {
 				});
 			}
 
-			await l2InfoService.updateValidatorDataIfNeeded();
+			// Remove manual sync call - data is now synced automatically by epoch listener
 			
-			const validator = await validatorService.getValidatorByAddress(address);
+			const validator = await validatorService.getValidatorByAddress(address, historyLimit);
 			
 			if (!validator) {
 				return res.status(404).json({ error: "Validator not found" });
@@ -289,7 +272,6 @@ router.get("/", async (req, res) => {
 					address: validator.validatorAddress,
 					peerId: validator.peerId,
 					operatorId: validator.nodeOperatorId,
-					isActive: isInRollup,
 					operator: operator,
 					createdAt: validator.createdAt,
 					updatedAt: validator.updatedAt,
@@ -305,6 +287,8 @@ router.get("/", async (req, res) => {
 					missedAttestationsCount: validator.missedAttestationsCount,
 					missedProposalsCount: validator.missedProposalsCount,
 					totalSlots: validator.totalSlots,
+					// Include attestation history
+					history: validator.history || [],
 					// Include all processed peer data
 					peerClient: validator.peerClient,
 					peerCountry: validator.peerCountry,
@@ -329,7 +313,7 @@ router.get("/", async (req, res) => {
 			}
 			
 			// Fetch validators associated with this operator
-			const validators = await validatorService.getValidatorsByNodeOperator(operator.discordId);
+			const validators = await validatorService.getValidatorsByNodeOperator(operator.discordId, historyLimit);
 			
 			return res.status(200).json({
 				success: true,
@@ -482,7 +466,7 @@ router.post("/", async (req, res) => {
 		}
 
 		// Update validator data to ensure we have the latest state
-		await l2InfoService.updateValidatorDataIfNeeded();
+		// Remove manual sync call - data is now synced automatically by epoch listener
 		
 		// Get Ethereum instance and current rollup state
 		const ethereum = await getEthereumInstance();
@@ -533,7 +517,6 @@ router.post("/", async (req, res) => {
 				address: createdValidator.validatorAddress,
 				peerId: createdValidator.peerId,
 				operatorId: createdValidator.nodeOperatorId,
-				isActive: isInRollup,
 				operator: operator,
 				createdAt: createdValidator.createdAt,
 				updatedAt: createdValidator.updatedAt,
@@ -549,6 +532,8 @@ router.post("/", async (req, res) => {
 				missedAttestationsCount: createdValidator.missedAttestationsCount,
 				missedProposalsCount: createdValidator.missedProposalsCount,
 				totalSlots: createdValidator.totalSlots,
+				// Include attestation history
+				history: createdValidator.history || [],
 				// Include all processed peer data
 				peerClient: createdValidator.peerClient,
 				peerCountry: createdValidator.peerCountry,
@@ -986,11 +971,10 @@ router.delete("/", async (req, res) => {
  */
 router.get("/stats", async (_req, res) => {
 	try {
-		// Update validator data if needed (this will calculate fresh stats)
-		await l2InfoService.updateValidatorDataIfNeeded();
+		// Remove manual sync call - data is now synced automatically by epoch listener
 		
 		// Get the cached statistics
-		const stats = l2InfoService.getValidatorStats();
+		const stats = await l2InfoService.getValidatorStats();
 		
 		if (!stats) {
 			// If no stats are available, return a message indicating data is being processed

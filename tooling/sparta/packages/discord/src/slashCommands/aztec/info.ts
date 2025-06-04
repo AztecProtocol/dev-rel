@@ -23,9 +23,8 @@ export const get = async (
 			validators
 		} = await ethereum.getRollupInfo();
 
-		// Update validator data if needed and get network stats
-		await l2InfoService.updateValidatorDataIfNeeded();
-		const networkStats = l2InfoService.getValidatorStats();
+		// Remove manual sync call - data is now synced automatically by epoch listener
+		const networkStats = await l2InfoService.getValidatorStats();
 
 		// Format miss rates as percentages
 		const attestationMissRate = networkStats ? (networkStats.networkAttestationMissRate * 100).toFixed(1) : 'N/A';

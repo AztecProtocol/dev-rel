@@ -10,6 +10,7 @@ import {
 import { logger } from "@sparta/utils";
 import type { Validator } from "../domain/validators/service";
 import DynamoDBService from "@sparta/utils/dynamo-db.js";
+import { validatorHistoryRepository } from "./validatorHistoryRepository";
 
 const VALIDATORS_TABLE_NAME = process.env.VALIDATORS_TABLE_NAME || "sparta-validators-dev";
 const NODE_OPERATOR_INDEX_NAME = "NodeOperatorIndex";
@@ -30,9 +31,58 @@ export class ValidatorRepository {
 		);
 	}
 
-	async findAll(pageToken?: string): Promise<{ validators: Validator[]; nextPageToken?: string }> {
+	async findAll(pageToken?: string, includeHistory: boolean = true, historyLimit: number = 100): Promise<{ validators: Validator[]; nextPageToken?: string }> {
 		try {
-			const ITEMS_PER_PAGE = 100;
+			// If no pageToken provided, fetch ALL validators
+			if (!pageToken) {
+				let allValidators: Validator[] = [];
+				let lastEvaluatedKey: any = undefined;
+				
+				do {
+					const scanParams: any = {
+						TableName: this.tableName,
+						Limit: 1000, // Process in batches to avoid timeout
+					};
+					
+					if (lastEvaluatedKey) {
+						scanParams.ExclusiveStartKey = lastEvaluatedKey;
+					}
+					
+					// Exclude history from the main table projection since it's in a separate table
+					scanParams.ProjectionExpression = "validatorAddress, nodeOperatorId, createdAt, updatedAt, peerId, isActive, #epoch, hasAttested24h, lastAttestationSlot, lastAttestationTimestamp, lastAttestationDate, lastProposalSlot, lastProposalTimestamp, lastProposalDate, missedAttestationsCount, missedProposalsCount, totalSlots, peerClient, peerCountry, peerCity, peerIpAddress, peerPort, peerIsSynced, peerBlockHeight, peerLastSeen";
+					scanParams.ExpressionAttributeNames = {
+						"#epoch": "epoch" // epoch is a reserved word in DynamoDB
+					};
+					
+					const command = new ScanCommand(scanParams);
+					const response = await this.client.send(command);
+					
+					allValidators = allValidators.concat((response.Items ?? []) as Validator[]);
+					lastEvaluatedKey = response.LastEvaluatedKey;
+					
+				} while (lastEvaluatedKey);
+				
+				logger.info(`Retrieved ${allValidators.length} total validators from database`);
+				
+				// Get history for all validators if requested
+				if (includeHistory && allValidators.length > 0) {
+					const validatorAddresses = allValidators.map(v => v.validatorAddress.toLowerCase());
+					const historyMap = await validatorHistoryRepository.getBatchValidatorHistory(validatorAddresses, historyLimit);
+					
+					// Attach history to each validator
+					allValidators.forEach(validator => {
+						validator.history = historyMap[validator.validatorAddress.toLowerCase()] || [];
+					});
+				}
+				
+				return {
+					validators: allValidators,
+					nextPageToken: undefined,
+				};
+			}
+			
+			// Paginated request - return single page with limit
+			const ITEMS_PER_PAGE = 1000;
 			
 			// Build the scan command
 			const scanParams: any = {
@@ -40,14 +90,18 @@ export class ValidatorRepository {
 				Limit: ITEMS_PER_PAGE,
 			};
 			
-			// If we have a page token, use it as the ExclusiveStartKey
-			if (pageToken) {
-				try {
-					const decodedToken = JSON.parse(Buffer.from(pageToken, 'base64').toString());
-					scanParams.ExclusiveStartKey = decodedToken;
-				} catch (error) {
-					logger.error({ error, pageToken }, "Invalid page token format");
-				}
+			// Exclude history from the main table projection since it's in a separate table
+			scanParams.ProjectionExpression = "validatorAddress, nodeOperatorId, createdAt, updatedAt, peerId, isActive, #epoch, hasAttested24h, lastAttestationSlot, lastAttestationTimestamp, lastAttestationDate, lastProposalSlot, lastProposalTimestamp, lastProposalDate, missedAttestationsCount, missedProposalsCount, totalSlots, peerClient, peerCountry, peerCity, peerIpAddress, peerPort, peerIsSynced, peerBlockHeight, peerLastSeen";
+			scanParams.ExpressionAttributeNames = {
+				"#epoch": "epoch" // epoch is a reserved word in DynamoDB
+			};
+			
+			// Use the provided page token as the ExclusiveStartKey
+			try {
+				const decodedToken = JSON.parse(Buffer.from(pageToken, 'base64').toString());
+				scanParams.ExclusiveStartKey = decodedToken;
+			} catch (error) {
+				logger.error({ error, pageToken }, "Invalid page token format");
 			}
 			
 			const command = new ScanCommand(scanParams);
@@ -60,9 +114,22 @@ export class ValidatorRepository {
 					JSON.stringify(response.LastEvaluatedKey)
 				).toString('base64');
 			}
+
+			let validators = (response.Items ?? []) as Validator[];
+			
+			// Get history for validators if requested
+			if (includeHistory && validators.length > 0) {
+				const validatorAddresses = validators.map(v => v.validatorAddress.toLowerCase());
+				const historyMap = await validatorHistoryRepository.getBatchValidatorHistory(validatorAddresses, historyLimit);
+				
+				// Attach history to each validator
+				validators.forEach(validator => {
+					validator.history = historyMap[validator.validatorAddress.toLowerCase()] || [];
+				});
+			}
 			
 			return {
-				validators: (response.Items ?? []) as Validator[],
+				validators,
 				nextPageToken,
 			};
 		} catch (error) {
@@ -75,19 +142,34 @@ export class ValidatorRepository {
 	}
 
 	async findByAddress(
-		validatorAddress: string
+		validatorAddress: string,
+		includeHistory: boolean = true,
+		historyLimit: number = 100
 	): Promise<Validator | undefined> {
 		try {
 			// First try exact match
 			const command = new GetCommand({
 				TableName: this.tableName,
 				Key: { validatorAddress },
+				// Exclude history from projection since it's in a separate table
+				ProjectionExpression: "validatorAddress, nodeOperatorId, createdAt, updatedAt, peerId, isActive, #epoch, hasAttested24h, lastAttestationSlot, lastAttestationTimestamp, lastAttestationDate, lastProposalSlot, lastProposalTimestamp, lastProposalDate, missedAttestationsCount, missedProposalsCount, totalSlots, peerClient, peerCountry, peerCity, peerIpAddress, peerPort, peerIsSynced, peerBlockHeight, peerLastSeen",
+				ExpressionAttributeNames: {
+					"#epoch": "epoch" // epoch is a reserved word in DynamoDB
+				}
 			});
 			const response = await this.client.send(command);
 			
-			// If found, return it
+			// If found, attach history and return
 			if (response.Item) {
-				return response.Item as Validator;
+				const validator = response.Item as Validator;
+				
+				// Get history from separate table if requested
+				if (includeHistory) {
+					const historyResult = await validatorHistoryRepository.getValidatorHistory(validatorAddress, historyLimit);
+					validator.history = historyResult.history;
+				}
+				
+				return validator;
 			}
 			
 			// If exact match fails, try case-insensitive search
@@ -103,6 +185,11 @@ export class ValidatorRepository {
 				const scanParams: any = {
 					TableName: this.tableName,
 					Limit: 1000, // Process in smaller batches
+					// Exclude history from projection
+					ProjectionExpression: "validatorAddress, nodeOperatorId, createdAt, updatedAt, peerId, isActive, #epoch, hasAttested24h, lastAttestationSlot, lastAttestationTimestamp, lastAttestationDate, lastProposalSlot, lastProposalTimestamp, lastProposalDate, missedAttestationsCount, missedProposalsCount, totalSlots, peerClient, peerCountry, peerCity, peerIpAddress, peerPort, peerIsSynced, peerBlockHeight, peerLastSeen",
+					ExpressionAttributeNames: {
+						"#epoch": "epoch"
+					}
 				};
 				
 				if (lastEvaluatedKey) {
@@ -123,6 +210,13 @@ export class ValidatorRepository {
 						{ foundAddress: matchingValidator.validatorAddress, searchedFor: validatorAddress },
 						"Found case-insensitive match for validator address"
 					);
+					
+					// Get history from separate table if requested
+					if (includeHistory) {
+						const historyResult = await validatorHistoryRepository.getValidatorHistory(matchingValidator.validatorAddress, historyLimit);
+						matchingValidator.history = historyResult.history;
+					}
+					
 					return matchingValidator;
 				}
 				
@@ -149,7 +243,9 @@ export class ValidatorRepository {
 	}
 
 	async findByNodeOperator(
-		nodeOperatorId: string
+		nodeOperatorId: string,
+		includeHistory: boolean = true,
+		historyLimit: number = 100
 	): Promise<Validator[]> {
 		try {
 			const command = new QueryCommand({
@@ -159,9 +255,27 @@ export class ValidatorRepository {
 				ExpressionAttributeValues: {
 					":nodeOperatorId": nodeOperatorId,
 				},
+				// Exclude history from projection
+				ProjectionExpression: "validatorAddress, nodeOperatorId, createdAt, updatedAt, peerId, isActive, #epoch, hasAttested24h, lastAttestationSlot, lastAttestationTimestamp, lastAttestationDate, lastProposalSlot, lastProposalTimestamp, lastProposalDate, missedAttestationsCount, missedProposalsCount, totalSlots, peerClient, peerCountry, peerCity, peerIpAddress, peerPort, peerIsSynced, peerBlockHeight, peerLastSeen",
+				ExpressionAttributeNames: {
+					"#epoch": "epoch"
+				}
 			});
 			const response = await this.client.send(command);
-			return (response.Items || []) as Validator[];
+			const validators = (response.Items || []) as Validator[];
+			
+			// Get history for all validators if requested
+			if (includeHistory && validators.length > 0) {
+				const validatorAddresses = validators.map(v => v.validatorAddress);
+				const historyMap = await validatorHistoryRepository.getBatchValidatorHistory(validatorAddresses, historyLimit);
+				
+				// Attach history to each validator
+				validators.forEach(validator => {
+					validator.history = historyMap[validator.validatorAddress] || historyMap[validator.validatorAddress.toLowerCase()] || [];
+				});
+			}
+			
+			return validators;
 		} catch (error) {
 			logger.error(
 				error, nodeOperatorId, this.tableName,
@@ -435,7 +549,15 @@ export class ValidatorRepository {
 			expressionAttributeNames["#updatedAt"] = "updatedAt";
 			expressionAttributeValues[":updatedAt"] = Date.now();
 
-			// Handle each stats field
+			// Handle history field separately using the history repository
+			let historyToAdd: Array<{ slot: string; status: string }> = [];
+			if (statsData.history && statsData.history.length > 0) {
+				historyToAdd = statsData.history;
+				// Remove history from statsData since we're handling it separately
+				delete statsData.history;
+			}
+
+			// Handle each stats field (excluding history)
 			const fieldsToUpdate = [
 				'epoch', 'hasAttested24h', 'lastAttestationSlot', 'lastAttestationTimestamp',
 				'lastAttestationDate', 'lastProposalSlot', 'lastProposalTimestamp', 
@@ -452,24 +574,27 @@ export class ValidatorRepository {
 				}
 			});
 
-			if (updateExpressions.length === 1) {
-				// Only updatedAt to update, nothing else provided
-				logger.warn({ validatorAddress }, "No stats data provided for update");
-				return false;
+			// Update the main validator record (excluding history)
+			if (updateExpressions.length > 1) { // More than just updatedAt
+				const command = new UpdateCommand({
+					TableName: this.tableName,
+					Key: { validatorAddress },
+					UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+					ExpressionAttributeNames: expressionAttributeNames,
+					ExpressionAttributeValues: expressionAttributeValues,
+					ConditionExpression: "attribute_exists(validatorAddress)", // Ensure validator exists
+				});
+
+				await this.client.send(command);
 			}
 
-			const command = new UpdateCommand({
-				TableName: this.tableName,
-				Key: { validatorAddress },
-				UpdateExpression: `SET ${updateExpressions.join(", ")}`,
-				ExpressionAttributeNames: expressionAttributeNames,
-				ExpressionAttributeValues: expressionAttributeValues,
-				ConditionExpression: "attribute_exists(validatorAddress)", // Ensure validator exists
-			});
+			// Add history entries to the separate history table
+			if (historyToAdd.length > 0) {
+				await validatorHistoryRepository.addValidatorHistory(validatorAddress, historyToAdd);
+			}
 
-			await this.client.send(command);
 			logger.debug(
-				{ validatorAddress, updatedFields: Object.keys(statsData) },
+				{ validatorAddress, updatedFields: Object.keys(statsData), historyEntries: historyToAdd.length },
 				"Updated validator stats in repository"
 			);
 			return true;
@@ -499,26 +624,92 @@ export class ValidatorRepository {
 	): Promise<number> {
 		let successCount = 0;
 		
-		// Process updates in batches to avoid overwhelming DynamoDB
-		const batchSize = 25; // DynamoDB batch write limit
+		// Process updates in smaller batches to avoid overwhelming DynamoDB
+		const batchSize = 5; // Further reduced from 10 to avoid throttling
+		const maxRetries = 3;
+		
 		for (let i = 0; i < updates.length; i += batchSize) {
 			const batch = updates.slice(i, i + batchSize);
+			const batchNumber = Math.floor(i / batchSize) + 1;
+			const totalBatches = Math.ceil(updates.length / batchSize);
 			
-			const promises = batch.map(async ({ validatorAddress, statsData }) => {
+			let retryCount = 0;
+			let batchSuccess = false;
+			
+			while (!batchSuccess && retryCount < maxRetries) {
 				try {
-					const success = await this.updateValidatorStats(validatorAddress, statsData);
-					if (success) successCount++;
-					return success;
-				} catch (error) {
-					logger.error(
-						{ error, validatorAddress },
-						"Failed to update validator stats in batch"
-					);
-					return false;
+					const promises = batch.map(async ({ validatorAddress, statsData }) => {
+						try {
+							const success = await this.updateValidatorStats(validatorAddress, statsData);
+							if (success) return { success: true, validatorAddress };
+							return { success: false, validatorAddress };
+						} catch (error: any) {
+							// Check for throttling errors
+							if (error.name === 'ThrottlingException' || error.message?.includes('Throughput exceeds')) {
+								throw error; // Let the batch-level retry handle this
+							}
+							logger.error(
+								{ error, validatorAddress },
+								"Failed to update validator stats in batch"
+							);
+							return { success: false, validatorAddress };
+						}
+					});
+					
+					const results = await Promise.all(promises);
+					const batchSuccessCount = results.filter(r => r.success).length;
+					successCount += batchSuccessCount;
+					batchSuccess = true;
+					
+					if (batchNumber % 50 === 0 || batchNumber === totalBatches) {
+						logger.info(
+							{ 
+								batchNumber, 
+								totalBatches, 
+								batchSuccessCount,
+								totalSuccessCount: successCount,
+								percentComplete: Math.round((batchNumber / totalBatches) * 100)
+							},
+							"Validator stats batch update progress"
+						);
+					}
+				} catch (error: any) {
+					retryCount++;
+					
+					if (error.name === 'ThrottlingException' || error.message?.includes('Throughput exceeds')) {
+						const backoffMs = Math.min(2000 * Math.pow(2, retryCount), 30000); // Exponential backoff up to 30s
+						logger.warn(
+							{ 
+								batchNumber, 
+								retryCount,
+								backoffMs,
+								error: error.message 
+							},
+							"DynamoDB throttling detected in validator stats batch, backing off"
+						);
+						await new Promise(resolve => setTimeout(resolve, backoffMs));
+					} else {
+						// Non-throttling error, break the retry loop
+						logger.error(
+							{ error, batchNumber },
+							"Non-throttling error in validator stats batch update"
+						);
+						break;
+					}
+					
+					if (retryCount >= maxRetries) {
+						logger.error(
+							{ batchNumber, retryCount },
+							"Failed to update validator stats batch after max retries"
+						);
+					}
 				}
-			});
+			}
 			
-			await Promise.all(promises);
+			// Add delay between batches to avoid throttling - increased delay
+			if (i + batchSize < updates.length) {
+				await new Promise(resolve => setTimeout(resolve, 300)); // Increased from 100ms to 300ms
+			}
 		}
 		
 		logger.info(

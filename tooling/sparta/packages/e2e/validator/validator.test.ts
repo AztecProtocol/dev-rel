@@ -110,7 +110,6 @@ describe("Validator E2E Tests", () => {
     if (response.data.data.validators.length > 0) {
       const validator = response.data.data.validators[0];
       expect(validator).toHaveProperty("address");
-      expect(validator).toHaveProperty("isActive");
       expect(validator).toHaveProperty("operator"); // Can be null
       expect(validator).toHaveProperty("createdAt");
       expect(validator).toHaveProperty("updatedAt");
@@ -128,7 +127,6 @@ describe("Validator E2E Tests", () => {
       
       // Verify data types
       expect(typeof validator.address).toBe("string");
-      expect(typeof validator.isActive).toBe("boolean");
       expect(typeof validator.createdAt).toBe("number");
       expect(typeof validator.updatedAt).toBe("number");
       expect(typeof validator.epoch).toBe("number");
@@ -210,7 +208,6 @@ describe("Validator E2E Tests", () => {
     const validatorData = response.data.data;
     expect(validatorData).toHaveProperty("address", testValidatorAddress);
     expect(validatorData).toHaveProperty("operatorId", validatorTestOperator.discordId);
-    expect(validatorData).toHaveProperty("isActive");
     expect(validatorData).toHaveProperty("operator");
     expect(validatorData).toHaveProperty("createdAt");
     expect(validatorData).toHaveProperty("updatedAt");

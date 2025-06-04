@@ -6,7 +6,8 @@
         "types": "tsc",
         "migration": "bun run migrations/run-migration.js",
         "migration:test": "bun run migrations/test-migration.js",
-        "backup": "bash migrations/backup-tables.sh"
+        "backup": "bash migrations/backup-tables.sh",
+        "fix-history-case": "node scripts/fix-history-case.js"
     },
     "dependencies": {
         "@aws-sdk/client-dynamodb": "^3.427.0",

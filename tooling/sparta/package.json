@@ -25,7 +25,7 @@
     "setup:db": "bun run scripts/copy_prod_db.ts",
     "dev": "bun run prep && bun run build && NODE_ENV='development' bun --env-file=.env --elide-lines=0 --filter='@sparta/api' --filter='@sparta/discord' run dev",
     "staging": "bun run prep && bun run build && NODE_ENV='development' bun --env-file=.env.production --elide-lines=0 --filter='@sparta/api' --filter='@sparta/discord' run dev",
-    "migration": "bun --env-file=.env.production --filter='@sparta/utils' run backup && bun --env-file=.env.production --filter='@sparta/utils' --elide-lines=0 run migration",
+    "migration": "bun --env-file=.env.production --filter='@sparta/utils' --elide-lines=0 run migration",
     "migration:dry": "DRY_RUN=true bun --env-file=.env.production --filter='@sparta/utils' --elide-lines=0 run migration",
     "e2e:test": "bun --env-file=.env --elide-lines=0 --filter='@sparta/e2e' run test:e2e",
     "scheduler:dev": "NODE_ENV='development' bun --env-file=.env --elide-lines=0 --filter='@sparta/scheduler' run dev",

@@ -274,7 +274,13 @@ resource "aws_iam_policy" "dynamodb_access_policy" {
           "${aws_dynamodb_table.sparta_node_operators.arn}/index/*",
           # Validators table
           aws_dynamodb_table.sparta_validators.arn,
-          "${aws_dynamodb_table.sparta_validators.arn}/index/*"
+          "${aws_dynamodb_table.sparta_validators.arn}/index/*",
+          # Validator History table
+          aws_dynamodb_table.sparta_validator_history.arn,
+          "${aws_dynamodb_table.sparta_validator_history.arn}/index/*",
+          # Network Stats table
+          aws_dynamodb_table.sparta_network_stats.arn,
+          "${aws_dynamodb_table.sparta_network_stats.arn}/index/*"
         ]
       }
       # Add statements here if the API needs access to other AWS resources
@@ -352,6 +358,72 @@ resource "aws_dynamodb_table" "sparta_validators" {
 
   tags = merge(local.common_tags, {
     Name = "${local.resource_prefix}-validators-table"
+  })
+}
+
+# Add the 'network-stats' table definition
+resource "aws_dynamodb_table" "sparta_network_stats" {
+  name           = "${local.resource_prefix}-network-stats"
+  billing_mode   = "PAY_PER_REQUEST"
+
+  # Define attributes used in keys/indexes
+  attribute {
+    name = "epochNumber"
+    type = "N"
+  }
+  
+  attribute {
+    name = "timestamp"
+    type = "N"
+  }
+
+  # Primary key is epochNumber
+  hash_key = "epochNumber"
+  
+  # Add GSI for querying by timestamp (useful for getting latest stats)
+  global_secondary_index {
+    name            = "TimestampIndex"
+    hash_key        = "timestamp"
+    projection_type = "ALL"
+  }
+
+  # Enable Point-in-Time Recovery for backups
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-network-stats-table"
+  })
+}
+
+# Add validator history table for efficient querying and sorting
+resource "aws_dynamodb_table" "sparta_validator_history" {
+  name           = "${local.resource_prefix}-validator-history"
+  billing_mode   = "PAY_PER_REQUEST"
+
+  # Define attributes used in keys/indexes
+  attribute {
+    name = "validatorAddress"
+    type = "S"
+  }
+  
+  attribute {
+    name = "slot"
+    type = "N"  # Using number for proper numeric sorting
+  }
+
+  # Composite primary key: validator address + slot
+  hash_key  = "validatorAddress"
+  range_key = "slot"
+
+  # Enable Point-in-Time Recovery for backups
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-validator-history-table"
   })
 }
 
@@ -471,6 +543,8 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "CORS_ALLOWED_ORIGINS", value = "http://${aws_lb.sparta_alb.dns_name}" },
         { name = "NODE_OPERATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_node_operators.name },
         { name = "VALIDATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_validators.name },
+        { name = "VALIDATOR_HISTORY_TABLE_NAME", value = aws_dynamodb_table.sparta_validator_history.name },
+        { name = "NETWORK_STATS_TABLE_NAME", value = aws_dynamodb_table.sparta_network_stats.name },
         { name = "SPARTA_PRIVATE_KEY", value = var.sparta_private_key },
         { name = "SPARTA_ADDRESS", value = var.sparta_address },
         { name = "AZTEC_RPC_URL", value = var.aztec_rpc_url },
@@ -725,6 +799,16 @@ output "validators_table_name" {
   value       = aws_dynamodb_table.sparta_validators.name
 }
 
+output "validator_history_table_name" {
+  description = "The name of the DynamoDB table for validator history"
+  value       = aws_dynamodb_table.sparta_validator_history.name
+}
+
+output "network_stats_table_name" {
+  description = "The name of the DynamoDB table for network statistics"
+  value       = aws_dynamodb_table.sparta_network_stats.name
+}
+
 # =============================================================================
 # Scheduler Lambda Function for Validator Monitoring
 # =============================================================================
@@ -781,6 +865,8 @@ resource "aws_lambda_function" "validator_monitor" {
       LOG_PRETTY_PRINT        = var.log_pretty_print ? "true" : "false"
       NODE_OPERATORS_TABLE_NAME = aws_dynamodb_table.sparta_node_operators.name
       VALIDATORS_TABLE_NAME   = aws_dynamodb_table.sparta_validators.name
+      VALIDATOR_HISTORY_TABLE_NAME = aws_dynamodb_table.sparta_validator_history.name
+      NETWORK_STATS_TABLE_NAME = aws_dynamodb_table.sparta_network_stats.name
       BOT_TOKEN               = var.bot_token
       BOT_CLIENT_ID           = var.bot_client_id
       GUILD_ID                = var.guild_id
