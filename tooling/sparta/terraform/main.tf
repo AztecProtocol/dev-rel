@@ -269,9 +269,12 @@ resource "aws_iam_policy" "dynamodb_access_policy" {
         ],
         # Grant access to both tables and their indexes
         Resource = [
-          # Node Operators table
+          # Node Operators table (current)
           aws_dynamodb_table.sparta_node_operators.arn,
           "${aws_dynamodb_table.sparta_node_operators.arn}/index/*",
+          # Node Operators table (NEW)
+          aws_dynamodb_table.sparta_node_op.arn,
+          "${aws_dynamodb_table.sparta_node_op.arn}/index/*",
           # Validators table
           aws_dynamodb_table.sparta_validators.arn,
           "${aws_dynamodb_table.sparta_validators.arn}/index/*",
@@ -309,11 +312,22 @@ resource "aws_dynamodb_table" "sparta_node_operators" {
     name = "discordId"
     type = "S"
   }
+  
+  attribute {
+    name = "address"
+    type = "S"
+  }
 
-  # Define the primary hash key
+  # Define the primary hash key (keep current production state)
   hash_key = "discordId"
 
-  # Define Global Secondary Indexes
+  # Define Global Secondary Indexes (keep current production GSI)
+  global_secondary_index {
+    name            = "AddressIndex"
+    hash_key        = "address"
+    projection_type = "ALL" # Project all attributes
+    # PAY_PER_REQUEST billing mode applies to GSIs as well
+  }
 
   # Enable Point-in-Time Recovery for backups (Recommended)
   point_in_time_recovery {
@@ -322,6 +336,43 @@ resource "aws_dynamodb_table" "sparta_node_operators" {
 
   tags = merge(local.common_tags, {
     Name = "${local.resource_prefix}-node-operators-table"
+  })
+}
+
+# Add the NEW 'node operators' table definition with new structure
+resource "aws_dynamodb_table" "sparta_node_op" {
+  name           = "${local.resource_prefix}-node-op" # New table name
+  billing_mode   = "PAY_PER_REQUEST"
+
+  # Define attributes used in keys/indexes
+  attribute {
+    name = "address"
+    type = "S"
+  }
+  
+  attribute {
+    name = "discordId"
+    type = "S"
+  }
+
+  # Define the primary hash key (NEW: address as primary key)
+  hash_key = "address"
+
+  # Define Global Secondary Indexes (NEW: discordId as GSI)
+  global_secondary_index {
+    name            = "DiscordIdIndex"
+    hash_key        = "discordId"
+    projection_type = "ALL" # Project all attributes
+    # PAY_PER_REQUEST billing mode applies to GSIs as well
+  }
+
+  # Enable Point-in-Time Recovery for backups (Recommended)
+  point_in_time_recovery {
+    enabled = true
+  }
+
+  tags = merge(local.common_tags, {
+    Name = "${local.resource_prefix}-node-op-table"
   })
 }
 
@@ -541,7 +592,7 @@ resource "aws_ecs_task_definition" "sparta_api" {
         { name = "LOG_PRETTY_PRINT", value = var.log_pretty_print ? "true" : "false" },
         { name = "API_URL", value = "http://${aws_lb.sparta_alb.dns_name}" },
         { name = "CORS_ALLOWED_ORIGINS", value = "http://${aws_lb.sparta_alb.dns_name}" },
-        { name = "NODE_OPERATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_node_operators.name },
+        { name = "NODE_OPERATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_node_op.name },
         { name = "VALIDATORS_TABLE_NAME", value = aws_dynamodb_table.sparta_validators.name },
         { name = "VALIDATOR_HISTORY_TABLE_NAME", value = aws_dynamodb_table.sparta_validator_history.name },
         { name = "NETWORK_STATS_TABLE_NAME", value = aws_dynamodb_table.sparta_network_stats.name },
@@ -791,7 +842,12 @@ output "ecs_cluster_name" {
 
 output "node_operators_table_name" {
   description = "The name of the DynamoDB table for node operators"
-  value       = aws_dynamodb_table.sparta_node_operators.name
+  value       = aws_dynamodb_table.sparta_node_op.name
+}
+
+output "NODE_OPERATORS_TABLE_NAME" {
+  description = "The name of the NEW DynamoDB table for node operators (with address primary key)"
+  value       = aws_dynamodb_table.sparta_node_op.name
 }
 
 output "validators_table_name" {
@@ -863,7 +919,7 @@ resource "aws_lambda_function" "validator_monitor" {
       BACKEND_API_KEY         = var.backend_api_key
       LOG_LEVEL               = var.log_level
       LOG_PRETTY_PRINT        = var.log_pretty_print ? "true" : "false"
-      NODE_OPERATORS_TABLE_NAME = aws_dynamodb_table.sparta_node_operators.name
+      NODE_OPERATORS_TABLE_NAME = aws_dynamodb_table.sparta_node_op.name
       VALIDATORS_TABLE_NAME   = aws_dynamodb_table.sparta_validators.name
       VALIDATOR_HISTORY_TABLE_NAME = aws_dynamodb_table.sparta_validator_history.name
       NETWORK_STATS_TABLE_NAME = aws_dynamodb_table.sparta_network_stats.name

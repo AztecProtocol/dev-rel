@@ -6,12 +6,16 @@
 set -e  # Exit on any error
 
 # Configuration
-NODE_OPERATORS_TABLE_NAME=${NODE_OPERATORS_TABLE_NAME:-"sparta-node-operators-dev"}
+NODE_OPERATORS_TABLE_NAME=${NODE_OPERATORS_TABLE_NAME:-"sparta-node-op-dev"}
+NETWORK_STATS_TABLE_NAME=${NETWORK_STATS_TABLE_NAME:-"sparta-network-stats-dev"}
+VALIDATOR_HISTORY_TABLE_NAME=${VALIDATOR_HISTORY_TABLE_NAME:-"sparta-validator-history-dev"}
 VALIDATORS_TABLE_NAME=${VALIDATORS_TABLE_NAME:-"sparta-validators-dev"}
 BACKUP_PREFIX="migration-backup-$(date +%Y%m%d-%H%M%S)"
 
 echo "====== DynamoDB Tables Backup ======"
 echo "Node Operators Table: $NODE_OPERATORS_TABLE_NAME"
+echo "Network Stats Table: $NETWORK_STATS_TABLE_NAME"
+echo "Validator History Table: $VALIDATOR_HISTORY_TABLE_NAME"
 echo "Validators Table: $VALIDATORS_TABLE_NAME"
 echo "Backup Prefix: $BACKUP_PREFIX"
 echo "====================================="
@@ -55,7 +59,14 @@ else
     echo "⚠️  Node operators table does not exist: $NODE_OPERATORS_TABLE_NAME"
 fi
 
-echo ""
+# Check and backup network stats table
+
+if table_exists "$NETWORK_STATS_TABLE_NAME"; then
+    echo "✅ Network stats table exists"
+    create_backup "$NETWORK_STATS_TABLE_NAME"
+else
+    echo "⚠️  Network stats table does not exist: $NETWORK_STATS_TABLE_NAME"
+fi
 
 # Check and backup validators table
 if table_exists "$VALIDATORS_TABLE_NAME"; then
@@ -63,6 +74,15 @@ if table_exists "$VALIDATORS_TABLE_NAME"; then
     create_backup "$VALIDATORS_TABLE_NAME"
 else
     echo "⚠️  Validators table does not exist: $VALIDATORS_TABLE_NAME"
+fi
+
+# Check and backup validator history table
+
+if table_exists "$VALIDATOR_HISTORY_TABLE_NAME"; then
+    echo "✅ Validator history table exists"
+    create_backup "$VALIDATOR_HISTORY_TABLE_NAME"
+else
+    echo "⚠️  Validator history table does not exist: $VALIDATOR_HISTORY_TABLE_NAME"
 fi
 
 echo ""

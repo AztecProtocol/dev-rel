@@ -6,7 +6,8 @@ import {
 import { validatorService } from "../validators/service";
 
 export interface NodeOperator {
-	discordId: string; // Primary Key
+	address: string; // Primary Key (wallet address)
+	discordId: string; // Secondary Key (indexed)
 	isApproved?: boolean; // Whether the operator is approved
 	wasSlashed?: boolean; // Whether the operator had a validator that was slashed
 	createdAt: number;
@@ -51,6 +52,25 @@ class NodeOperatorService {
 	}
 
 	/**
+	 * Retrieves a node operator by their address.
+	 * @param address The wallet address.
+	 * @returns The NodeOperator object or undefined if not found.
+	 */
+	public async getOperatorByAddress(
+		address: string
+	): Promise<NodeOperator | undefined> {
+		try {
+			return await this.repository.findByAddress(address);
+		} catch (error) {
+			logger.error(
+				{ error, address },
+				"Service error getting operator by address"
+			);
+			throw error;
+		}
+	}
+
+	/**
 	 * Retrieves a node operator by their Discord ID.
 	 * @param discordId The Discord ID.
 	 * @returns The NodeOperator object or undefined if not found.
@@ -72,19 +92,21 @@ class NodeOperatorService {
 	/**
 	 * Creates a new node operator.
 	 * @param discordId The Discord ID.
+	 * @param address The wallet address.
 	 * @param isApproved Optional approval status.
-	 * @returns The created NodeOperator object or undefined if creation failed (e.g., duplicate discordId).
+	 * @returns The created NodeOperator object or undefined if creation failed (e.g., duplicate address).
 	 */
 	public async createOperator(
 		discordId: string,
+		address: string,
 		isApproved?: boolean
 	): Promise<NodeOperator | undefined> {
 		try {
 			// Add any service-level validation or transformation here
-			return await this.repository.create(discordId, isApproved);
+			return await this.repository.create(discordId, address, isApproved);
 		} catch (error: any) {
 			logger.error(
-				{ error: error.message, discordId }, // Log error message
+				{ error: error.message, discordId, address }, // Log error message
 				"Service error creating operator"
 			);
 			// Check for specific repository errors (like duplicate) and handle
@@ -106,7 +128,7 @@ class NodeOperatorService {
 		isApproved: boolean
 	): Promise<boolean> {
 		try {
-			return await this.repository.updateApprovalStatus(
+			return await this.repository.updateApprovalStatusByDiscordId(
 				discordId,
 				isApproved
 			);
@@ -132,7 +154,7 @@ class NodeOperatorService {
 		wasSlashed: boolean
 	): Promise<boolean> {
 		try {
-			return await this.repository.updateSlashedStatus(
+			return await this.repository.updateSlashedStatusByDiscordId(
 				discordId,
 				wasSlashed
 			);

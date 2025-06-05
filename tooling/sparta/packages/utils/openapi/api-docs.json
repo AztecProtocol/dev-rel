@@ -546,7 +546,7 @@
       },
       "post": {
         "summary": "Create a new node operator",
-        "description": "Registers a new node operator using their Discord ID. The Discord username will be automatically fetched from Discord API.",
+        "description": "Creates a new node operator registration with Discord ID and wallet address.",
         "tags": [
           "NodeOperator"
         ],
@@ -564,12 +564,21 @@
               "type": "string"
             },
             "required": true,
-            "description": "The Discord user ID. Required for creating a new operator."
+            "description": "The Discord ID of the operator."
+          },
+          {
+            "in": "query",
+            "name": "address",
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "description": "The wallet address of the operator."
           }
         ],
         "responses": {
           "201": {
-            "description": "Node operator created successfully.",
+            "description": "Operator created successfully. Returns the new operator.",
             "content": {
               "application/json": {
                 "schema": {
@@ -579,7 +588,7 @@
             }
           },
           "400": {
-            "description": "Bad Request - Missing or invalid parameters",
+            "description": "Bad Request - Missing required parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -599,7 +608,7 @@
             }
           },
           "409": {
-            "description": "Conflict - Operator with this Discord ID already exists",
+            "description": "Conflict - Operator with this Discord ID or address already exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -1110,7 +1119,7 @@
     "/api/validator/validators": {
       "get": {
         "summary": "Get all validators",
-        "description": "Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources.",
+        "description": "Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources. Always includes the 5 latest history slots for each validator.",
         "tags": [
           "Validator"
         ],
@@ -1122,7 +1131,7 @@
         ],
         "responses": {
           "200": {
-            "description": "A comprehensive list of all validators with available information.",
+            "description": "A comprehensive list of all validators with available information, including 5 latest history slots for each validator.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1141,7 +1150,7 @@
                           "items": {
                             "$ref": "#/components/schemas/ValidatorResponse"
                           },
-                          "description": "Array of all validators with comprehensive information."
+                          "description": "Array of all validators with comprehensive information and 5 latest history slots."
                         },
                         "stats": {
                           "type": "object",
@@ -1229,10 +1238,10 @@
               "type": "integer",
               "minimum": 0,
               "maximum": 1000,
-              "default": 5
+              "default": 100
             },
             "required": false,
-            "description": "Maximum number of history entries to return (defaults to 5)."
+            "description": "Maximum number of history entries to return (defaults to 100)."
           }
         ],
         "responses": {

@@ -103,8 +103,8 @@ async function createLocalTables(): Promise<void> {
     endpoint: LOCAL_ENDPOINT
   });
 
-  // Create node operators table
-  console.log(`🏗️  Creating table: ${process.env.NODE_OPERATORS_TABLE_NAME}`);
+  // Create OLD node operators table (discordId primary key) - to receive production data
+  console.log(`🏗️  Creating OLD table: ${process.env.NODE_OPERATORS_TABLE_NAME}`);
   try {
     await localClient.send(new CreateTableCommand({
       TableName: process.env.NODE_OPERATORS_TABLE_NAME,
@@ -114,22 +114,22 @@ async function createLocalTables(): Promise<void> {
           AttributeType: "S",
         },
         {
-          AttributeName: "walletAddress",
+          AttributeName: "address",
           AttributeType: "S",
         },
       ],
       KeySchema: [
         {
           AttributeName: "discordId",
-          KeyType: "HASH", // Partition key
+          KeyType: "HASH", // Partition key - OLD structure with discordId as primary key
         },
       ],
       GlobalSecondaryIndexes: [
         {
-          IndexName: "WalletAddressIndex",
+          IndexName: "AddressIndex",
           KeySchema: [
             {
-              AttributeName: "walletAddress",
+              AttributeName: "address",
               KeyType: "HASH",
             },
           ],
@@ -147,7 +147,7 @@ async function createLocalTables(): Promise<void> {
         WriteCapacityUnits: 5,
       },
     }));
-    console.log(`✅ Created table: ${process.env.NODE_OPERATORS_TABLE_NAME}`);
+    console.log(`✅ Created OLD table: ${process.env.NODE_OPERATORS_TABLE_NAME}`);
   } catch (error: any) {
     if (error.name === "ResourceInUseException") {
       console.log(`ℹ️ Table ${process.env.NODE_OPERATORS_TABLE_NAME} already exists`);
@@ -293,7 +293,8 @@ async function copyProductionData(): Promise<void> {
       pageNum++;
       const validatorsData = await prodClient.send(new ScanCommand({
         TableName: process.env.PROD_VALIDATORS_TABLE_NAME,
-        ExclusiveStartKey: lastEvaluatedKey
+        ExclusiveStartKey: lastEvaluatedKey,
+        Limit: 100
       }));
 
       if (validatorsData.Items && validatorsData.Items.length > 0) {
@@ -317,7 +318,7 @@ async function copyProductionData(): Promise<void> {
 
   // Copy node operators data with pagination
   try {
-    console.log(`📥 Copying data from ${process.env.PROD_NODE_OPERATORS_TABLE_NAME}...`);
+    console.log(`📥 Copying data from ${process.env.PROD_NODE_OPERATORS_TABLE_NAME} → ${process.env.NODE_OPERATORS_TABLE_NAME} (OLD table)...`);
     let lastEvaluatedKey: Record<string, any> | undefined = undefined;
     let totalOperators = 0;
     let pageNum = 0;
@@ -326,7 +327,8 @@ async function copyProductionData(): Promise<void> {
       pageNum++;
       const operatorsData = await prodClient.send(new ScanCommand({
         TableName: process.env.PROD_NODE_OPERATORS_TABLE_NAME,
-        ExclusiveStartKey: lastEvaluatedKey
+        ExclusiveStartKey: lastEvaluatedKey,
+        Limit: 10
       }));
 
       if (operatorsData.Items && operatorsData.Items.length > 0) {
@@ -343,7 +345,8 @@ async function copyProductionData(): Promise<void> {
       lastEvaluatedKey = operatorsData.LastEvaluatedKey;
     } while (lastEvaluatedKey);
 
-    console.log(`✅ Copied ${totalOperators} node operators total`);
+    console.log(`✅ Copied ${totalOperators} node operators to OLD table`);
+    console.log(`📋 Migration ready: OLD table (${process.env.NODE_OPERATORS_TABLE_NAME}) → NEW table (${process.env.NODE_OPERATORS_TABLE_NAME})`);
   } catch (error) {
     console.warn("⚠️ Could not copy node operators data:", error);
   }
@@ -403,7 +406,24 @@ async function runCommand(command: string, args: string[]): Promise<void> {
 } 
 
 (async () => {
-    console.log("📊 Setting up local database...");
+    console.log("📊 Setting up local database for migration testing...");
+    console.log("🔄 This will create:");
+    console.log(`   • OLD table: ${process.env.NODE_OPERATORS_TABLE_NAME || 'sparta-node-operators-dev'} (discordId primary key)`);
+    console.log(`   • NEW table: ${process.env.NODE_OPERATORS_TABLE_NAME || 'sparta-node-op-dev'} (address primary key)`);
+    console.log("📥 Production data will be copied to the OLD table");
+    console.log("🧪 Then you can test migration: OLD → NEW table\n");
+    
     await setupLocalDB();
     await copyDB();
+    
+    console.log("\n✅ Setup complete! Ready for migration testing");
+    console.log("📝 Next steps:");
+    console.log("   1. Ensure your .env file has these variables:");
+    console.log("      NODE_OPERATORS_TABLE_NAME=sparta-node-operators-dev");
+    console.log("      NODE_OPERATORS_TABLE_NAME=sparta-node-op-dev");  
+    console.log("      LOCAL_DYNAMO_DB=true");
+    console.log("      DYNAMODB_ENDPOINT=http://localhost:8000");
+    console.log("      BACKEND_API_KEY=your-api-key");
+    console.log("   2. Run migration: bun run migration:test");
+    console.log("   3. Restart application to use new table");
 })();

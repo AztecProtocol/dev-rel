@@ -443,8 +443,11 @@ router.post("/", async (req, res) => {
 		
 		if (!operator) {
 			// Operator doesn't exist, create it
+			// When creating an operator through validator addition, use the validator's address
+			// as the operator's address. This ensures every operator has a unique address.
 			operator = await nodeOperatorService.createOperator(
 				discordId,
+				validatorAddress, // Use the first validator's address as the operator's address
 				true // Set isApproved to true by default
 			);
 			
@@ -454,7 +457,7 @@ router.post("/", async (req, res) => {
 				});
 			}
 			
-			logger.info(`Created new operator ${discordId} for validator addition`);
+			logger.info(`Created new operator ${discordId} with address ${validatorAddress} for validator addition`);
 		}
 		
 		// Check if the operator is approved

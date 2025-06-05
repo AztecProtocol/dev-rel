@@ -231,10 +231,12 @@ declare namespace Paths {
     }
     namespace CreateOperator {
         namespace Parameters {
+            export type Address = string;
             export type DiscordId = string;
         }
         export interface QueryParameters {
             discordId: Parameters.DiscordId;
+            address: Parameters.Address;
         }
         namespace Responses {
             export type $201 = Components.Schemas.NodeOperator;
@@ -271,7 +273,7 @@ declare namespace Paths {
                 success?: boolean;
                 data?: {
                     /**
-                     * Array of all validators with comprehensive information.
+                     * Array of all validators with comprehensive information and 5 latest history slots.
                      */
                     validators?: Components.Schemas.ValidatorResponse[];
                     stats?: {
@@ -691,7 +693,7 @@ export interface OperationMethods {
   /**
    * createOperator - Create a new node operator
    * 
-   * Registers a new node operator using their Discord ID. The Discord username will be automatically fetched from Discord API.
+   * Creates a new node operator registration with Discord ID and wallet address.
    */
   'createOperator'(
     parameters?: Parameters<Paths.CreateOperator.QueryParameters> | null,
@@ -761,7 +763,7 @@ export interface OperationMethods {
   /**
    * getAllValidators - Get all validators
    * 
-   * Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources.
+   * Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources. Always includes the 5 latest history slots for each validator.
    */
   'getAllValidators'(
     parameters?: Parameters<UnknownParamsObject> | null,
@@ -883,7 +885,7 @@ export interface PathsDictionary {
     /**
      * createOperator - Create a new node operator
      * 
-     * Registers a new node operator using their Discord ID. The Discord username will be automatically fetched from Discord API.
+     * Creates a new node operator registration with Discord ID and wallet address.
      */
     'post'(
       parameters?: Parameters<Paths.CreateOperator.QueryParameters> | null,
@@ -963,7 +965,7 @@ export interface PathsDictionary {
     /**
      * getAllValidators - Get all validators
      * 
-     * Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources.
+     * Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources. Always includes the 5 latest history slots for each validator.
      */
     'get'(
       parameters?: Parameters<UnknownParamsObject> | null,

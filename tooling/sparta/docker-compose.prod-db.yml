@@ -53,10 +53,11 @@ services:
         - STAKING_ASSET_HANDLER_ADDRESS=${STAKING_ASSET_HANDLER_ADDRESS}
         
         # Database Table Names
-        - NODE_OPERATORS_TABLE_NAME=sparta-node-operators-dev
+        # NOTE: After running migration, switch NODE_OPERATORS_TABLE_NAME to sparta-node-op-dev
+        - NODE_OPERATORS_TABLE_NAME=sparta-node-op-dev
         - VALIDATORS_TABLE_NAME=sparta-validators-dev
         - NETWORK_STATS_TABLE_NAME=sparta-network-stats-dev
-        - PROD_NODE_OPERATORS_TABLE_NAME=sparta-production-node-operators
+        - PROD_NODE_OPERATORS_TABLE_NAME=sparta-production-node-op
         - PROD_VALIDATORS_TABLE_NAME=sparta-production-validators
         - PROD_NETWORK_STATS_TABLE_NAME=sparta-production-network-stats
         

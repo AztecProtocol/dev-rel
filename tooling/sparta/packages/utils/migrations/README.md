@@ -109,6 +109,67 @@ Removes the `discordUsername` attribute from all items in the `node-operators` t
 * `DYNAMODB_ENDPOINT`: (Optional) For use with a local DynamoDB instance (e.g., `http://localhost:8000`).
 * `LOCAL_DYNAMO_DB="true"`: (Optional) Signals usage of a local DynamoDB instance, often in conjunction with `DYNAMODB_ENDPOINT`.
 
+### `05_populate_validator_history`
+
+Populates the validator history table with historical attestation data from the L2 RPC endpoint:
+
+- Fetches validator stats from the L2 RPC endpoint
+- Processes each validator's history entries sequentially
+- Writes history entries to the validator history table in batches
+- Checks for existing entries to avoid duplicates
+- Generates a comprehensive report
+
+**Environment Variables**:
+* `DRY_RUN=true`: Perform a dry run without actual database writes.
+* `TEST_MODE=true`: Process only first 2 validators for testing.
+* `VALIDATOR_HISTORY_TABLE_NAME`: (Required) The validator history table name.
+* `AZTEC_RPC_URL`: (Optional) L2 RPC endpoint URL (defaults to `http://35.230.8.105:8080`).
+* `AWS_REGION`: (Optional) The AWS region for the DynamoDB table (defaults to `eu-west-2`).
+
+### `06_add_wallet_to_operators`
+
+**IMPORTANT: This migration changes the primary key structure of the node operators table from `discordId` to `address`.**
+
+Migrates the node operators table to use wallet addresses as the primary key:
+
+- Fetches all validators from the API endpoint `/api/validator/validators`
+- Gets all existing operators from the database
+- Groups validators by their operator ID to determine the best address for each operator
+- For each operator, selects the validator with the highest `lastAttestationSlot`
+- Creates new operator records with `address` as the primary key
+- Deletes old operator records that used `discordId` as primary key
+- Operators without validators cannot be migrated (no address available)
+- Generates a detailed migration report
+
+**What it does:**
+1. Fetches all validators from the API and existing operators from the database
+2. Determines the best wallet address for each operator based on their validators
+3. Creates new operator records using `address` as the primary key
+4. Deletes the old records that used `discordId` as primary key
+5. Maintains `discordId` as a regular attribute (indexed via GSI)
+6. Provides comprehensive reporting of migrations, skips, and errors
+
+**Prerequisites:**
+- Terraform must be applied first to create the new table structure with GSI
+- Application code must be deployed with updated repositories
+- Ensure proper backups exist before running
+
+**Environment Variables**:
+* `DRY_RUN=true`: Perform a dry run without actual database writes.
+* `TEST_MODE=true`: Process only first 5 operators for testing.
+* `NODE_OPERATORS_TABLE_NAME`: (Required) The name of the node operators table.
+* `API_URL`: (Optional) The API base URL (defaults to `http://localhost:3000`).
+* `BACKEND_API_KEY`: (Required) API key for authentication.
+* `AWS_REGION`: (Optional) The AWS region for the DynamoDB table (defaults to `eu-west-2`).
+* `DYNAMODB_ENDPOINT`: (Optional) For use with a local DynamoDB instance.
+* `LOCAL_DYNAMO_DB="true"`: (Optional) Signals usage of a local DynamoDB instance.
+
+**Migration Order:**
+1. Deploy Terraform changes to add GSI and change primary key structure
+2. Deploy application code with updated repository methods
+3. Run this migration to transform existing data
+4. Verify all operators have been migrated successfully
+
 ## Backup System
 
 The migration system automatically creates backups before running any migration:

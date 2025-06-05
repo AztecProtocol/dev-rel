@@ -12,6 +12,7 @@
  *   npm run migrate 03_add_wasslashed_field
  *   npm run migrate 04_remove_discord_username_attribute
  *   npm run migrate 05_populate_validator_history
+ *   npm run migrate 06_add_wallet_to_operators
  * 
  * Environment variables:
  *   DRY_RUN=true - Run in dry mode (no database writes)
@@ -41,6 +42,7 @@ if (!migrationName) {
   console.log('  03_add_wasslashed_field     - Add wasSlashed field and check for slashed validators');
   console.log('  04_remove_discord_username_attribute - Remove discordUsername from node_operators table');
   console.log('  05_populate_validator_history - Populate validator history table from L2 RPC (requires numeric slots)');
+  console.log('  06_add_wallet_to_operators  - Add wallet addresses to operators based on their validators');
   console.log('\n⚠️  Note: Migration 05 requires the validator history table to be recreated with numeric slot type.');
   console.log('   Run "terraform destroy -target=aws_dynamodb_table.sparta_validator_history" first,');
   console.log('   then "terraform apply" to recreate the table with the correct schema.');

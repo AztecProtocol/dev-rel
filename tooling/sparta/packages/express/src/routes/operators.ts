@@ -312,7 +312,7 @@ router.get("/stats", async (_req: Request, res: Response) => {
  * /api/operator:
  *   post:
  *     summary: Create a new node operator
- *     description: Registers a new node operator using their Discord ID. The Discord username will be automatically fetched from Discord API.
+ *     description: Creates a new node operator registration with Discord ID and wallet address.
  *     tags: [NodeOperator]
  *     operationId: createOperator
  *     security:
@@ -323,16 +323,22 @@ router.get("/stats", async (_req: Request, res: Response) => {
  *         schema:
  *           type: string
  *         required: true
- *         description: The Discord user ID. Required for creating a new operator.
+ *         description: The Discord ID of the operator.
+ *       - in: query
+ *         name: address
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: The wallet address of the operator.
  *     responses:
  *       201:
- *         description: Node operator created successfully.
+ *         description: Operator created successfully. Returns the new operator.
  *         content:
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/NodeOperator'
  *       400:
- *         description: Bad Request - Missing or invalid parameters
+ *         description: Bad Request - Missing required parameters
  *         content:
  *           application/json:
  *             schema:
@@ -344,7 +350,7 @@ router.get("/stats", async (_req: Request, res: Response) => {
  *             schema:
  *               $ref: '#/components/schemas/OperatorError'
  *       409:
- *         description: Conflict - Operator with this Discord ID already exists
+ *         description: Conflict - Operator with this Discord ID or address already exists
  *         content:
  *           application/json:
  *             schema:
@@ -360,6 +366,7 @@ router.post(
 	"/",
 	async (req: Request, res: Response) => {
 		const discordId = req.query.discordId as string | undefined;
+		const address = req.query.address as string | undefined;
 		
 		if (!discordId) {
 			return res.status(400).json({
@@ -367,17 +374,32 @@ router.post(
 			});
 		}
 
-		// Check if operator already exists by Discord ID (primary key lookup)
-		const existingOperator = await nodeOperatorService.getOperatorByDiscordId(discordId);
-		if (existingOperator) {
+		if (!address) {
+			return res.status(400).json({
+				error: "Missing required parameter: address must be provided as a query parameter",
+			});
+		}
+
+		// Check if operator already exists by Discord ID
+		const existingOperatorByDiscord = await nodeOperatorService.getOperatorByDiscordId(discordId);
+		if (existingOperatorByDiscord) {
 			return res.status(409).json({
 				error: "Operator with this Discord ID already exists",
 			});
 		}
 
-		// Create the operator with Discord ID as primary key and username for GSI
+		// Check if operator already exists by address
+		const existingOperatorByAddress = await nodeOperatorService.getOperatorByAddress(address);
+		if (existingOperatorByAddress) {
+			return res.status(409).json({
+				error: "Operator with this address already exists",
+			});
+		}
+
+		// Create the operator with both Discord ID and address
 		const newOperator = await nodeOperatorService.createOperator(
 			discordId,
+			address,
 			true // Set isApproved to true by default
 		);
 

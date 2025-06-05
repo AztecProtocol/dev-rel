@@ -13,7 +13,7 @@ import DynamoDBService from "@sparta/utils/dynamo-db.js"; // Import the shared s
 
 const NODE_OPERATORS_TABLE_NAME =
 	process.env.NODE_OPERATORS_TABLE_NAME || "sparta-node-operators-dev";
-const DISCORD_USERNAME_INDEX_NAME = "DiscordUsernameIndex";
+const DISCORD_ID_INDEX_NAME = "DiscordIdIndex";
 
 // Instantiate the shared service for the node operators table
 const dynamoDBService = new DynamoDBService(NODE_OPERATORS_TABLE_NAME);
@@ -75,16 +75,47 @@ export class NodeOperatorRepository {
 		}
 	}
 
-	async findByDiscordId(
-		discordId: string
+	async findByAddress(
+		address: string
 	): Promise<NodeOperator | undefined> {
 		try {
 			const command = new GetCommand({
 				TableName: this.tableName,
-				Key: { discordId },
+				Key: { address },
 			});
 			const response = await this.client.send(command);
 			return response.Item as NodeOperator | undefined;
+		} catch (error) {
+			logger.error(
+				error,
+				"Error retrieving NodeOperator by address in repository"
+			);
+			throw new Error(
+				"Repository failed to retrieve node operator by address."
+			);
+		}
+	}
+
+	async findByDiscordId(
+		discordId: string
+	): Promise<NodeOperator | undefined> {
+		try {
+			// Use the GSI to query by discordId
+			const command = new QueryCommand({
+				TableName: this.tableName,
+				IndexName: DISCORD_ID_INDEX_NAME,
+				KeyConditionExpression: "discordId = :discordId",
+				ExpressionAttributeValues: {
+					":discordId": discordId,
+				},
+				Limit: 1, // We expect only one operator per discordId
+			});
+			const response = await this.client.send(command);
+			
+			if (response.Items && response.Items.length > 0) {
+				return response.Items[0] as NodeOperator;
+			}
+			return undefined;
 		} catch (error) {
 			logger.error(
 				error,
@@ -140,10 +171,12 @@ export class NodeOperatorRepository {
 
 	async create(
 		discordId: string,
+		address: string,
 		isApproved?: boolean
 	): Promise<NodeOperator> {
 		const now = Date.now();
 		const newOperator: NodeOperator = {
+			address, // Now the primary key
 			discordId,
 			...(isApproved !== undefined && { isApproved }),
 			createdAt: now,
@@ -154,23 +187,23 @@ export class NodeOperatorRepository {
 			const command = new PutCommand({
 				TableName: this.tableName,
 				Item: newOperator,
-				ConditionExpression: "attribute_not_exists(discordId)",
+				ConditionExpression: "attribute_not_exists(address)",
 			});
 			await this.client.send(command);
 			logger.info(
-				{ discordId, tableName: this.tableName },
+				{ discordId, address, tableName: this.tableName },
 				"Created new NodeOperator in repository"
 			);
 			return newOperator;
 		} catch (error: any) {
 			logger.error(
-				{ error, discordId, tableName: this.tableName },
+				{ error, discordId, address, tableName: this.tableName },
 				"Error creating NodeOperator in repository"
 			);
 			// Re-throw specific error types if needed for service layer handling
 			if (error.name === "ConditionalCheckFailedException") {
 				throw new Error(
-					`Node operator with Discord ID ${discordId} already exists.`
+					`Node operator with address ${address} already exists.`
 				);
 			}
 			throw new Error("Repository failed to create node operator.");
@@ -178,16 +211,16 @@ export class NodeOperatorRepository {
 	}
 
 	async updateApprovalStatus(
-		discordId: string,
+		address: string,
 		isApproved: boolean
 	): Promise<boolean> {
 		try {
 			const command = new UpdateCommand({
 				TableName: this.tableName,
-				Key: { discordId },
+				Key: { address },
 				UpdateExpression:
 					"SET isApproved = :isApproved, updatedAt = :updatedAt",
-				ConditionExpression: "attribute_exists(discordId)",
+				ConditionExpression: "attribute_exists(address)",
 				ExpressionAttributeValues: {
 					":isApproved": isApproved,
 					":updatedAt": Date.now(),
@@ -196,7 +229,7 @@ export class NodeOperatorRepository {
 			});
 			await this.client.send(command);
 			logger.info(
-				{ discordId, isApproved, tableName: this.tableName },
+				{ address, isApproved, tableName: this.tableName },
 				"Updated NodeOperator approval status in repository"
 			);
 			return true;
@@ -204,7 +237,7 @@ export class NodeOperatorRepository {
 			logger.error(
 				{
 					error,
-					discordId,
+					address,
 					isApproved,
 					tableName: this.tableName,
 				},
@@ -212,7 +245,7 @@ export class NodeOperatorRepository {
 			);
 			if (error.name === "ConditionalCheckFailedException") {
 				logger.warn(
-					{ discordId },
+					{ address },
 					"NodeOperator not found for update approval status operation"
 				);
 				return false;
@@ -221,17 +254,33 @@ export class NodeOperatorRepository {
 		}
 	}
 
-	async updateSlashedStatus(
+	// Helper method to update by discordId (for backward compatibility)
+	async updateApprovalStatusByDiscordId(
 		discordId: string,
+		isApproved: boolean
+	): Promise<boolean> {
+		const operator = await this.findByDiscordId(discordId);
+		if (!operator) {
+			logger.warn(
+				{ discordId },
+				"NodeOperator not found by discordId for update approval status operation"
+			);
+			return false;
+		}
+		return this.updateApprovalStatus(operator.address, isApproved);
+	}
+
+	async updateSlashedStatus(
+		address: string,
 		wasSlashed: boolean
 	): Promise<boolean> {
 		try {
 			const command = new UpdateCommand({
 				TableName: this.tableName,
-				Key: { discordId },
+				Key: { address },
 				UpdateExpression:
 					"SET wasSlashed = :wasSlashed, updatedAt = :updatedAt",
-				ConditionExpression: "attribute_exists(discordId)",
+				ConditionExpression: "attribute_exists(address)",
 				ExpressionAttributeValues: {
 					":wasSlashed": wasSlashed,
 					":updatedAt": Date.now(),
@@ -240,7 +289,7 @@ export class NodeOperatorRepository {
 			});
 			await this.client.send(command);
 			logger.info(
-				{ discordId, wasSlashed, tableName: this.tableName },
+				{ address, wasSlashed, tableName: this.tableName },
 				"Updated NodeOperator slashed status in repository"
 			);
 			return true;
@@ -248,7 +297,7 @@ export class NodeOperatorRepository {
 			logger.error(
 				{
 					error,
-					discordId,
+					address,
 					wasSlashed,
 					tableName: this.tableName,
 				},
@@ -256,7 +305,7 @@ export class NodeOperatorRepository {
 			);
 			if (error.name === "ConditionalCheckFailedException") {
 				logger.warn(
-					{ discordId },
+					{ address },
 					"NodeOperator not found for update slashed status operation"
 				);
 				return false;
@@ -265,33 +314,61 @@ export class NodeOperatorRepository {
 		}
 	}
 
-	async deleteByDiscordId(discordId: string): Promise<boolean> {
+	// Helper method to update by discordId (for backward compatibility)
+	async updateSlashedStatusByDiscordId(
+		discordId: string,
+		wasSlashed: boolean
+	): Promise<boolean> {
+		const operator = await this.findByDiscordId(discordId);
+		if (!operator) {
+			logger.warn(
+				{ discordId },
+				"NodeOperator not found by discordId for update slashed status operation"
+			);
+			return false;
+		}
+		return this.updateSlashedStatus(operator.address, wasSlashed);
+	}
+
+	async deleteByAddress(address: string): Promise<boolean> {
 		try {
 			const command = new DeleteCommand({
 				TableName: this.tableName,
-				Key: { discordId },
-				ConditionExpression: "attribute_exists(discordId)",
+				Key: { address },
+				ConditionExpression: "attribute_exists(address)",
 			});
 			await this.client.send(command);
 			logger.info(
-				{ discordId, tableName: this.tableName },
+				{ address, tableName: this.tableName },
 				"Deleted NodeOperator in repository"
 			);
 			return true;
 		} catch (error: any) {
 			logger.error(
-				{ error, discordId, tableName: this.tableName },
+				{ error, address, tableName: this.tableName },
 				"Error deleting NodeOperator in repository"
 			);
 			if (error.name === "ConditionalCheckFailedException") {
 				logger.warn(
-					{ discordId },
+					{ address },
 					"NodeOperator not found for delete operation"
 				);
 				return false;
 			}
 			throw error;
 		}
+	}
+
+	async deleteByDiscordId(discordId: string): Promise<boolean> {
+		const operator = await this.findByDiscordId(discordId);
+		if (!operator) {
+			logger.warn(
+				{ discordId },
+				"NodeOperator not found by discordId for delete operation"
+			);
+			return false;
+		}
+		return this.deleteByAddress(operator.address);
 	}
 
 	/**
