@@ -6,8 +6,8 @@ import {
 } from "../../types.js";
 import { getNodeOperatorInfo } from "./my-stats.js";
 import { showOperatorHelp } from "./help.js";
-import { addValidator } from "./add-validator.js";
 import { checkNodeReadiness } from "./is-ready.js";
+import { verifyDiscordAccount } from "./verify-discord.js";
 
 export default {
 	data: new SlashCommandBuilder()
@@ -25,17 +25,6 @@ export default {
 		)
 		.addSubcommand((subcommand) =>
 			subcommand
-				.setName(NodeOperatorSubcommands.AddValidator)
-				.setDescription("🗡️ Deploy additional validator to the front lines")
-				.addStringOption((option) =>
-					option
-						.setName("validator-address")
-						.setDescription("Battle address of the validator to deploy")
-						.setRequired(true)
-				)
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
 				.setName(NodeOperatorSubcommands.IsReady)
 				.setDescription("🏰 Check if your battle fortress is ready for combat")
 				.addStringOption((option) =>
@@ -43,6 +32,17 @@ export default {
 						.setName("ip-address")
 						.setDescription("Your fortress IP address for readiness inspection")
 						.setRequired(false)
+				)
+		)
+		.addSubcommand((subcommand) =>
+			subcommand
+				.setName(NodeOperatorSubcommands.VerifyDiscord)
+				.setDescription("🔗 Verify your Discord account with your operator address")
+				.addStringOption((option) =>
+					option
+						.setName("address")
+						.setDescription("Your operator wallet address")
+						.setRequired(true)
 				)
 		),
 	execute: async (interaction: ChatInputCommandInteraction) => {
@@ -55,11 +55,11 @@ export default {
 				case NodeOperatorSubcommands.MyStats:
 					await getNodeOperatorInfo(interaction);
 					break;
-				case NodeOperatorSubcommands.AddValidator:
-					await addValidator(interaction);
-					break;
 				case NodeOperatorSubcommands.IsReady:
 					await checkNodeReadiness(interaction);
+					break;
+				case NodeOperatorSubcommands.VerifyDiscord:
+					await verifyDiscordAccount(interaction);
 					break;
 				default:
 					await interaction.editReply({

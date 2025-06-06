@@ -146,7 +146,7 @@ describe("Validator E2E Tests", () => {
     console.log(`✅ Found ${validatorsWithoutOperators.length} validators without operators`);
   });
 
-  test("should add validator to approved operator and retrieve it", async () => {
+  test("should add validator to operator and retrieve it", async () => {
     // Step 1: Add validator to the operator
     console.log("➕ Adding validator to operator...");
     const addResponse = await makeAPIRequest("POST", "/api/validator", {
@@ -178,7 +178,7 @@ describe("Validator E2E Tests", () => {
       (v: any) => v.validatorAddress === testValidatorAddress
     );
     expect(validatorFound).toBeTruthy();
-    expect(validatorFound.nodeOperatorId).toBe(validatorTestOperator.discordId);
+    expect(validatorFound.nodeOperatorId).toBe(validatorTestOperator.walletAddress);
     console.log("✅ Validator found in operator's validator list");
   });
 
@@ -314,57 +314,10 @@ describe("Validator E2E Tests", () => {
     expect(getByAddressResponse.status).toBe(200);
     expect(getByAddressResponse.data).toHaveProperty("success", true);
     expect(val).toHaveProperty("validatorAddress", actualValidatorAddress);
-    expect(val).toHaveProperty("nodeOperatorId", validatorTestOperator2.discordId);
+    expect(val).toHaveProperty("nodeOperatorId", validatorTestOperator2.walletAddress);
     console.log("✅ Validator confirmed in database as well");
     
     console.log("🎉 Full on-chain and database validation test completed successfully!");
-  });
-
-  test("should reject validator addition for unapproved operator", async () => {
-    // Step 1: First add a validator to create the operator automatically (will be approved by default)
-    console.log("🔧 Creating operator automatically by adding first validator...");
-    await makeAPIRequest("POST", "/api/validator", {
-      params: { discordId: validatorTestOperator2.discordId },
-      data: { 
-        validatorAddress: testValidatorAddress,
-        skipOnChain: true
-      }
-    });
-    console.log("✅ Operator created automatically with first validator");
-
-    // Step 2: Unapprove the operator
-    console.log("❌ Unapproving operator for test...");
-    await makeAPIRequest("DELETE", "/api/operator/approve", {
-      params: { discordId: validatorTestOperator2.discordId }
-    });
-
-    // Step 3: Try to add another validator to unapproved operator (should fail)
-    console.log("❌ Attempting to add second validator to unapproved operator...");
-    try {
-      await makeAPIRequest("POST", "/api/validator", {
-        params: { discordId: validatorTestOperator2.discordId },
-        data: { 
-          validatorAddress: testValidatorAddress2,
-          skipOnChain: true
-        }
-      });
-      // If we reach here, the request didn't fail as expected
-      expect(true).toBe(false);
-    } catch (error: any) {
-      expect(error.response?.status).toBe(403);
-      expect(error.response?.data).toHaveProperty("error", "Node operator is not approved");
-      console.log("✅ Validator addition correctly rejected for unapproved operator");
-    }
-
-    // Step 4: Verify only the first validator was added (second was rejected)
-    console.log("🔍 Verifying only first validator was added...");
-    const getByOperatorResponse = await makeAPIRequest("GET", "/api/validator", {
-      params: { discordId: validatorTestOperator2.discordId }
-    });
-    expect(getByOperatorResponse.status).toBe(200);
-    expect(getByOperatorResponse.data.data.validators.length).toBe(1);
-    expect(getByOperatorResponse.data.data.validators[0].validatorAddress).toBe(testValidatorAddress);
-    console.log("✅ Confirmed only first validator exists (second was rejected)");
   });
 
   test("should remove validator from operator", async () => {

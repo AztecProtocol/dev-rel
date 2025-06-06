@@ -176,7 +176,7 @@ export class EpochSyncService {
 
 			// Check if we need to sync
 			if (this.lastSyncedEpoch === currentEpoch) {
-				logger.debug(`Already synced for epoch ${currentEpoch}`);
+				logger.debug(`Already synced for epoch ${this.lastSyncedEpoch} (${currentEpoch} on-chain)`);
 				return;
 			}
 
@@ -236,7 +236,8 @@ export class EpochSyncService {
 			let nextPageToken: string | undefined = undefined;
 
 			do {
-				const result: { validators: any[]; nextPageToken?: string } = await validatorService.getAllValidators(nextPageToken);
+				// Use getAllValidators with pagination, keeping the default parameters for history
+				const result: { validators: any[]; nextPageToken?: string } = await validatorService.getAllValidators(nextPageToken, true, 5);
 				allValidators = allValidators.concat(result.validators);
 				nextPageToken = result.nextPageToken;
 			} while (nextPageToken);
@@ -314,7 +315,7 @@ export class EpochSyncService {
 		logger.info(`L1 sync: Processing ${newValidators.length} new validators (${blockchainValidators.length} total on chain)`);
 
 		// Process validators in smaller batches to avoid DynamoDB throttling
-		const BATCH_SIZE = 5; // Reduced from 10 to avoid throttling
+		const BATCH_SIZE = 20; // Reduced from 10 to avoid throttling
 		const BATCH_DELAY_MS = 250; // Increased from 100ms to 250ms delay between batches
 		const MAX_RETRIES = 3;
 		

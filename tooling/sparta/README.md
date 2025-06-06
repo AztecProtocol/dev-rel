@@ -12,7 +12,6 @@ Sparta is a modular Discord bot ecosystem designed specifically for the Aztec bl
 - **📊 Blockchain Monitoring**: Real-time monitoring of Aztec network blocks, epochs, slots, and validator status
 - **🔌 API Integration**: RESTful API for external service integration and web interface
 - **⚡ Automated Monitoring**: Lambda-based scheduled monitoring with alerting capabilities
-- **🛡️ Slashing Protection**: Automatic detection and handling of slashed validators with user protection
 
 ### Use Cases
 - **Community Management**: Discord server administration for Aztec validator communities
@@ -484,7 +483,6 @@ Available to users with moderator roles:
 | `id` | String | Unique operator ID |
 | `ethereumAddress` | String | Ethereum wallet address |
 | `discordHandle` | String | Discord username |
-| `isApproved` | Boolean | Approval status |
 | `createdAt` | Timestamp | Registration time |
 
 #### Validators Table
@@ -495,7 +493,6 @@ Available to users with moderator roles:
 | `operatorId` | String | Owner operator ID |
 | `address` | String | Validator address |
 | `isActive` | Boolean | Activity status |
-| `wasSlashed` | Boolean | Slashing history |
 | `lastSeen` | Timestamp | Last activity |
 
 ## 🔍 Troubleshooting

@@ -16,17 +16,11 @@ import { getEthereumInstance } from "@sparta/ethereum";
 dotenv.config();
 
 // Define types based on API responses
-interface Validator {
-	validatorAddress: string;
-	nodeOperatorId: string;
-}
-
 interface NodeOperator {
 	discordId: string;
-	isApproved?: boolean;
 	createdAt: number;
 	updatedAt: number;
-	validators?: Validator[];
+	validators?: string[];
 }
 
 interface ValidatorDetail {
@@ -65,8 +59,8 @@ export async function getNodeOperatorInfo(
 			
 			// Fetch operator info by Discord ID
 			try {
-				// Call the operator API with the Discord ID as query parameter
-				const response = await client.getOperator({
+				// Use the new by-socials route to find operator by Discord ID
+				const response = await client.getOperatorBySocials({
 					discordId: discordId
 				});
 				
@@ -105,10 +99,10 @@ export async function getNodeOperatorInfo(
 					totalValidators = operator.validators.length;
 					
 					// Get detailed validator data for each validator
-					for (const validatorRef of operator.validators) {
+					for (const validatorAddress of operator.validators) {
 						try {
 							const validatorResponse = await client.getValidator({
-								address: validatorRef.validatorAddress
+								address: validatorAddress
 							});
 							
 							// Extract the actual validator data from the nested response
@@ -204,10 +198,10 @@ export async function getNodeOperatorInfo(
 								peerLastSeen: peerLastSeen,
 							});
 						} catch (error) {
-							logger.error(error, `Failed to fetch validator data for ${validatorRef.validatorAddress}`);
+							logger.error(error, `Failed to fetch validator data for ${validatorAddress}`);
 							// Add a basic entry for failed validator
 							validatorDetails.push({
-								address: validatorRef.validatorAddress,
+								address: validatorAddress,
 								inSet: false,
 								attesting: false,
 								missPercentage: "Error loading data",

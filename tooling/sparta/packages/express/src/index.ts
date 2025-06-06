@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import apiRoutes from "./routes/api.js";
-// import { dynamoDB } from "@sparta/utils"; // Unused
 import { getDiscordInstance } from "@sparta/discord";
 import { logger } from "@sparta/utils";
 import path from "path"; // Import path module

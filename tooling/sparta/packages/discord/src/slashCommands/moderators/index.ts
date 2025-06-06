@@ -3,7 +3,6 @@ import {
 	ChatInputCommandInteraction,
 	MessageFlags,
 } from "discord.js";
-// import { getValidatorStats } from "./get-operator-stats.js";
 import { logger } from "@sparta/utils";
 import {
 	ModeratorSubcommandGroups,
@@ -11,8 +10,6 @@ import {
 } from "../../types.js";
 import { showModeratorHelp } from "./help.js";
 import { checkModeratorPermissions } from "../../utils/index.js";
-import { approveUser } from "./operator-approve.js";
-import { unapproveUser } from "./operator-unapprove.js";
 import { getOperatorInfo } from "./operator-info.js";
 import { addValidator } from "./add-validator.js";
 
@@ -34,40 +31,6 @@ export default {
 					option
 						.setName("user-id")
 						.setDescription("The Discord ID of the operator (alternative)")
-						.setRequired(false)
-				)
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName(ModeratorSubcommands.Approve)
-				.setDescription("Approve a user to join the validator set")
-				.addStringOption((option) =>
-					option
-						.setName("username")
-						.setDescription("The Discord username of the user to approve (preferred)")
-						.setRequired(false)
-				)
-				.addStringOption((option) =>
-					option
-						.setName("user-id")
-						.setDescription("The Discord ID of the user to approve (alternative)")
-						.setRequired(false)
-				)
-		)
-		.addSubcommand((subcommand) =>
-			subcommand
-				.setName(ModeratorSubcommands.Unapprove)
-				.setDescription("Unapprove a user from the validator set")
-				.addStringOption((option) =>
-					option
-						.setName("username")
-						.setDescription("The Discord username of the user to unapprove (preferred)")
-						.setRequired(false)
-				)
-				.addStringOption((option) =>
-					option
-						.setName("user-id")
-						.setDescription("The Discord ID of the user to unapprove (alternative)")
 						.setRequired(false)
 				)
 		)
@@ -118,12 +81,6 @@ export default {
 			switch (subcommand) {
 				case ModeratorSubcommands.Info:
 					await getOperatorInfo(interaction);
-					break;
-				case ModeratorSubcommands.Approve:
-					await approveUser(interaction);
-					break;
-				case ModeratorSubcommands.Unapprove:
-					await unapproveUser(interaction);
 					break;
 				case ModeratorSubcommands.Help:
 					await showModeratorHelp(interaction);

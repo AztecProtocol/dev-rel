@@ -8,17 +8,11 @@ import { getEthereumInstance } from "@sparta/ethereum";
 dotenv.config();
 
 // Define types based on API responses
-interface Validator {
-	validatorAddress: string;
-	nodeOperatorId: string;
-}
-
 interface NodeOperator {
 	discordId: string;
-	isApproved?: boolean;
 	createdAt: number;
 	updatedAt: number;
-	validators?: Validator[];
+	validators?: string[];
 }
 
 interface ValidatorDetail {
@@ -59,8 +53,8 @@ export async function getOperatorInfo(
 			
 			// Fetch operator info by Discord ID
 			try {
-				// Call the operator API with the Discord ID as query parameter
-				const response = await client.getOperator({
+				// First, get the operator using the new by-socials route
+				const response = await client.getOperatorBySocials({
 					discordId: discordUserId
 				});
 				
@@ -93,10 +87,10 @@ export async function getOperatorInfo(
 					totalValidators = operator.validators.length;
 					
 					// Get detailed validator data for each validator
-					for (const validatorRef of operator.validators) {
+					for (const validatorAddress of operator.validators) {
 						try {
 							const validatorResponse = await client.getValidator({
-								address: validatorRef.validatorAddress
+								address: validatorAddress
 							});
 							
 							// Extract the actual validator data from the nested response
@@ -160,10 +154,10 @@ export async function getOperatorInfo(
 							});
 							
 						} catch (error) {
-							logger.error(error, `Failed to fetch validator data for ${validatorRef.validatorAddress}`);
+							logger.error(error, `Failed to fetch validator data for ${validatorAddress}`);
 							// Add a basic entry for failed validator
 							validatorDetails.push({
-								address: validatorRef.validatorAddress,
+								address: validatorAddress,
 								inSet: false,
 								attesting: false,
 								missPercentage: "Error loading data",
@@ -180,18 +174,13 @@ export async function getOperatorInfo(
 				
 				// Create embed with all operator information
 				const embed = new EmbedBuilder()
-					.setTitle(`${operator.isApproved ? "✅" : "⚠️"} OPERATOR INFO: ${operator.discordId}`)
-					.setColor(operator.isApproved ? 0x00ff00 : 0xffcc00) // Green if approved, yellow if not
+					.setTitle(`OPERATOR INFO: ${operator.discordId}`)
+					.setColor(0x00ff00)
 					.setDescription(`Comprehensive information about node operator: \`${operator.discordId}\``)
 					.addFields([
 						{
 							name: "Discord ID",
 							value: `\`${operator.discordId}\``,
-							inline: true
-						},
-						{
-							name: "Approval Status",
-							value: operator.isApproved ? "Approved ✅" : "Not Approved ⚠️",
 							inline: true
 						},
 						{

@@ -8,9 +8,9 @@
         "dev": "bun --watch run src/index.ts"
     },
     "dependencies": {
-        "@sparta/utils": "workspace:*",
         "@sparta/discord": "workspace:*",
         "@sparta/ethereum": "workspace:*",
+        "@sparta/utils": "workspace:*",
         "axios": "^1.6.7",
         "cors": "^2.8.5",
         "discord.js": "^14.14.1",
@@ -19,7 +19,7 @@
         "openapi-client-axios": "^7.6.0",
         "swagger-autogen": "^2.23.7",
         "swagger2openapi": "^7.0.8",
-        "viem": "^2.9.15"
+        "viem": "^2.30.6"
     },
     "devDependencies": {
         "@types/express": "^4.17.21",

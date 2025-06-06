@@ -99,7 +99,6 @@ export class ValidatorHistoryRepository {
 			logger.warn({ validatorAddress }, "No history entries provided");
 			return false;
 		}
-		console.log("writing to table", this.tableName);
 
 		try {
 			const timestamp = Date.now();
@@ -413,13 +412,15 @@ export class ValidatorHistoryRepository {
 			const promises = batch.map(async (validatorAddress) => {
 				try {
 					const historyResult = await this.getValidatorHistory(validatorAddress, limit);
-					result[validatorAddress] = historyResult.history;
+					// Store result using lowercase key to match how it's looked up in validator repository
+					const storageKey = validatorAddress.toLowerCase();
+					result[storageKey] = historyResult.history;
 				} catch (error) {
 					logger.error(
 						{ error, validatorAddress },
 						"Failed to get history for validator in batch"
 					);
-					result[validatorAddress] = []; // Return empty array on error
+					result[validatorAddress.toLowerCase()] = []; // Return empty array on error
 				}
 			});
 

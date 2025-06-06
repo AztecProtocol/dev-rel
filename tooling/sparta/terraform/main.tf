@@ -355,6 +355,11 @@ resource "aws_dynamodb_table" "sparta_node_op" {
     type = "S"
   }
 
+  attribute {
+    name = "xId" # Added for XIdIndex
+    type = "S"
+  }
+
   # Define the primary hash key (NEW: address as primary key)
   hash_key = "address"
 
@@ -364,6 +369,12 @@ resource "aws_dynamodb_table" "sparta_node_op" {
     hash_key        = "discordId"
     projection_type = "ALL" # Project all attributes
     # PAY_PER_REQUEST billing mode applies to GSIs as well
+  }
+
+  global_secondary_index {
+    name            = "XIdIndex"        # Renamed from SocialsXIdIndex
+    hash_key        = "xId"             # Uses the new xId attribute
+    projection_type = "ALL"
   }
 
   # Enable Point-in-Time Recovery for backups (Recommended)
@@ -388,7 +399,7 @@ resource "aws_dynamodb_table" "sparta_validators" {
   }
   attribute {
     name = "nodeOperatorId"
-    type = "S"
+    type = "S"  # After migration: contains operator address (not Discord ID)
   }
 
   # Define the primary hash key
@@ -397,7 +408,7 @@ resource "aws_dynamodb_table" "sparta_validators" {
   # Define Global Secondary Indexes
   global_secondary_index {
     name            = "NodeOperatorIndex"
-    hash_key        = "nodeOperatorId"
+    hash_key        = "nodeOperatorId"  # Index on operator address for efficient lookups
     projection_type = "ALL" # Project all attributes
     # PAY_PER_REQUEST billing mode applies to GSIs as well
   }
@@ -833,11 +844,6 @@ output "api_load_balancer_dns" {
 output "api_service_name" {
   description = "The name of the ECS service for the API"
   value       = aws_ecs_service.sparta_api.name
-}
-
-output "ecs_cluster_name" {
-  description = "The name of the ECS cluster"
-  value       = aws_ecs_cluster.sparta_cluster.name
 }
 
 output "node_operators_table_name" {

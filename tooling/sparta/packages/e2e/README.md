@@ -39,12 +39,11 @@ npm run test:validator
 
 ### Validator Tests
 - Get all validators from blockchain and database
-- Add validators to approved operators
+- Add validators to operators
 - **Get validator by address** - Tests the new address parameter functionality
 - Handle invalid address formats (400 errors)
 - Handle non-existent addresses (404 errors)
 - Add validators on-chain
-- Reject validator addition for unapproved operators
 - Remove validators from operators
 - Handle validator lookup by Discord username
 

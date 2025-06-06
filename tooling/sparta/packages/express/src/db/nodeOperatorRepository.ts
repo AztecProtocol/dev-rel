@@ -14,6 +14,7 @@ import DynamoDBService from "@sparta/utils/dynamo-db.js"; // Import the shared s
 const NODE_OPERATORS_TABLE_NAME =
 	process.env.NODE_OPERATORS_TABLE_NAME || "sparta-node-operators-dev";
 const DISCORD_ID_INDEX_NAME = "DiscordIdIndex";
+const X_ID_INDEX_NAME = "XIdIndex";
 
 // Instantiate the shared service for the node operators table
 const dynamoDBService = new DynamoDBService(NODE_OPERATORS_TABLE_NAME);
@@ -31,14 +32,12 @@ export class NodeOperatorRepository {
 		);
 	}
 
-	async findAll(pageToken?: string): Promise<{ operators: NodeOperator[]; nextPageToken?: string }> {
+	async findAll(pageToken?: string, limit: number = 100): Promise<{ operators: NodeOperator[]; nextPageToken?: string }> {
 		try {
-			const ITEMS_PER_PAGE = 100;
-			
 			// Build the scan command
 			const scanParams: any = {
 				TableName: this.tableName,
-				Limit: ITEMS_PER_PAGE
+				Limit: limit
 			};
 			
 			// If we have a page token, use it as the ExclusiveStartKey
@@ -170,67 +169,72 @@ export class NodeOperatorRepository {
 	}
 
 	async create(
-		discordId: string,
-		address: string,
-		isApproved?: boolean
+		operatorData: NodeOperator
 	): Promise<NodeOperator> {
+		// Ensure createdAt and updatedAt are set if not already present (though service layer should handle this)
 		const now = Date.now();
-		const newOperator: NodeOperator = {
-			address, // Now the primary key
-			discordId,
-			...(isApproved !== undefined && { isApproved }),
-			createdAt: now,
-			updatedAt: now,
+		const itemToCreate: NodeOperator = {
+			...operatorData,
+			createdAt: operatorData.createdAt || now,
+			updatedAt: operatorData.updatedAt || now,
 		};
 
 		try {
 			const command = new PutCommand({
 				TableName: this.tableName,
-				Item: newOperator,
+				Item: itemToCreate, // Use the passed object, which includes SocialsDiscordId/SocialsXId
 				ConditionExpression: "attribute_not_exists(address)",
 			});
 			await this.client.send(command);
 			logger.info(
-				{ discordId, address, tableName: this.tableName },
+				{ address: itemToCreate.address, tableName: this.tableName },
 				"Created new NodeOperator in repository"
 			);
-			return newOperator;
+			return itemToCreate;
 		} catch (error: any) {
 			logger.error(
-				{ error, discordId, address, tableName: this.tableName },
+				{ 
+					errorName: error?.name,
+					errorMessage: error?.message,
+					errorStack: error?.stack,
+					errorCode: error?.code,
+					fullError: JSON.stringify(error, Object.getOwnPropertyNames(error)),
+					address: itemToCreate.address, 
+					tableName: this.tableName 
+				},
 				"Error creating NodeOperator in repository"
 			);
 			// Re-throw specific error types if needed for service layer handling
 			if (error.name === "ConditionalCheckFailedException") {
 				throw new Error(
-					`Node operator with address ${address} already exists.`
+					`Node operator with address ${itemToCreate.address} already exists.`
 				);
 			}
 			throw new Error("Repository failed to create node operator.");
 		}
 	}
 
-	async updateApprovalStatus(
+	async updateSocials(
 		address: string,
-		isApproved: boolean
+		socials: NodeOperator['socials']
 	): Promise<boolean> {
 		try {
 			const command = new UpdateCommand({
 				TableName: this.tableName,
 				Key: { address },
 				UpdateExpression:
-					"SET isApproved = :isApproved, updatedAt = :updatedAt",
+					"SET socials = :socials, updatedAt = :updatedAt",
 				ConditionExpression: "attribute_exists(address)",
 				ExpressionAttributeValues: {
-					":isApproved": isApproved,
+					":socials": socials,
 					":updatedAt": Date.now(),
 				},
 				ReturnValues: "NONE",
 			});
 			await this.client.send(command);
 			logger.info(
-				{ address, isApproved, tableName: this.tableName },
-				"Updated NodeOperator approval status in repository"
+				{ address, tableName: this.tableName },
+				"Updated NodeOperator socials in repository"
 			);
 			return true;
 		} catch (error: any) {
@@ -238,96 +242,19 @@ export class NodeOperatorRepository {
 				{
 					error,
 					address,
-					isApproved,
 					tableName: this.tableName,
 				},
-				"Error updating NodeOperator approval status in repository"
+				"Error updating NodeOperator socials in repository"
 			);
 			if (error.name === "ConditionalCheckFailedException") {
 				logger.warn(
 					{ address },
-					"NodeOperator not found for update approval status operation"
+					"NodeOperator not found for update socials operation"
 				);
 				return false;
 			}
 			throw error;
 		}
-	}
-
-	// Helper method to update by discordId (for backward compatibility)
-	async updateApprovalStatusByDiscordId(
-		discordId: string,
-		isApproved: boolean
-	): Promise<boolean> {
-		const operator = await this.findByDiscordId(discordId);
-		if (!operator) {
-			logger.warn(
-				{ discordId },
-				"NodeOperator not found by discordId for update approval status operation"
-			);
-			return false;
-		}
-		return this.updateApprovalStatus(operator.address, isApproved);
-	}
-
-	async updateSlashedStatus(
-		address: string,
-		wasSlashed: boolean
-	): Promise<boolean> {
-		try {
-			const command = new UpdateCommand({
-				TableName: this.tableName,
-				Key: { address },
-				UpdateExpression:
-					"SET wasSlashed = :wasSlashed, updatedAt = :updatedAt",
-				ConditionExpression: "attribute_exists(address)",
-				ExpressionAttributeValues: {
-					":wasSlashed": wasSlashed,
-					":updatedAt": Date.now(),
-				},
-				ReturnValues: "NONE",
-			});
-			await this.client.send(command);
-			logger.info(
-				{ address, wasSlashed, tableName: this.tableName },
-				"Updated NodeOperator slashed status in repository"
-			);
-			return true;
-		} catch (error: any) {
-			logger.error(
-				{
-					error,
-					address,
-					wasSlashed,
-					tableName: this.tableName,
-				},
-				"Error updating NodeOperator slashed status in repository"
-			);
-			if (error.name === "ConditionalCheckFailedException") {
-				logger.warn(
-					{ address },
-					"NodeOperator not found for update slashed status operation"
-				);
-				return false;
-			}
-			throw error;
-		}
-	}
-
-	// Helper method to update by discordId (for backward compatibility)
-	async updateSlashedStatusByDiscordId(
-		discordId: string,
-		wasSlashed: boolean
-	): Promise<boolean> {
-		const operator = await this.findByDiscordId(discordId);
-		if (!operator) {
-			logger.warn(
-				{ discordId },
-				"NodeOperator not found by discordId for update slashed status operation"
-			);
-			return false;
-		}
-		return this.updateSlashedStatus(operator.address, wasSlashed);
 	}
 
 	async deleteByAddress(address: string): Promise<boolean> {
@@ -372,114 +299,6 @@ export class NodeOperatorRepository {
 	}
 
 	/**
-	 * Counts all node operators that have empty validators arrays and are approved.
-	 * Uses DynamoDB FilterExpression with COUNT select for efficient counting.
-	 * @returns The count of approved node operators with empty validators arrays.
-	 */
-	async countApprovedOperatorsWithoutValidators(): Promise<number> {
-		try {
-			// Get the validators table name from environment
-			const VALIDATORS_TABLE_NAME = process.env.VALIDATORS_TABLE_NAME || "sparta-validators-dev";
-			
-			// First, get all approved operators
-			const approvedOperatorIds = new Set<string>();
-			let lastEvaluatedKey: any = undefined;
-			
-			do {
-				const scanParams: any = {
-					TableName: this.tableName,
-					Select: "SPECIFIC_ATTRIBUTES",
-					ProjectionExpression: "discordId",
-					FilterExpression: "isApproved = :approved",
-					ExpressionAttributeValues: {
-						":approved": true
-					}
-				};
-				
-				if (lastEvaluatedKey) {
-					scanParams.ExclusiveStartKey = lastEvaluatedKey;
-				}
-				
-				const command = new ScanCommand(scanParams);
-				const response = await this.client.send(command);
-				
-				if (response.Items) {
-					for (const item of response.Items) {
-						if (item.discordId) {
-							approvedOperatorIds.add(item.discordId);
-						}
-					}
-				}
-				
-				lastEvaluatedKey = response.LastEvaluatedKey;
-			} while (lastEvaluatedKey);
-			
-			logger.debug(
-				{ totalApprovedOperators: approvedOperatorIds.size },
-				"Found approved operators"
-			);
-			
-			// Get all operators that have validators
-			const operatorsWithValidators = new Set<string>();
-			lastEvaluatedKey = undefined;
-			
-			do {
-				const scanParams: any = {
-					TableName: VALIDATORS_TABLE_NAME,
-					Select: "SPECIFIC_ATTRIBUTES",
-					ProjectionExpression: "nodeOperatorId",
-					FilterExpression: "attribute_exists(nodeOperatorId) AND nodeOperatorId <> :empty",
-					ExpressionAttributeValues: {
-						":empty": ""
-					}
-				};
-				
-				if (lastEvaluatedKey) {
-					scanParams.ExclusiveStartKey = lastEvaluatedKey;
-				}
-				
-				const command = new ScanCommand(scanParams);
-				const response = await this.client.send(command);
-				
-				if (response.Items) {
-					for (const item of response.Items) {
-						if (item.nodeOperatorId) {
-							operatorsWithValidators.add(item.nodeOperatorId);
-						}
-					}
-				}
-				
-				lastEvaluatedKey = response.LastEvaluatedKey;
-			} while (lastEvaluatedKey);
-			
-			// Count approved operators without validators
-			let approvedWithoutValidators = 0;
-			for (const operatorId of approvedOperatorIds) {
-				if (!operatorsWithValidators.has(operatorId)) {
-					approvedWithoutValidators++;
-				}
-			}
-			
-			logger.info(
-				{ 
-					totalApproved: approvedOperatorIds.size,
-					approvedWithValidators: operatorsWithValidators.size,
-					approvedWithoutValidators
-				},
-				"Counted approved operators without validators"
-			);
-			
-			return approvedWithoutValidators;
-		} catch (error) {
-			logger.error(
-				error,
-				"Error counting approved NodeOperators without validators in repository"
-			);
-			throw new Error("Repository failed to count approved node operators without validators.");
-		}
-	}
-
-	/**
 	 * Counts all node operators that have empty validators arrays (regardless of approval status).
 	 * Uses DynamoDB FilterExpression with COUNT select for efficient counting.
 	 * @returns The count of all node operators with empty validators arrays.
@@ -490,14 +309,14 @@ export class NodeOperatorRepository {
 			const VALIDATORS_TABLE_NAME = process.env.VALIDATORS_TABLE_NAME || "sparta-validators-dev";
 			
 			// First, get all operators
-			const allOperatorIds = new Set<string>();
+			const allOperatorAddresses = new Set<string>();
 			let lastEvaluatedKey: any = undefined;
 			
 			do {
 				const scanParams: any = {
 					TableName: this.tableName,
 					Select: "SPECIFIC_ATTRIBUTES",
-					ProjectionExpression: "discordId"
+					ProjectionExpression: "address"
 				};
 				
 				if (lastEvaluatedKey) {
@@ -509,8 +328,8 @@ export class NodeOperatorRepository {
 				
 				if (response.Items) {
 					for (const item of response.Items) {
-						if (item.discordId) {
-							allOperatorIds.add(item.discordId);
+						if (item.address) {
+							allOperatorAddresses.add(item.address);
 						}
 					}
 				}
@@ -519,7 +338,7 @@ export class NodeOperatorRepository {
 			} while (lastEvaluatedKey);
 			
 			logger.debug(
-				{ totalOperators: allOperatorIds.size },
+				{ totalOperators: allOperatorAddresses.size },
 				"Found all operators"
 			);
 			
@@ -558,15 +377,15 @@ export class NodeOperatorRepository {
 			
 			// Count all operators without validators
 			let operatorsWithoutValidators = 0;
-			for (const operatorId of allOperatorIds) {
-				if (!operatorsWithValidators.has(operatorId)) {
+			for (const operatorAddress of allOperatorAddresses) {
+				if (!operatorsWithValidators.has(operatorAddress)) {
 					operatorsWithoutValidators++;
 				}
 			}
 			
 			logger.info(
 				{ 
-					totalOperators: allOperatorIds.size,
+					totalOperators: allOperatorAddresses.size,
 					operatorsWithValidators: operatorsWithValidators.size,
 					operatorsWithoutValidators
 				},
@@ -666,6 +485,131 @@ export class NodeOperatorRepository {
 				"Error counting NodeOperators with multiple validators in repository"
 			);
 			throw new Error("Repository failed to count node operators with multiple validators.");
+		}
+	}
+
+	async findBySocial(
+		socialPlatform: 'discord' | 'x',
+		socialHandle: string
+	): Promise<NodeOperator | undefined> {
+		let indexName: string;
+		let keyConditionExpression: string;
+		let expressionAttributeValues: { [key: string]: any } = {
+			":handle": socialHandle,
+		};
+
+		if (socialPlatform === 'discord') {
+			indexName = DISCORD_ID_INDEX_NAME;
+			keyConditionExpression = "discordId = :handle";
+		} else if (socialPlatform === 'x') {
+			indexName = X_ID_INDEX_NAME;
+			keyConditionExpression = "xId = :handle";
+		} else {
+			logger.error({ socialPlatform }, "Invalid social platform for findBySocial");
+			throw new Error("Invalid social platform specified.");
+		}
+
+		try {
+			const command = new QueryCommand({
+				TableName: this.tableName,
+				IndexName: indexName,
+				KeyConditionExpression: keyConditionExpression,
+				ExpressionAttributeValues: expressionAttributeValues,
+				Limit: 1, // Expecting only one operator for a given verified social handle
+			});
+
+			const response = await this.client.send(command);
+
+			if (response.Items && response.Items.length > 0) {
+				return response.Items[0] as NodeOperator;
+			}
+			return undefined;
+		} catch (error) {
+			logger.error(
+				{ error, socialPlatform, socialHandle, indexName },
+				"Error retrieving NodeOperator by social handle in repository"
+			);
+			throw new Error(
+				"Repository failed to retrieve node operator by social handle."
+			);
+		}
+	}
+
+	async update(address: string, updates: Partial<NodeOperator>): Promise<boolean> {
+		const updateExpressionParts: string[] = [];
+		const expressionAttributeValues: { [key: string]: any } = {};
+		const expressionAttributeNames: { [key: string]: string } = {};
+
+		// Ensure updatedAt is always updated
+		const effectiveUpdates = {
+			...updates,
+			updatedAt: Date.now(), 
+		};
+
+		for (const key in effectiveUpdates) {
+			if (key === "address") continue; // Skip primary key
+
+			const attributeKey = `:${key}`;
+			// Handle nested keys like socials.discord.status if necessary, though current updates are top-level or full maps
+			if (key === "socials") { // If updating the whole socials map
+				updateExpressionParts.push(`socials = :socials`);
+				expressionAttributeValues[":socials"] = effectiveUpdates.socials;
+			} else {
+                // Use ExpressionAttributeNames for keys that might be reserved words or contain invalid characters
+                // Though for NodeOperator fields, this is less likely an issue than for map keys within socials
+                const nameKey = `#${key}`;
+                updateExpressionParts.push(`${nameKey} = ${attributeKey}`);
+                expressionAttributeNames[nameKey] = key;
+				expressionAttributeValues[attributeKey] = (effectiveUpdates as any)[key];
+            }
+		}
+
+		if (updateExpressionParts.length === 0) {
+			logger.warn({ address, updates }, "No update parts generated for NodeOperator update.");
+			return true; // Or false, depending on desired behavior for empty updates
+		}
+
+		const updateExpression = "SET " + updateExpressionParts.join(", ");
+
+		try {
+			const commandParams: any = {
+				TableName: this.tableName,
+				Key: { address },
+				UpdateExpression: updateExpression,
+				ExpressionAttributeValues: expressionAttributeValues,
+				ConditionExpression: "attribute_exists(address)",
+				ReturnValues: "NONE",
+			};
+
+            if (Object.keys(expressionAttributeNames).length > 0) {
+                commandParams.ExpressionAttributeNames = expressionAttributeNames;
+            }
+
+			const command = new UpdateCommand(commandParams);
+			await this.client.send(command);
+			logger.info(
+				{ address, updates: effectiveUpdates, tableName: this.tableName },
+				"Updated NodeOperator in repository"
+			);
+			return true;
+		} catch (error: any) {
+			logger.error(
+				{
+					error,
+					address,
+					updates: effectiveUpdates,
+					tableName: this.tableName,
+				},
+				"Error updating NodeOperator in repository"
+			);
+			if (error.name === "ConditionalCheckFailedException") {
+				logger.warn(
+					{ address },
+					"NodeOperator not found for update operation"
+				);
+				return false;
+			}
+			throw error;
 		}
 	}
 }

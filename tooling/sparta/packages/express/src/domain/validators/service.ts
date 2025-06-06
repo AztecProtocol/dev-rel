@@ -3,7 +3,7 @@ import { validatorRepository, ValidatorRepository } from "../../db/validatorRepo
 
 export interface Validator {
     validatorAddress: string; // Primary Key
-    nodeOperatorId?: string; // GSI Partition Key: NodeOperatorIndex - now optional
+    nodeOperatorId?: string; // GSI Partition Key: NodeOperatorIndex - contains operator address
     createdAt: number;
     updatedAt: number;
     peerId?: string; // Optional peer network ID for linking with crawler data
@@ -54,11 +54,12 @@ class ValidatorService {
      * @param pageToken Optional pagination token.
      * @param includeHistory Whether to include validator history (defaults to true).
      * @param historyLimit Optional limit on number of history entries to return (defaults to 5).
+     * @param limit Optional maximum number of validators to return per page. If undefined, returns all validators.
      * @returns A paginated list of Validator objects.
      */
-    public async getAllValidators(pageToken?: string, includeHistory: boolean = true, historyLimit: number = 5): Promise<{ validators: Validator[]; nextPageToken?: string }> {
+    public async getAllValidators(pageToken?: string, includeHistory: boolean = true, historyLimit: number = 5, limit?: number): Promise<{ validators: Validator[]; nextPageToken?: string }> {
         try {
-            return await this.repository.findAll(pageToken, includeHistory, historyLimit);
+            return await this.repository.findAll(pageToken, includeHistory, historyLimit, limit);
         } catch (error) {
             logger.error(error, "Service error getting all validators");
             throw error;
@@ -98,7 +99,7 @@ class ValidatorService {
 
     /**
      * Retrieves all validators for a node operator.
-     * @param nodeOperatorId The Discord ID of the node operator.
+     * @param nodeOperatorId The operator address (not Discord ID).
      * @param historyLimit Optional limit on number of history entries to return (defaults to 5).
      * @returns Array of Validator objects.
      */
@@ -117,7 +118,7 @@ class ValidatorService {
     /**
      * Creates a new validator.
      * @param validatorAddress The validator address.
-     * @param nodeOperatorId The Discord ID of the node operator.
+     * @param nodeOperatorId The operator address (not Discord ID).
      * @returns The created Validator object or undefined if creation failed.
      */
     public async createValidator(
@@ -163,7 +164,7 @@ class ValidatorService {
     /**
      * Ensures a validator exists in the database, creating it if necessary.
      * @param validatorAddress The validator address.
-     * @param nodeOperatorId Optional Discord ID of the node operator.
+     * @param nodeOperatorId Optional operator address.
      * @returns The existing or created Validator object.
      */
     public async ensureValidatorExists(

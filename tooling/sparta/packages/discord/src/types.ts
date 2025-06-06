@@ -27,6 +27,7 @@ export enum NodeOperatorSubcommands {
 	AddValidator = "add-validator",
 	Help = "help",
 	IsReady = "is-ready",
+	VerifyDiscord = "verify-discord",
 }
 
 export enum AztecSubcommandGroups {

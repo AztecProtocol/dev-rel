@@ -12,14 +12,39 @@ const router = express.Router();
  * /api/validator/validators:
  *   get:
  *     summary: Get all validators
- *     description: Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources. Always includes the 5 latest history slots for each validator.
+ *     description: Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources. History limit controls how many history slots are included per validator.
  *     tags: [Validator]
  *     operationId: getAllValidators
  *     security:
  *       - ApiKeyAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: pageToken
+ *         schema:
+ *           type: string
+ *         required: false
+ *         description: Token for pagination to get the next page of results.
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           minimum: 10
+ *           maximum: 1000
+ *           default: 10
+ *         required: false
+ *         description: Maximum number of validators to return per page. If not provided, returns all validators. Defaults to 10.
+ *       - in: query
+ *         name: historyLimit
+ *         schema:
+ *           type: integer
+ *           minimum: 0
+ *           maximum: 1000
+ *           default: 5
+ *         required: false
+ *         description: Maximum number of history entries to return per validator (defaults to 5).
  *     responses:
  *       200:
- *         description: A comprehensive list of all validators with available information, including 5 latest history slots for each validator.
+ *         description: A comprehensive list of validators with available information and history.
  *         content:
  *           application/json:
  *             schema:
@@ -36,19 +61,28 @@ const router = express.Router();
  *                       type: array
  *                       items:
  *                         $ref: '#/components/schemas/ValidatorResponse'
- *                       description: Array of all validators with comprehensive information and 5 latest history slots.
+ *                       description: Array of validators with comprehensive information and history.
  *                     stats:
  *                       type: object
  *                       properties:
  *                         totalValidators:
  *                           type: number
- *                           description: Total number of validators.
+ *                           description: Total number of validators in the current page.
  *                         activeValidators:
  *                           type: number
- *                           description: Number of validators active in the current rollup.
+ *                           description: Number of validators active in the current page.
  *                         knownValidators:
  *                           type: number
- *                           description: Number of validators with associated operators.
+ *                           description: Number of validators with associated operators in the current page.
+ *                     pagination:
+ *                       type: object
+ *                       properties:
+ *                         nextPageToken:
+ *                           type: string
+ *                           description: Token to retrieve the next page of results. Not present on the last page.
+ *                         hasMorePages:
+ *                           type: boolean
+ *                           description: Indicates if there are more pages available.
  *       401:
  *         description: Unauthorized - Invalid or missing API key
  *         content:
@@ -64,13 +98,31 @@ const router = express.Router();
  */
 router.get("/validators", async (req, res) => {
 	try {
+		const pageToken = req.query.pageToken as string | undefined;
+		const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+		const historyLimit = req.query.historyLimit ? parseInt(req.query.historyLimit as string) : 5;
+		
+		// Validate limit parameter if provided
+		if (limit !== undefined && (isNaN(limit) || limit < 10 || limit > 1000)) {
+			return res.status(400).json({
+				error: "Invalid limit parameter. Must be a number between 10 and 1000.",
+			});
+		}
+		
+		// Validate historyLimit parameter
+		if (isNaN(historyLimit) || historyLimit < 0 || historyLimit > 1000) {
+			return res.status(400).json({
+				error: "Invalid historyLimit parameter. Must be a number between 0 and 1000.",
+			});
+		}
 		
 		// Remove manual sync call - data is now synced automatically by epoch listener
 		
-		// Get all validators from database with 5 latest history slots
-		logger.info("Starting validator fetch from database");
-		const result = await validatorService.getAllValidators(undefined, true, 5);
+		// Get validators from database with pagination
+		logger.info("Starting validator fetch from database with pagination");
+		const result = await validatorService.getAllValidators(pageToken, true, historyLimit, limit);
 		const allValidators = result.validators;
+		const nextPageToken = result.nextPageToken;
 		
 		logger.info(`Retrieved ${allValidators.length} validators from database`);
 		
@@ -96,7 +148,7 @@ router.get("/validators", async (req, res) => {
 				missedAttestationsCount: validator.missedAttestationsCount,
 				missedProposalsCount: validator.missedProposalsCount,
 				totalSlots: validator.totalSlots,
-				// Include 5 latest history slots
+				// Include history slots based on historyLimit
 				history: validator.history || [],
 				// Include all processed peer data
 				peerClient: validator.peerClient,
@@ -112,15 +164,21 @@ router.get("/validators", async (req, res) => {
 			return validatorResponse;
 		});
 		
-		// Calculate statistics
+		// Calculate statistics for the current page
 		const stats = {
 			totalValidators: successfulValidators.length,
 			activeValidators: successfulValidators.filter(v => v.hasAttested24h).length,
 			knownValidators: successfulValidators.filter(v => v.operatorId).length,
 		};
 		
+		// Prepare pagination information
+		const pagination = {
+			nextPageToken: nextPageToken,
+			hasMorePages: !!nextPageToken,
+		};
+		
 		logger.info(
-			`Returning ${stats.totalValidators} validators (${stats.activeValidators} active, ${stats.knownValidators} known)`
+			`Returning ${stats.totalValidators} validators (${stats.activeValidators} active, ${stats.knownValidators} known)${nextPageToken ? ' with next page token' : ' - last page'}`
 		);
 		
 		return res.status(200).json({
@@ -128,6 +186,7 @@ router.get("/validators", async (req, res) => {
 			data: {
 				validators: successfulValidators,
 				stats: stats,
+				pagination: pagination,
 			},
 		});
 	} catch (error) {
@@ -257,7 +316,7 @@ router.get("/", async (req, res) => {
 			let operator = null;
 			if (validator.nodeOperatorId) {
 				try {
-					operator = await nodeOperatorService.getOperatorByDiscordId(validator.nodeOperatorId);
+					operator = await nodeOperatorService.getOperatorByAddress(validator.nodeOperatorId);
 				} catch (error) {
 					logger.warn(
 						{ nodeOperatorId: validator.nodeOperatorId, validatorAddress: address },
@@ -313,7 +372,7 @@ router.get("/", async (req, res) => {
 			}
 			
 			// Fetch validators associated with this operator
-			const validators = await validatorService.getValidatorsByNodeOperator(operator.discordId, historyLimit);
+			const validators = await validatorService.getValidatorsByNodeOperator(operator.address, historyLimit);
 			
 			return res.status(200).json({
 				success: true,
@@ -341,7 +400,7 @@ router.get("/", async (req, res) => {
  * /api/validator:
  *   post:
  *     summary: Add a new validator
- *     description: Adds a new validator and associates it with an operator. If the operator doesn't exist, it will be created automatically with approved status.
+ *     description: Adds a new validator and associates it with an operator. If the operator doesn't exist, it will be created automatically.
  *     tags: [Validator]
  *     operationId: addValidator
  *     security:
@@ -394,12 +453,6 @@ router.get("/", async (req, res) => {
  *           application/json:
  *             schema:
  *               $ref: '#/components/schemas/OperatorError'
- *       403:
- *         description: Forbidden - Operator is not approved
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/OperatorError'
  *       409:
  *         description: Conflict - Validator already exists
  *         content:
@@ -446,9 +499,8 @@ router.post("/", async (req, res) => {
 			// When creating an operator through validator addition, use the validator's address
 			// as the operator's address. This ensures every operator has a unique address.
 			operator = await nodeOperatorService.createOperator(
-				discordId,
 				validatorAddress, // Use the first validator's address as the operator's address
-				true // Set isApproved to true by default
+				discordId!, // We know it's defined due to validation above
 			);
 			
 			if (!operator) {
@@ -460,14 +512,6 @@ router.post("/", async (req, res) => {
 			logger.info(`Created new operator ${discordId} with address ${validatorAddress} for validator addition`);
 		}
 		
-		// Check if the operator is approved
-		if (!operator.isApproved) {
-			return res.status(403).json({
-				error: "Node operator is not approved",
-				message: "Your account requires approval before adding validators."
-			});
-		}
-
 		// Update validator data to ensure we have the latest state
 		// Remove manual sync call - data is now synced automatically by epoch listener
 		
@@ -481,7 +525,7 @@ router.post("/", async (req, res) => {
 		
 		if (existingValidator) {
 			// Validator exists in database - check if it belongs to this operator or is unclaimed
-			if (existingValidator.nodeOperatorId === discordId) {
+			if (existingValidator.nodeOperatorId === operator.address) {
 				return res.status(409).json({
 					error: "Validator already exists for this operator",
 				});
@@ -495,13 +539,13 @@ router.post("/", async (req, res) => {
 		}
 		
 		// Create or claim validator in database
-		await validatorService.ensureValidatorExists(validatorAddress, discordId);
-		logger.info(`Ensured validator ${validatorAddress} exists and is assigned to operator ${discordId}`);
+		await validatorService.ensureValidatorExists(validatorAddress, operator.address);
+		logger.info(`Ensured validator ${validatorAddress} exists and is assigned to operator ${operator.address}`);
 		
 		// Add validator to rollup if not already there and not skipping on-chain
 		if (!isInRollup && !skipOnChain) {
 			await ethereum.addValidator(validatorAddress);
-			logger.info(`Added validator ${validatorAddress} to rollup for operator ${discordId}`);
+			logger.info(`Added validator ${validatorAddress} to rollup for operator ${operator.address}`);
 		} else {
 			logger.info(`Validator ${validatorAddress} ${isInRollup ? 'already in rollup' : 'skipping on-chain addition'}`);
 		}
@@ -511,6 +555,12 @@ router.post("/", async (req, res) => {
 		
 		if (!createdValidator) {
 			throw new Error("Failed to retrieve created validator");
+		}
+		
+		// Update the operator's validators array
+		if (operator.address) {
+			await nodeOperatorService.addValidatorToOperator(operator.address, validatorAddress);
+			logger.info(`Added validator ${validatorAddress} to operator ${operator.address}'s validators array`);
 		}
 		
 		// Return comprehensive validator information (similar to GET endpoint)
@@ -695,7 +745,7 @@ router.put("/", async (req, res) => {
 			});
 		}
 		
-		if (!validator.nodeOperatorId || validator.nodeOperatorId !== discordId) {
+		if (!validator.nodeOperatorId || validator.nodeOperatorId !== operator.address) {
 			return res.status(404).json({
 				error: "Validator not found for this operator",
 			});
@@ -821,7 +871,7 @@ router.delete("/", async (req, res) => {
 			});
 		}
 		
-		if (!validator.nodeOperatorId || validator.nodeOperatorId !== discordId) {
+		if (!validator.nodeOperatorId || validator.nodeOperatorId !== operator.address) {
 			return res.status(404).json({
 				error: "Validator not found for this operator",
 			});
@@ -836,7 +886,13 @@ router.delete("/", async (req, res) => {
 			});
 		}
 		
-		logger.info(`Deleted validator ${validatorAddress} from operator ${discordId}. It will be re-synced as unclaimed if still in the rollup.`);
+		// Update the operator's validators array
+		if (operator.address) {
+			await nodeOperatorService.removeValidatorFromOperator(operator.address, validatorAddress);
+			logger.info(`Removed validator ${validatorAddress} from operator ${operator.address}'s validators array`);
+		}
+		
+		logger.info(`Deleted validator ${validatorAddress} from operator ${operator.address}. It will be re-synced as unclaimed if still in the rollup.`);
 		
 		// Note: We don't call ethereum.removeValidator() as this only removes the DB association
 		// The validator will be re-added as unclaimed on the next sync if it's still in the rollup

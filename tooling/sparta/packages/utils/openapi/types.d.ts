@@ -41,11 +41,23 @@ declare namespace Components {
         }
         export interface NodeOperator {
             /**
+             * The wallet address of the node operator (primary key).
+             * example:
+             * 0x1234567890abcdef1234567890abcdef12345678
+             */
+            address: string;
+            /**
              * The Discord user ID of the node operator.
              * example:
              * 123456789012345678
              */
-            discordId: string;
+            discordId?: string;
+            /**
+             * The X (Twitter) ID of the node operator.
+             * example:
+             * twitter_user_123
+             */
+            xId?: string;
             /**
              * Timestamp (milliseconds since epoch) when the operator was created.
              * example:
@@ -58,6 +70,23 @@ declare namespace Components {
              * 1678887400000
              */
             updatedAt: number;
+            /**
+             * Social media verification status for this operator.
+             */
+            socials?: {
+                discord?: {
+                    /**
+                     * Verification status
+                     */
+                    status?: "pending" | "verified" | "rejected";
+                };
+                x?: {
+                    /**
+                     * Verification status
+                     */
+                    status?: "pending" | "verified" | "rejected";
+                };
+            };
             /**
              * List of validators associated with this operator.
              */
@@ -209,49 +238,38 @@ declare namespace Paths {
             }
             export type $400 = Components.Schemas.OperatorError;
             export type $401 = Components.Schemas.OperatorError;
-            export type $403 = Components.Schemas.OperatorError;
             export type $409 = Components.Schemas.OperatorError;
             export type $500 = Components.Schemas.OperatorError;
         }
     }
-    namespace ApproveOperator {
-        namespace Parameters {
-            export type DiscordId = string;
-        }
-        export interface QueryParameters {
-            discordId: Parameters.DiscordId;
-        }
-        namespace Responses {
-            export type $200 = Components.Schemas.NodeOperator;
-            export type $400 = Components.Schemas.OperatorError;
-            export type $401 = Components.Schemas.OperatorError;
-            export type $404 = Components.Schemas.OperatorError;
-            export type $500 = Components.Schemas.OperatorError;
-        }
-    }
     namespace CreateOperator {
-        namespace Parameters {
-            export type Address = string;
-            export type DiscordId = string;
-        }
-        export interface QueryParameters {
-            discordId: Parameters.DiscordId;
-            address: Parameters.Address;
+        export interface RequestBody {
+            /**
+             * ECDSA signature of the message
+             * example:
+             * 0x...
+             */
+            signature: string;
+            /**
+             * The message that was signed
+             * example:
+             * link-socials::discord=123456;x=456789;nonce=uuid;domain=sparta-dashboard.xyz;timestamp=1234567890
+             */
+            message: string;
         }
         namespace Responses {
             export type $201 = Components.Schemas.NodeOperator;
             export type $400 = Components.Schemas.OperatorError;
             export type $401 = Components.Schemas.OperatorError;
-            export type $409 = Components.Schemas.OperatorError;
             export type $500 = Components.Schemas.OperatorError;
         }
     }
     namespace DeleteOperator {
         namespace Parameters {
-            export type DiscordId = string;
+            export type Address = string;
         }
         export interface QueryParameters {
-            discordId: Parameters.DiscordId;
+            address: Parameters.Address;
         }
         namespace Responses {
             export interface $204 {
@@ -263,6 +281,16 @@ declare namespace Paths {
         }
     }
     namespace GetAllValidators {
+        namespace Parameters {
+            export type HistoryLimit = number;
+            export type Limit = number;
+            export type PageToken = string;
+        }
+        export interface QueryParameters {
+            pageToken?: Parameters.PageToken;
+            limit?: Parameters.Limit;
+            historyLimit?: Parameters.HistoryLimit;
+        }
         namespace Responses {
             export interface $200 {
                 /**
@@ -273,22 +301,32 @@ declare namespace Paths {
                 success?: boolean;
                 data?: {
                     /**
-                     * Array of all validators with comprehensive information and 5 latest history slots.
+                     * Array of validators with comprehensive information and history.
                      */
                     validators?: Components.Schemas.ValidatorResponse[];
                     stats?: {
                         /**
-                         * Total number of validators.
+                         * Total number of validators in the current page.
                          */
                         totalValidators?: number;
                         /**
-                         * Number of validators active in the current rollup.
+                         * Number of validators active in the current page.
                          */
                         activeValidators?: number;
                         /**
-                         * Number of validators with associated operators.
+                         * Number of validators with associated operators in the current page.
                          */
                         knownValidators?: number;
+                    };
+                    pagination?: {
+                        /**
+                         * Token to retrieve the next page of results. Not present on the last page.
+                         */
+                        nextPageToken?: string;
+                        /**
+                         * Indicates if there are more pages available.
+                         */
+                        hasMorePages?: boolean;
                     };
                 };
             }
@@ -312,10 +350,27 @@ declare namespace Paths {
     }
     namespace GetOperator {
         namespace Parameters {
-            export type DiscordId = string;
+            export type Address = string;
         }
         export interface QueryParameters {
-            discordId: Parameters.DiscordId;
+            address: Parameters.Address;
+        }
+        namespace Responses {
+            export type $200 = Components.Schemas.NodeOperator;
+            export type $400 = Components.Schemas.OperatorError;
+            export type $401 = Components.Schemas.OperatorError;
+            export type $404 = Components.Schemas.OperatorError;
+            export type $500 = Components.Schemas.OperatorError;
+        }
+    }
+    namespace GetOperatorBySocials {
+        namespace Parameters {
+            export type DiscordId = string;
+            export type X = string;
+        }
+        export interface QueryParameters {
+            discordId?: Parameters.DiscordId;
+            x?: Parameters.X;
         }
         namespace Responses {
             export type $200 = Components.Schemas.NodeOperator;
@@ -340,15 +395,9 @@ declare namespace Paths {
                      */
                     operatorsWithoutValidators?: {
                         /**
-                         * Count of approved operators without validators.
-                         * example:
-                         * 10
-                         */
-                        approved?: number;
-                        /**
                          * Count of all operators without validators.
                          * example:
-                         * 15
+                         * 10
                          */
                         all?: number;
                     };
@@ -366,10 +415,12 @@ declare namespace Paths {
     }
     namespace GetOperators {
         namespace Parameters {
+            export type Limit = number;
             export type PageToken = string;
         }
         export interface QueryParameters {
             pageToken?: Parameters.PageToken;
+            limit?: Parameters.Limit;
         }
         namespace Responses {
             export interface $200 {
@@ -380,6 +431,12 @@ declare namespace Paths {
                  * eyJsYXN0S2V5IjoiMTIzNDU2Nzg5MCJ9
                  */
                 nextPageToken?: string;
+                pagination?: {
+                    /**
+                     * Indicates if there are more pages available.
+                     */
+                    hasMorePages?: boolean;
+                };
             }
             export type $401 = Components.Schemas.OperatorError;
             export type $500 = Components.Schemas.OperatorError;
@@ -548,10 +605,10 @@ declare namespace Paths {
     }
     namespace SendMessageToOperator {
         namespace Parameters {
-            export type DiscordId = string;
+            export type Address = string;
         }
         export interface QueryParameters {
-            discordId: Parameters.DiscordId;
+            address: Parameters.Address;
         }
         export interface RequestBody {
             /**
@@ -564,36 +621,6 @@ declare namespace Paths {
                 success?: boolean;
                 message?: string;
             }
-            export type $400 = Components.Schemas.OperatorError;
-            export type $401 = Components.Schemas.OperatorError;
-            export type $404 = Components.Schemas.OperatorError;
-            export type $500 = Components.Schemas.OperatorError;
-        }
-    }
-    namespace UnapproveOperator {
-        namespace Parameters {
-            export type DiscordId = string;
-        }
-        export interface QueryParameters {
-            discordId: Parameters.DiscordId;
-        }
-        namespace Responses {
-            export type $200 = Components.Schemas.NodeOperator;
-            export type $400 = Components.Schemas.OperatorError;
-            export type $401 = Components.Schemas.OperatorError;
-            export type $404 = Components.Schemas.OperatorError;
-            export type $500 = Components.Schemas.OperatorError;
-        }
-    }
-    namespace UnslashOperator {
-        namespace Parameters {
-            export type DiscordId = string;
-        }
-        export interface QueryParameters {
-            discordId: Parameters.DiscordId;
-        }
-        namespace Responses {
-            export type $200 = Components.Schemas.NodeOperator;
             export type $400 = Components.Schemas.OperatorError;
             export type $401 = Components.Schemas.OperatorError;
             export type $404 = Components.Schemas.OperatorError;
@@ -634,6 +661,30 @@ declare namespace Paths {
             export type $401 = Components.Schemas.OperatorError;
             export type $403 = Components.Schemas.OperatorError;
             export type $404 = Components.Schemas.OperatorError;
+            export type $500 = Components.Schemas.OperatorError;
+        }
+    }
+    namespace VerifyOperatorSocial {
+        export interface RequestBody {
+            /**
+             * The social platform to verify
+             */
+            social: "discord" | "x";
+            /**
+             * The social platform user ID
+             */
+            id: string;
+        }
+        namespace Responses {
+            export interface $200 {
+                success?: boolean;
+                message?: string;
+                operator?: Components.Schemas.NodeOperator;
+            }
+            export type $400 = Components.Schemas.OperatorError;
+            export type $401 = Components.Schemas.OperatorError;
+            export type $404 = Components.Schemas.OperatorError;
+            export type $409 = Components.Schemas.OperatorError;
             export type $500 = Components.Schemas.OperatorError;
         }
     }
@@ -683,7 +734,7 @@ export interface OperationMethods {
   /**
    * getOperator - Get a specific node operator
    * 
-   * Retrieves a specific node operator using their Discord ID.
+   * Retrieves a specific node operator using their wallet address.
    */
   'getOperator'(
     parameters?: Parameters<Paths.GetOperator.QueryParameters> | null,
@@ -691,19 +742,29 @@ export interface OperationMethods {
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.GetOperator.Responses.$200>
   /**
+   * verifyOperatorSocial - Verify a social account for an operator
+   * 
+   * Verifies a social account (Discord/X) for a node operator. This is typically called from Discord after the user confirms ownership.
+   */
+  'verifyOperatorSocial'(
+    parameters?: Parameters<UnknownParamsObject> | null,
+    data?: Paths.VerifyOperatorSocial.RequestBody,
+    config?: AxiosRequestConfig  
+  ): OperationResponse<Paths.VerifyOperatorSocial.Responses.$200>
+  /**
    * createOperator - Create a new node operator
    * 
-   * Creates a new node operator registration with Discord ID and wallet address.
+   * Creates a new node operator registration using signature verification. The wallet address is extracted from the signature.
    */
   'createOperator'(
-    parameters?: Parameters<Paths.CreateOperator.QueryParameters> | null,
-    data?: any,
+    parameters?: Parameters<UnknownParamsObject> | null,
+    data?: Paths.CreateOperator.RequestBody,
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.CreateOperator.Responses.$201>
   /**
-   * deleteOperator - Delete an operator by Discord ID
+   * deleteOperator - Delete an operator by wallet address
    * 
-   * Removes a node operator registration using their Discord ID.
+   * Removes a node operator registration using their wallet address.
    */
   'deleteOperator'(
     parameters?: Parameters<Paths.DeleteOperator.QueryParameters> | null,
@@ -721,36 +782,6 @@ export interface OperationMethods {
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.GetOperatorStats.Responses.$200>
   /**
-   * approveOperator - Approve a node operator
-   * 
-   * Approves a node operator using their Discord ID.
-   */
-  'approveOperator'(
-    parameters?: Parameters<Paths.ApproveOperator.QueryParameters> | null,
-    data?: any,
-    config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.ApproveOperator.Responses.$200>
-  /**
-   * unapproveOperator - Unapprove a node operator
-   * 
-   * Unapproves a node operator using their Discord ID.
-   */
-  'unapproveOperator'(
-    parameters?: Parameters<Paths.UnapproveOperator.QueryParameters> | null,
-    data?: any,
-    config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.UnapproveOperator.Responses.$200>
-  /**
-   * unslashOperator - Remove slashed status from a node operator
-   * 
-   * Removes the wasSlashed flag from a node operator using their Discord ID.
-   */
-  'unslashOperator'(
-    parameters?: Parameters<Paths.UnslashOperator.QueryParameters> | null,
-    data?: any,
-    config?: AxiosRequestConfig  
-  ): OperationResponse<Paths.UnslashOperator.Responses.$200>
-  /**
    * sendMessageToOperator - Send a direct message to an operator
    * 
    * Sends a direct message to a node operator via Discord.
@@ -761,12 +792,22 @@ export interface OperationMethods {
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.SendMessageToOperator.Responses.$200>
   /**
+   * getOperatorBySocials - Get operator by social media handles
+   * 
+   * Retrieves a node operator using their social media handles (Discord ID, X handle, etc.). At least one social handle must be provided.
+   */
+  'getOperatorBySocials'(
+    parameters?: Parameters<Paths.GetOperatorBySocials.QueryParameters> | null,
+    data?: any,
+    config?: AxiosRequestConfig  
+  ): OperationResponse<Paths.GetOperatorBySocials.Responses.$200>
+  /**
    * getAllValidators - Get all validators
    * 
-   * Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources. Always includes the 5 latest history slots for each validator.
+   * Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources. History limit controls how many history slots are included per validator.
    */
   'getAllValidators'(
-    parameters?: Parameters<UnknownParamsObject> | null,
+    parameters?: Parameters<Paths.GetAllValidators.QueryParameters> | null,
     data?: any,
     config?: AxiosRequestConfig  
   ): OperationResponse<Paths.GetAllValidators.Responses.$200>
@@ -793,7 +834,7 @@ export interface OperationMethods {
   /**
    * addValidator - Add a new validator
    * 
-   * Adds a new validator and associates it with an operator. If the operator doesn't exist, it will be created automatically with approved status.
+   * Adds a new validator and associates it with an operator. If the operator doesn't exist, it will be created automatically.
    */
   'addValidator'(
     parameters?: Parameters<Paths.AddValidator.QueryParameters> | null,
@@ -875,7 +916,7 @@ export interface PathsDictionary {
     /**
      * getOperator - Get a specific node operator
      * 
-     * Retrieves a specific node operator using their Discord ID.
+     * Retrieves a specific node operator using their wallet address.
      */
     'get'(
       parameters?: Parameters<Paths.GetOperator.QueryParameters> | null,
@@ -885,23 +926,33 @@ export interface PathsDictionary {
     /**
      * createOperator - Create a new node operator
      * 
-     * Creates a new node operator registration with Discord ID and wallet address.
+     * Creates a new node operator registration using signature verification. The wallet address is extracted from the signature.
      */
     'post'(
-      parameters?: Parameters<Paths.CreateOperator.QueryParameters> | null,
-      data?: any,
+      parameters?: Parameters<UnknownParamsObject> | null,
+      data?: Paths.CreateOperator.RequestBody,
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.CreateOperator.Responses.$201>
     /**
-     * deleteOperator - Delete an operator by Discord ID
+     * deleteOperator - Delete an operator by wallet address
      * 
-     * Removes a node operator registration using their Discord ID.
+     * Removes a node operator registration using their wallet address.
      */
     'delete'(
       parameters?: Parameters<Paths.DeleteOperator.QueryParameters> | null,
       data?: any,
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.DeleteOperator.Responses.$204>
+    /**
+     * verifyOperatorSocial - Verify a social account for an operator
+     * 
+     * Verifies a social account (Discord/X) for a node operator. This is typically called from Discord after the user confirms ownership.
+     */
+    'put'(
+      parameters?: Parameters<UnknownParamsObject> | null,
+      data?: Paths.VerifyOperatorSocial.RequestBody,
+      config?: AxiosRequestConfig  
+    ): OperationResponse<Paths.VerifyOperatorSocial.Responses.$200>
   }
   ['/api/operator/stats']: {
     /**
@@ -915,40 +966,6 @@ export interface PathsDictionary {
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.GetOperatorStats.Responses.$200>
   }
-  ['/api/operator/approve']: {
-    /**
-     * approveOperator - Approve a node operator
-     * 
-     * Approves a node operator using their Discord ID.
-     */
-    'put'(
-      parameters?: Parameters<Paths.ApproveOperator.QueryParameters> | null,
-      data?: any,
-      config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.ApproveOperator.Responses.$200>
-    /**
-     * unapproveOperator - Unapprove a node operator
-     * 
-     * Unapproves a node operator using their Discord ID.
-     */
-    'delete'(
-      parameters?: Parameters<Paths.UnapproveOperator.QueryParameters> | null,
-      data?: any,
-      config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.UnapproveOperator.Responses.$200>
-  }
-  ['/api/operator/slashed']: {
-    /**
-     * unslashOperator - Remove slashed status from a node operator
-     * 
-     * Removes the wasSlashed flag from a node operator using their Discord ID.
-     */
-    'delete'(
-      parameters?: Parameters<Paths.UnslashOperator.QueryParameters> | null,
-      data?: any,
-      config?: AxiosRequestConfig  
-    ): OperationResponse<Paths.UnslashOperator.Responses.$200>
-  }
   ['/api/operator/message']: {
     /**
      * sendMessageToOperator - Send a direct message to an operator
@@ -961,14 +978,26 @@ export interface PathsDictionary {
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.SendMessageToOperator.Responses.$200>
   }
+  ['/api/operator/by-socials']: {
+    /**
+     * getOperatorBySocials - Get operator by social media handles
+     * 
+     * Retrieves a node operator using their social media handles (Discord ID, X handle, etc.). At least one social handle must be provided.
+     */
+    'get'(
+      parameters?: Parameters<Paths.GetOperatorBySocials.QueryParameters> | null,
+      data?: any,
+      config?: AxiosRequestConfig  
+    ): OperationResponse<Paths.GetOperatorBySocials.Responses.$200>
+  }
   ['/api/validator/validators']: {
     /**
      * getAllValidators - Get all validators
      * 
-     * Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources. Always includes the 5 latest history slots for each validator.
+     * Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources. History limit controls how many history slots are included per validator.
      */
     'get'(
-      parameters?: Parameters<UnknownParamsObject> | null,
+      parameters?: Parameters<Paths.GetAllValidators.QueryParameters> | null,
       data?: any,
       config?: AxiosRequestConfig  
     ): OperationResponse<Paths.GetAllValidators.Responses.$200>
@@ -987,7 +1016,7 @@ export interface PathsDictionary {
     /**
      * addValidator - Add a new validator
      * 
-     * Adds a new validator and associates it with an operator. If the operator doesn't exist, it will be created automatically with approved status.
+     * Adds a new validator and associates it with an operator. If the operator doesn't exist, it will be created automatically.
      */
     'post'(
       parameters?: Parameters<Paths.AddValidator.QueryParameters> | null,

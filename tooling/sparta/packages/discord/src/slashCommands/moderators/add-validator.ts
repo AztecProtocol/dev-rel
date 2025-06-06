@@ -6,6 +6,7 @@ import { logger } from "@sparta/utils";
 import * as dotenv from "dotenv";
 import { clientPromise } from "@sparta/utils/openapi/api/axios";
 import { resolveDiscordIdForApi } from "../../utils/discordIdResolver";
+import type { Components } from "@sparta/utils/openapi/types"; // Import the Components namespace
 // import { hasModeratorRole } from "../../utils/roles"; // Assuming a utility for moderator role check
 
 // Load environment variables
@@ -121,11 +122,8 @@ export async function addValidator(
 								errorMessage = "Invalid validator address format";
 								break;
 							case 403:
-								if (addValidatorError.response.data?.error === "Operator was slashed") {
-									errorMessage = "Operator was slashed";
-								} else {
-									errorMessage = "Operation forbidden";
-								}
+								errorMessage = "Operation forbidden";
+								
 								break;
 							case 401:
 								errorMessage = "Authentication error";
@@ -243,18 +241,28 @@ export async function addValidator(
 				: `\`${successfulAddresses[0] || "Unknown"}\``;
 			
 			const dmContent = `Hear ye, hear ye, brave Spartan warrior! 🛡️ A moderator has ${dmActionText} to the Aztec network!\n\nYour validator ${isMultiple ? 'addresses' : 'address'}:\n${validatorList}\n\n- Keep your ${isMultiple ? 'shields' : 'shield'} up and your ${isMultiple ? 'validators' : 'validator'} sharp! You can check ${isMultiple ? 'their' : 'its'} readiness with \`/operator my-stats\`.\n- A true Spartan upholds the line! Neglecting your duties could lead to your ${isMultiple ? 'validators' : 'validator'} being slashed.\n\nShould you need guidance, seek aid in the support channels.\n\nVictory favors the prepared! This is SPARTAAAA! 💪`;
-			let dmStatusMessage = "A direct message has been sent to the operator.";
+			let dmStatusMessage = "A direct message has been initiated for the operator.";
 
 			try {
-				const messageApiResponse = await client.sendMessageToOperator(
-					{ discordId: targetDiscordId },
-					{ message: dmContent }
-				);
-				if (messageApiResponse.data.success) {
-					logger.info(`Successfully sent DM to ${targetDiscordUsername}.`);
+				// First, get the operator's address to send the DM
+				const operatorResponse = await client.getOperatorBySocials({ discordId: targetDiscordId });
+				const operator = operatorResponse.data as Components.Schemas.NodeOperator | undefined;
+
+				if (operator && operator.address) {
+					const messageApiResponse = await client.sendMessageToOperator(
+						{ address: operator.address }, // Use address here
+						{ message: dmContent }
+					);
+					if (messageApiResponse.data.success) {
+						logger.info(`Successfully sent DM to ${targetDiscordUsername} (Address: ${operator.address}).`);
+						dmStatusMessage = "A direct message has been sent to the operator.";
+					} else {
+						logger.error(`Failed to send DM to ${targetDiscordUsername} (Address: ${operator.address}) via API: ${messageApiResponse.data.message || 'Unknown API error'}`);
+						dmStatusMessage = "Attempted to send DM to operator, but it may have failed. See logs.";
+					}
 				} else {
-					logger.error(`Failed to send DM to ${targetDiscordUsername} via API: ${messageApiResponse.data.message || 'Unknown API error'}`);
-					dmStatusMessage = "Attempted to send DM to operator, but it may have failed. See logs.";
+					logger.warn(`Could not find operator or operator address for Discord ID ${targetDiscordId} to send DM.`);
+					dmStatusMessage = "Could not send DM: Operator details not found.";
 				}
 			} catch (dmError: any) {
 				logger.error(`Exception sending DM to ${targetDiscordUsername}:`, dmError.response?.data || dmError.message);

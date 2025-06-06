@@ -245,6 +245,87 @@ export class Ethereum {
 			}
 		}
 	};
+
+	/**
+	 * Gets validators that were added by a specific address
+	 * Checks ValidatorAdded events from the StakingAssetHandler contract
+	 * 
+	 * @param {string} operatorAddress - The address that added validators
+	 * @param {number} fromBlock - Starting block number (optional, defaults to 0)
+	 * @returns {Promise<string[]>} Array of validator addresses added by this operator
+	 */
+	getValidatorsAddedByAddress = async (operatorAddress: string, fromBlock: number = 0): Promise<string[]> => {
+		try {
+			logger.info({ operatorAddress, fromBlock }, "Fetching validators added by address");
+
+			// Get ValidatorAdded events where the transaction was from this address
+			const logs = await this.publicClient.getLogs({
+				address: this.stakingAssetHandler.address,
+				event: {
+					type: 'event',
+					name: 'ValidatorAdded',
+					inputs: [
+						{
+							name: '_rollup',
+							type: 'address',
+							indexed: true,
+							internalType: 'address'
+						},
+						{
+							name: '_attester',
+							type: 'address',
+							indexed: true,
+							internalType: 'address'
+						},
+						{
+							name: '_proposer',
+							type: 'address',
+							indexed: false,
+							internalType: 'address'
+						},
+						{
+							name: '_withdrawer',
+							type: 'address',
+							indexed: false,
+							internalType: 'address'
+						}
+					]
+				},
+				fromBlock: BigInt(fromBlock),
+				toBlock: 'latest'
+			});
+
+			// Filter logs to find transactions from the operator address
+			const validatorAddresses: string[] = [];
+			
+			for (const log of logs) {
+				// Get the transaction to check who sent it
+				const transaction = await this.publicClient.getTransaction({
+					hash: log.transactionHash
+				});
+				
+				// Check if the transaction was from our operator
+				if (transaction.from.toLowerCase() === operatorAddress.toLowerCase()) {
+					// Extract the attester address from the event (this is the validator)
+					const attesterAddress = log.args._attester;
+					if (attesterAddress && !validatorAddresses.includes(attesterAddress)) {
+						validatorAddresses.push(attesterAddress);
+					}
+				}
+			}
+
+			logger.info({ operatorAddress, validatorCount: validatorAddresses.length }, "Found validators added by address");
+			return validatorAddresses;
+
+		} catch (error: unknown) {
+			logger.error({ error, operatorAddress }, "Error getting validators added by address");
+			if (error instanceof Error) {
+				throw new Error(error.message);
+			} else {
+				throw new Error(String(error));
+			}
+		}
+	};
 }
 
 // --- Lazy Initialization ---

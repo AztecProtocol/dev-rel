@@ -6,13 +6,8 @@
  * This script runs migration scripts based on the provided argument.
  * 
  * Usage:
- *   npm run migrate 00_update_node_operators
- *   npm run migrate 01_migrate_validators
- *   npm run migrate 02_populate_validators
- *   npm run migrate 03_add_wasslashed_field
- *   npm run migrate 04_remove_discord_username_attribute
- *   npm run migrate 05_populate_validator_history
- *   npm run migrate 06_add_wallet_to_operators
+
+ *   npm run migrate 07_populate_operators_validators_field
  * 
  * Environment variables:
  *   DRY_RUN=true - Run in dry mode (no database writes)
@@ -35,14 +30,8 @@ if (!migrationName) {
   console.error('❌ Migration name is required');
   console.log('\nUsage: npm run migrate <migration_name>');
   console.log('\nAvailable migrations:');
-  console.log('  test-migration              - Test migration to verify system works');
-  console.log('  00_update_node_operators    - Update node operators table structure');
-  console.log('  01_migrate_validators       - Create validators table');
-  console.log('  02_populate_validators      - Populate validators from API');
-  console.log('  03_add_wasslashed_field     - Add wasSlashed field and check for slashed validators');
-  console.log('  04_remove_discord_username_attribute - Remove discordUsername from node_operators table');
-  console.log('  05_populate_validator_history - Populate validator history table from L2 RPC (requires numeric slots)');
-  console.log('  06_add_wallet_to_operators  - Add wallet addresses to operators based on their validators');
+  console.log('  07_populate_operators_validators_field - Populate validators field on operators from validators table');
+  console.log('  08_simplify_validators_field - Simplify validators array, remove unused fields, and update validator nodeOperatorId to use operator address');
   console.log('\n⚠️  Note: Migration 05 requires the validator history table to be recreated with numeric slot type.');
   console.log('   Run "terraform destroy -target=aws_dynamodb_table.sparta_validator_history" first,');
   console.log('   then "terraform apply" to recreate the table with the correct schema.');

@@ -153,10 +153,20 @@
       "NodeOperator": {
         "type": "object",
         "properties": {
+          "address": {
+            "type": "string",
+            "description": "The wallet address of the node operator (primary key).",
+            "example": "0x1234567890abcdef1234567890abcdef12345678"
+          },
           "discordId": {
             "type": "string",
             "description": "The Discord user ID of the node operator.",
             "example": "123456789012345678"
+          },
+          "xId": {
+            "type": "string",
+            "description": "The X (Twitter) ID of the node operator.",
+            "example": "twitter_user_123"
           },
           "createdAt": {
             "type": "number",
@@ -167,6 +177,40 @@
             "type": "number",
             "description": "Timestamp (milliseconds since epoch) when the operator was last updated.",
             "example": 1678887400000
+          },
+          "socials": {
+            "type": "object",
+            "description": "Social media verification status for this operator.",
+            "properties": {
+              "discord": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "verified",
+                      "rejected"
+                    ],
+                    "description": "Verification status"
+                  }
+                }
+              },
+              "x": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "pending",
+                      "verified",
+                      "rejected"
+                    ],
+                    "description": "Verification status"
+                  }
+                }
+              }
+            }
           },
           "validators": {
             "type": "array",
@@ -184,7 +228,7 @@
           }
         },
         "required": [
-          "discordId",
+          "address",
           "createdAt",
           "updatedAt"
         ]
@@ -418,6 +462,18 @@
             },
             "required": false,
             "description": "Token for pagination to get the next page of results."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 1000,
+              "default": 100
+            },
+            "required": false,
+            "description": "Maximum number of operators to return per page (defaults to 100)."
           }
         ],
         "responses": {
@@ -438,6 +494,15 @@
                       "type": "string",
                       "description": "Token to retrieve the next page of results. Not present on the last page.",
                       "example": "eyJsYXN0S2V5IjoiMTIzNDU2Nzg5MCJ9"
+                    },
+                    "pagination": {
+                      "type": "object",
+                      "properties": {
+                        "hasMorePages": {
+                          "type": "boolean",
+                          "description": "Indicates if there are more pages available."
+                        }
+                      }
                     }
                   }
                 }
@@ -470,7 +535,7 @@
     "/api/operator": {
       "get": {
         "summary": "Get a specific node operator",
-        "description": "Retrieves a specific node operator using their Discord ID.",
+        "description": "Retrieves a specific node operator using their wallet address.",
         "tags": [
           "NodeOperator"
         ],
@@ -483,12 +548,12 @@
         "parameters": [
           {
             "in": "query",
-            "name": "discordId",
+            "name": "address",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "The Discord ID of the operator to retrieve."
+            "description": "The wallet address of the operator to retrieve."
           }
         ],
         "responses": {
@@ -546,7 +611,7 @@
       },
       "post": {
         "summary": "Create a new node operator",
-        "description": "Creates a new node operator registration with Discord ID and wallet address.",
+        "description": "Creates a new node operator registration using signature verification. The wallet address is extracted from the signature.",
         "tags": [
           "NodeOperator"
         ],
@@ -556,26 +621,32 @@
             "ApiKeyAuth": []
           }
         ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "discordId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "The Discord ID of the operator."
-          },
-          {
-            "in": "query",
-            "name": "address",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "The wallet address of the operator."
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "signature": {
+                    "type": "string",
+                    "description": "ECDSA signature of the message",
+                    "example": "0x..."
+                  },
+                  "message": {
+                    "type": "string",
+                    "description": "The message that was signed",
+                    "example": "link-socials::discord=123456;x=456789;nonce=uuid;domain=sparta-dashboard.xyz;timestamp=1234567890"
+                  }
+                },
+                "required": [
+                  "signature",
+                  "message"
+                ]
+              }
+            }
           }
-        ],
+        },
         "responses": {
           "201": {
             "description": "Operator created successfully. Returns the new operator.",
@@ -588,7 +659,7 @@
             }
           },
           "400": {
-            "description": "Bad Request - Missing required parameters",
+            "description": "Bad Request - Invalid signature or message format",
             "content": {
               "application/json": {
                 "schema": {
@@ -599,16 +670,6 @@
           },
           "401": {
             "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflict - Operator with this Discord ID or address already exists",
             "content": {
               "application/json": {
                 "schema": {
@@ -630,8 +691,8 @@
         }
       },
       "delete": {
-        "summary": "Delete an operator by Discord ID",
-        "description": "Removes a node operator registration using their Discord ID.",
+        "summary": "Delete an operator by wallet address",
+        "description": "Removes a node operator registration using their wallet address.",
         "tags": [
           "NodeOperator"
         ],
@@ -644,12 +705,12 @@
         "parameters": [
           {
             "in": "query",
-            "name": "discordId",
+            "name": "address",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "The Discord ID of the operator to delete."
+            "description": "The wallet address of the operator to delete."
           }
         ],
         "responses": {
@@ -657,7 +718,7 @@
             "description": "Operator deleted successfully (No Content)."
           },
           "400": {
-            "description": "Bad Request - Missing discordId parameter",
+            "description": "Bad Request - Missing address parameter",
             "content": {
               "application/json": {
                 "schema": {
@@ -678,6 +739,120 @@
           },
           "404": {
             "description": "Operator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Verify a social account for an operator",
+        "description": "Verifies a social account (Discord/X) for a node operator. This is typically called from Discord after the user confirms ownership.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "verifyOperatorSocial",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "social": {
+                    "type": "string",
+                    "enum": [
+                      "discord",
+                      "x"
+                    ],
+                    "description": "The social platform to verify"
+                  },
+                  "id": {
+                    "type": "string",
+                    "description": "The social platform user ID"
+                  }
+                },
+                "required": [
+                  "social",
+                  "id"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Social account verified successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "operator": {
+                      "$ref": "#/components/schemas/NodeOperator"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Missing parameters or invalid social platform",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator not found or social account not in pending state",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - Social account already verified",
             "content": {
               "application/json": {
                 "schema": {
@@ -732,15 +907,10 @@
                           "type": "object",
                           "description": "Counts of operators without validators.",
                           "properties": {
-                            "approved": {
-                              "type": "number",
-                              "description": "Count of approved operators without validators.",
-                              "example": 10
-                            },
                             "all": {
                               "type": "number",
                               "description": "Count of all operators without validators.",
-                              "example": 15
+                              "example": 10
                             }
                           }
                         },
@@ -779,238 +949,6 @@
         }
       }
     },
-    "/api/operator/approve": {
-      "put": {
-        "summary": "Approve a node operator",
-        "description": "Approves a node operator using their Discord ID.",
-        "tags": [
-          "NodeOperator"
-        ],
-        "operationId": "approveOperator",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "discordId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "The Discord ID of the operator to approve."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Operator approved successfully. Returns the updated operator.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NodeOperator"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Missing parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Operator not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "summary": "Unapprove a node operator",
-        "description": "Unapproves a node operator using their Discord ID.",
-        "tags": [
-          "NodeOperator"
-        ],
-        "operationId": "unapproveOperator",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "discordId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "The Discord ID of the operator to unapprove."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Operator unapproved successfully. Returns the updated operator.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NodeOperator"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Missing parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Operator not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/operator/slashed": {
-      "delete": {
-        "summary": "Remove slashed status from a node operator",
-        "description": "Removes the wasSlashed flag from a node operator using their Discord ID.",
-        "tags": [
-          "NodeOperator"
-        ],
-        "operationId": "unslashOperator",
-        "security": [
-          {
-            "ApiKeyAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "in": "query",
-            "name": "discordId",
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "description": "The Discord ID of the operator to remove slashed status from."
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Slashed status removed successfully. Returns the updated operator.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/NodeOperator"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request - Missing parameters",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Operator not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal Server Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/operator/message": {
       "post": {
         "summary": "Send a direct message to an operator",
@@ -1027,12 +965,12 @@
         "parameters": [
           {
             "in": "query",
-            "name": "discordId",
+            "name": "address",
             "schema": {
               "type": "string"
             },
             "required": true,
-            "description": "The Discord ID of the operator."
+            "description": "The wallet address of the operator."
           }
         ],
         "requestBody": {
@@ -1116,10 +1054,97 @@
         }
       }
     },
+    "/api/operator/by-socials": {
+      "get": {
+        "summary": "Get operator by social media handles",
+        "description": "Retrieves a node operator using their social media handles (Discord ID, X handle, etc.). At least one social handle must be provided.",
+        "tags": [
+          "NodeOperator"
+        ],
+        "operationId": "getOperatorBySocials",
+        "security": [
+          {
+            "ApiKeyAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "discordId",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The Discord ID of the operator to retrieve."
+          },
+          {
+            "in": "query",
+            "name": "x",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "The X (Twitter) handle of the operator to retrieve."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The requested node operator with associated validators.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NodeOperator"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - No social handles provided",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or missing API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Operator not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal Server Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OperatorError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/validator/validators": {
       "get": {
         "summary": "Get all validators",
-        "description": "Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources. Always includes the 5 latest history slots for each validator.",
+        "description": "Retrieves a comprehensive list of all validators with available information from blockchain, database, and external sources. History limit controls how many history slots are included per validator.",
         "tags": [
           "Validator"
         ],
@@ -1129,9 +1154,44 @@
             "ApiKeyAuth": []
           }
         ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "pageToken",
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "description": "Token for pagination to get the next page of results."
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "schema": {
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 1000,
+              "default": 10
+            },
+            "required": false,
+            "description": "Maximum number of validators to return per page. If not provided, returns all validators. Defaults to 10."
+          },
+          {
+            "in": "query",
+            "name": "historyLimit",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 1000,
+              "default": 5
+            },
+            "required": false,
+            "description": "Maximum number of history entries to return per validator (defaults to 5)."
+          }
+        ],
         "responses": {
           "200": {
-            "description": "A comprehensive list of all validators with available information, including 5 latest history slots for each validator.",
+            "description": "A comprehensive list of validators with available information and history.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1150,22 +1210,35 @@
                           "items": {
                             "$ref": "#/components/schemas/ValidatorResponse"
                           },
-                          "description": "Array of all validators with comprehensive information and 5 latest history slots."
+                          "description": "Array of validators with comprehensive information and history."
                         },
                         "stats": {
                           "type": "object",
                           "properties": {
                             "totalValidators": {
                               "type": "number",
-                              "description": "Total number of validators."
+                              "description": "Total number of validators in the current page."
                             },
                             "activeValidators": {
                               "type": "number",
-                              "description": "Number of validators active in the current rollup."
+                              "description": "Number of validators active in the current page."
                             },
                             "knownValidators": {
                               "type": "number",
-                              "description": "Number of validators with associated operators."
+                              "description": "Number of validators with associated operators in the current page."
+                            }
+                          }
+                        },
+                        "pagination": {
+                          "type": "object",
+                          "properties": {
+                            "nextPageToken": {
+                              "type": "string",
+                              "description": "Token to retrieve the next page of results. Not present on the last page."
+                            },
+                            "hasMorePages": {
+                              "type": "boolean",
+                              "description": "Indicates if there are more pages available."
                             }
                           }
                         }
@@ -1327,7 +1400,7 @@
       },
       "post": {
         "summary": "Add a new validator",
-        "description": "Adds a new validator and associates it with an operator. If the operator doesn't exist, it will be created automatically with approved status.",
+        "description": "Adds a new validator and associates it with an operator. If the operator doesn't exist, it will be created automatically.",
         "tags": [
           "Validator"
         ],
@@ -1404,16 +1477,6 @@
           },
           "401": {
             "description": "Unauthorized - Invalid or missing API key",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OperatorError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Forbidden - Operator is not approved",
             "content": {
               "application/json": {
                 "schema": {

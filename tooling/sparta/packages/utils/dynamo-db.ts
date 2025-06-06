@@ -39,7 +39,11 @@ class DynamoDBService {
 		};
 
 		const dynamoClient = new DynamoDBClient(clientOptions);
-		this.client = DynamoDBDocumentClient.from(dynamoClient);
+		this.client = DynamoDBDocumentClient.from(dynamoClient, {
+			marshallOptions: {
+				removeUndefinedValues: true,
+			},
+		});
 		logger.debug(`DynamoDBService initialized for table: ${this.tableName}`);
 	}
 

@@ -34,11 +34,30 @@ class ValidatorMonitorService {
      */
     async processValidator(validator) {
         try {
-            if (!validator.operator?.discordUsername) {
-                logger.warn(`No operator info (discordUsername) found for validator ${validator.address}`);
+            // validator.operatorId is the Discord ID from getAllValidators response
+            if (!validator.operatorId) {
+                logger.warn(`No operatorId found for validator ${validator.address}`);
                 return null;
             }
-            
+
+            // Fetch full operator details to get address and potentially a username
+            let operatorDetailsFromApi;
+            try {
+                const operatorResponse = await this.client.getOperatorBySocials({ discordId: validator.operatorId });
+                operatorDetailsFromApi = operatorResponse.data; // This should be the NodeOperator object
+            } catch (fetchError) {
+                logger.error(`Failed to fetch operator details for discordId ${validator.operatorId}: ${fetchError.message}`);
+                return null; // Cannot proceed without operator details
+            }
+
+            if (!operatorDetailsFromApi || !operatorDetailsFromApi.address) {
+                logger.warn(`Operator details or address not found for discordId ${validator.operatorId}`);
+                return null;
+            }
+
+            // Prefer discordId from operatorDetails for greeting, fallback or make generic if needed
+            const operatorDisplayName = operatorDetailsFromApi.discordId || "Operator"; 
+
             let missPercentage = "N/A";
             let alertReason = "";
             
@@ -55,48 +74,55 @@ class ValidatorMonitorService {
                 alertReason = "missing attestations (stats unavailable)";
             }
             
-            const messageContent = `**Validator Alert**\n\nHello ${validator.operator.discordUsername},\n\n` +
+            const messageContent = `**Validator Alert**\n\nHello ${operatorDisplayName},\n\n` +
                 `Your validator ${validator.address} is ${alertReason}. Please check your node status.\n\n` +
                 `If you need assistance, please reach out in the <#${this.operatorsStartHereChannelId}> channel.`;
             
             let dmSent = false;
             let error = null;
-            let recipient = null;
-            
+            // recipient for sendMessageToOperator is now operatorDetailsFromApi.address
+            // The old 'recipient' variable logic based on discordUsername or override is less relevant here
+            // as sendMessageToOperator takes address.
+
             if (!process.env.SKIP_MSG) { 
                 try {
-                    recipient = this.dmOverrideRecipient ? this.dmOverrideRecipient : validator.operator.discordUsername;
-                    logger.info({ recipient }, "Recipient for DM");
+                    // Determine the actual Discord user to DM (for logging/override purposes)
+                    // The API will use the discordId linked to operatorDetailsFromApi.address
+                    const targetDiscordIdForDm = this.dmOverrideRecipient || operatorDetailsFromApi.discordId; 
+                    
+                    logger.info({ operatorAddress: operatorDetailsFromApi.address, targetDiscordIdForDm }, "Attempting to send DM for validator alert.");
+
                     const response = await this.client.sendMessageToOperator(
-                        { discordUsername: recipient },
+                        { address: operatorDetailsFromApi.address }, // Use the fetched operator's address
                         { 
                             message: messageContent, 
-                            validatorAddress: validator.address, 
+                            validatorAddress: validator.address, // This context might be useful for the message template if API supports it
                             threadName: "Validator Monitoring Alert" 
                         }
                     );
                     dmSent = response.data.success;
                     if (dmSent) {
-                        logger.info(`Alert DM sent to ${recipient} for validator ${validator.operator.discordUsername} with address ${validator.address}`);
+                        logger.info(`Alert DM sent to operator via address ${operatorDetailsFromApi.address} (Discord ID: ${targetDiscordIdForDm}) for validator ${validator.address}`);
                     } else {
                         error = response.data.error || "API call to send DM returned false";
-                        logger.warn(`Failed to send DM to ${recipient} for ${validator.address}: ${error}`);
+                        logger.warn(`Failed to send DM to operator via address ${operatorDetailsFromApi.address} (Discord ID: ${targetDiscordIdForDm}) for ${validator.address}: ${error}`);
                     }
                 } catch (dmError) {
                     error = `DM API call failed: ${dmError.message}`;
-                    logger.error(`Error sending DM for validator ${validator.operator.discordUsername} with address ${validator.address} to ${recipient}: ${error}`, {
+                    logger.error(`Error sending DM for operator via address ${operatorDetailsFromApi.address} (Discord ID: ${operatorDetailsFromApi.discordId || 'unknown'}) for validator ${validator.address}: ${error}`, {
                         status: dmError.response?.status,
                         statusText: dmError.response?.statusText,
                         endpoint: 'sendMessageToOperator',
                         validatorAddress: validator.address,
-                        recipient: recipient
+                        operatorAddress: operatorDetailsFromApi.address,
+                        discordId: operatorDetailsFromApi.discordId
                     });
                 }
             }
             
             return {
                 validatorAddress: validator.address,
-                operatorDiscordUsername: validator.operator.discordUsername, 
+                operatorDiscordUsername: operatorDisplayName, // Use the display name used in DM
                 messageContent: messageContent,
                 missPercentage: missPercentage,
                 timestamp: new Date().toISOString(),
@@ -122,6 +148,8 @@ class ValidatorMonitorService {
             
             let response;
             try {
+                // Call getAllValidators without parameters to get all validators efficiently
+                // The API returns all validators in one response when no pageToken is provided
                 response = await this.client.getAllValidators(); 
             } catch (apiError) {
                 logger.error(`Failed to fetch validators from API: ${apiError.message}`, {
@@ -148,7 +176,7 @@ class ValidatorMonitorService {
                 return [];
             }
             
-            logger.info(`Found ${allValidators.length} total known validators to check.`);
+            logger.info(`Found ${allValidators.length} total validators to check.`);
             
             const reports = [];
             const results = await Promise.allSettled(
@@ -318,12 +346,15 @@ class ValidatorMonitorService {
         try {
             logger.info('Health check: Testing getAllValidators API...');
             const startTime = Date.now();
-            const response = await this.client.getAllValidators();
+            
+            // Test pagination with a small limit for health check
+            const response = await this.client.getAllValidators({ limit: 10 });
             const responseTime = Date.now() - startTime;
             
             const validatorsData = response?.data?.data;
             const validatorCount = validatorsData?.validators?.length || 0;
             const hasStats = validatorsData?.validators?.[0]?.totalSlots !== undefined;
+            const hasPagination = validatorsData?.pagination !== undefined;
             
             results.checks.getAllValidators = {
                 status: 'healthy',
@@ -332,11 +363,13 @@ class ValidatorMonitorService {
                     statusCode: response?.status || 'unknown',
                     validatorCount: validatorCount,
                     dataStructure: validatorsData ? 'valid' : 'invalid',
-                    hasValidatorStats: hasStats
+                    hasValidatorStats: hasStats,
+                    supportsPagination: hasPagination,
+                    hasNextPageToken: !!validatorsData?.pagination?.nextPageToken
                 }
             };
             results.summary.passed++;
-            logger.info(`Health check: getAllValidators API - HEALTHY (${responseTime}ms, ${validatorCount} validators)`);
+            logger.info(`Health check: getAllValidators API - HEALTHY (${responseTime}ms, ${validatorCount} validators, pagination: ${hasPagination})`);
         } catch (error) {
             results.checks.getAllValidators = {
                 status: 'unhealthy',

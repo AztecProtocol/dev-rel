@@ -31,10 +31,10 @@ export class ValidatorRepository {
 		);
 	}
 
-	async findAll(pageToken?: string, includeHistory: boolean = true, historyLimit: number = 100): Promise<{ validators: Validator[]; nextPageToken?: string }> {
+	async findAll(pageToken?: string, includeHistory: boolean = true, historyLimit: number = 100, limit?: number): Promise<{ validators: Validator[]; nextPageToken?: string }> {
 		try {
-			// If no pageToken provided, fetch ALL validators
-			if (!pageToken) {
+			// If no limit provided, fetch ALL validators
+			if (limit === undefined) {
 				let allValidators: Validator[] = [];
 				let lastEvaluatedKey: any = undefined;
 				
@@ -66,11 +66,13 @@ export class ValidatorRepository {
 				
 				// Get history for all validators if requested
 				if (includeHistory && allValidators.length > 0) {
-					const validatorAddresses = allValidators.map(v => v.validatorAddress.toLowerCase());
+					// Pass original case addresses to getBatchValidatorHistory since DynamoDB keys are case-sensitive
+					const validatorAddresses = allValidators.map(v => v.validatorAddress);
 					const historyMap = await validatorHistoryRepository.getBatchValidatorHistory(validatorAddresses, historyLimit);
 					
 					// Attach history to each validator
 					allValidators.forEach(validator => {
+						// Use lowercase key for lookup since getBatchValidatorHistory stores with lowercase keys
 						validator.history = historyMap[validator.validatorAddress.toLowerCase()] || [];
 					});
 				}
@@ -81,13 +83,11 @@ export class ValidatorRepository {
 				};
 			}
 			
-			// Paginated request - return single page with limit
-			const ITEMS_PER_PAGE = 1000;
-			
+			// Paginated request - return single page with specified limit
 			// Build the scan command
 			const scanParams: any = {
 				TableName: this.tableName,
-				Limit: ITEMS_PER_PAGE,
+				Limit: limit,
 			};
 			
 			// Exclude history from the main table projection since it's in a separate table
@@ -96,12 +96,14 @@ export class ValidatorRepository {
 				"#epoch": "epoch" // epoch is a reserved word in DynamoDB
 			};
 			
-			// Use the provided page token as the ExclusiveStartKey
-			try {
-				const decodedToken = JSON.parse(Buffer.from(pageToken, 'base64').toString());
-				scanParams.ExclusiveStartKey = decodedToken;
-			} catch (error) {
-				logger.error({ error, pageToken }, "Invalid page token format");
+			// Use the provided page token as the ExclusiveStartKey if provided
+			if (pageToken) {
+				try {
+					const decodedToken = JSON.parse(Buffer.from(pageToken, 'base64').toString());
+					scanParams.ExclusiveStartKey = decodedToken;
+				} catch (error) {
+					logger.error({ error, pageToken }, "Invalid page token format");
+				}
 			}
 			
 			const command = new ScanCommand(scanParams);
@@ -119,12 +121,15 @@ export class ValidatorRepository {
 			
 			// Get history for validators if requested
 			if (includeHistory && validators.length > 0) {
-				const validatorAddresses = validators.map(v => v.validatorAddress.toLowerCase());
+				// Pass original case addresses to getBatchValidatorHistory since DynamoDB keys are case-sensitive
+				const validatorAddresses = validators.map(v => v.validatorAddress);
 				const historyMap = await validatorHistoryRepository.getBatchValidatorHistory(validatorAddresses, historyLimit);
 				
 				// Attach history to each validator
 				validators.forEach(validator => {
-					validator.history = historyMap[validator.validatorAddress.toLowerCase()] || [];
+					// Use lowercase key for lookup since getBatchValidatorHistory now stores with lowercase keys
+					const historyKey = validator.validatorAddress.toLowerCase();
+					validator.history = historyMap[historyKey] || [];
 				});
 			}
 			
@@ -243,7 +248,7 @@ export class ValidatorRepository {
 	}
 
 	async findByNodeOperator(
-		nodeOperatorId: string,
+		operatorAddress: string,
 		includeHistory: boolean = true,
 		historyLimit: number = 100
 	): Promise<Validator[]> {
@@ -253,7 +258,7 @@ export class ValidatorRepository {
 				IndexName: NODE_OPERATOR_INDEX_NAME,
 				KeyConditionExpression: "nodeOperatorId = :nodeOperatorId",
 				ExpressionAttributeValues: {
-					":nodeOperatorId": nodeOperatorId,
+					":nodeOperatorId": operatorAddress,
 				},
 				// Exclude history from projection
 				ProjectionExpression: "validatorAddress, nodeOperatorId, createdAt, updatedAt, peerId, isActive, #epoch, hasAttested24h, lastAttestationSlot, lastAttestationTimestamp, lastAttestationDate, lastProposalSlot, lastProposalTimestamp, lastProposalDate, missedAttestationsCount, missedProposalsCount, totalSlots, peerClient, peerCountry, peerCity, peerIpAddress, peerPort, peerIsSynced, peerBlockHeight, peerLastSeen",
@@ -266,19 +271,21 @@ export class ValidatorRepository {
 			
 			// Get history for all validators if requested
 			if (includeHistory && validators.length > 0) {
+				// Pass original case addresses to getBatchValidatorHistory since DynamoDB keys are case-sensitive
 				const validatorAddresses = validators.map(v => v.validatorAddress);
 				const historyMap = await validatorHistoryRepository.getBatchValidatorHistory(validatorAddresses, historyLimit);
 				
 				// Attach history to each validator
 				validators.forEach(validator => {
-					validator.history = historyMap[validator.validatorAddress] || historyMap[validator.validatorAddress.toLowerCase()] || [];
+					// Use lowercase key for lookup since getBatchValidatorHistory stores with lowercase keys
+					validator.history = historyMap[validator.validatorAddress.toLowerCase()] || [];
 				});
 			}
 			
 			return validators;
 		} catch (error) {
 			logger.error(
-				error, nodeOperatorId, this.tableName,
+				error, operatorAddress, this.tableName,
 				"Error querying Validators by node operator in repository"
 			);
 			throw new Error(
@@ -331,12 +338,12 @@ export class ValidatorRepository {
 
 	async create(
 		validatorAddress: string,
-		nodeOperatorId: string
+		operatorAddress: string
 	): Promise<Validator> {
 		const now = Date.now();
 		const newValidator: Validator = {
 			validatorAddress,
-			nodeOperatorId,
+			nodeOperatorId: operatorAddress,
 			createdAt: now,
 			updatedAt: now,
 		};
@@ -349,13 +356,13 @@ export class ValidatorRepository {
 			});
 			await this.client.send(command);
 			logger.info(
-				{ validatorAddress, nodeOperatorId, tableName: this.tableName },
+				{ validatorAddress, operatorAddress, tableName: this.tableName },
 				"Created new Validator in repository"
 			);
 			return newValidator;
 		} catch (error: any) {
 			logger.error(
-				{ error, validatorAddress, nodeOperatorId, tableName: this.tableName },
+				{ error, validatorAddress, operatorAddress, tableName: this.tableName },
 				"Error creating Validator in repository"
 			);
 			if (error.name === "ConditionalCheckFailedException") {
@@ -405,7 +412,7 @@ export class ValidatorRepository {
 
 	async updateNodeOperator(
 		validatorAddress: string,
-		newNodeOperatorId: string
+		newOperatorAddress: string
 	): Promise<boolean> {
 		try {
 			const command = new UpdateCommand({
@@ -415,14 +422,14 @@ export class ValidatorRepository {
 					"SET nodeOperatorId = :nodeOperatorId, updatedAt = :updatedAt",
 				ConditionExpression: "attribute_exists(validatorAddress)",
 				ExpressionAttributeValues: {
-					":nodeOperatorId": newNodeOperatorId,
+					":nodeOperatorId": newOperatorAddress,
 					":updatedAt": Date.now(),
 				},
 				ReturnValues: "NONE",
 			});
 			await this.client.send(command);
 			logger.info(
-				{ validatorAddress, newNodeOperatorId, tableName: this.tableName },
+				{ validatorAddress, newOperatorAddress, tableName: this.tableName },
 				"Updated Validator node operator in repository"
 			);
 			return true;
@@ -431,7 +438,7 @@ export class ValidatorRepository {
 				{
 					error,
 					validatorAddress,
-					newNodeOperatorId,
+					newOperatorAddress,
 					tableName: this.tableName,
 				},
 				"Error updating Validator node operator in repository"
@@ -625,7 +632,7 @@ export class ValidatorRepository {
 		let successCount = 0;
 		
 		// Process updates in smaller batches to avoid overwhelming DynamoDB
-		const batchSize = 5; // Further reduced from 10 to avoid throttling
+		const batchSize = 10; // Further reduced from 10 to avoid throttling
 		const maxRetries = 3;
 		
 		for (let i = 0; i < updates.length; i += batchSize) {
