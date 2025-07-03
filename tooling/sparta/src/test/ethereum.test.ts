@@ -65,7 +65,7 @@ describe("Ethereum Integration Tests", () => {
 		ETHEREUM_HOST: "https://test-rpc-url",
 		ETHEREUM_REGISTRY_ADDRESS: "0xregistry123",
 		MINTER_PRIVATE_KEY: "0xprivkey123",
-		MINIMUM_STAKE: "1000000",
+		DEPOSIT_AMOUNT: "1000000",
 		APPROVAL_AMOUNT: "2000000",
 		WITHDRAWER_ADDRESS: "0xwithdrawer123",
 		WITHDRAWER_PRIVATE_KEY: "0xwithdrawerprivkey123",

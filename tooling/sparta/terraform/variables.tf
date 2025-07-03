@@ -91,7 +91,7 @@ variable "funder_address_private_key" {
   sensitive   = true
 }
 
-variable "minimum_stake" {
+variable "DEPOSIT_AMOUNT" {
   description = "Minimum stake amount for staking"
   type        = string
 }

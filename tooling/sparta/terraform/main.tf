@@ -182,8 +182,8 @@ resource "aws_ecs_task_definition" "sparta_discord_bot" {
           value = var.funder_address_private_key
         },
         {
-          name  = "MINIMUM_STAKE"
-          value = var.minimum_stake
+          name  = "DEPOSIT_AMOUNT"
+          value = var.DEPOSIT_AMOUNT
         },
         {
           name  = "APPROVAL_AMOUNT"

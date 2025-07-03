@@ -46,7 +46,7 @@ ethereum_chain_id = "1337"                    # 1337 for local, 1 for mainnet
 # Default amount of ETH for transactions
 ethereum_value = "20ether"                 # Default funding amount
 
-minimum_stake = 100000000000000000000
+DEPOSIT_AMOUNT = 100000000000000000000
 
 # -----------------------------------------------------------------------------
 # SSH Configuration

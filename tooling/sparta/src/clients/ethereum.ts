@@ -7,14 +7,9 @@
 import {
 	createPublicClient,
 	createWalletClient,
-	encodeDeployData,
 	getContract,
-	getCreate2Address,
 	http,
-	padHex,
-	toHex,
 	TransactionReceipt,
-	WalletClient,
 } from "viem";
 
 import { RollupAbi } from "../utils/abis/rollup.js";
@@ -22,11 +17,7 @@ import { TestERC20Abi } from "../utils/abis/testERC20Abi.js";
 import { RegistryAbi } from "../utils/abis/registryAbi.js";
 import { privateKeyToAccount } from "viem/accounts";
 import type { Hex } from "viem";
-import { ForwarderBytecode, ForwarderAbi } from "../utils/abis/forwarder.js";
 import { logger } from "../utils/logger.js";
-
-export const DEPLOYER_ADDRESS: Hex =
-	"0x4e59b44847b379578588920cA78FbF26c0B4956C";
 
 /**
  * Ethereum chain configuration
@@ -50,25 +41,6 @@ const ethereumChain = {
 		},
 	},
 } as const;
-
-export function getExpectedAddress(args: [`0x${string}`], salt: Hex) {
-	const paddedSalt = padHex(salt, { size: 32 });
-	const calldata = encodeDeployData({
-		abi: ForwarderAbi,
-		bytecode: ForwarderBytecode,
-		args,
-	});
-	const address = getCreate2Address({
-		from: DEPLOYER_ADDRESS,
-		salt: paddedSalt,
-		bytecode: calldata,
-	});
-	return {
-		address,
-		paddedSalt,
-		calldata,
-	};
-}
 
 export class Ethereum {
 	constructor(
@@ -101,7 +73,7 @@ export class Ethereum {
 				client: walletClient,
 			});
 
-			const rollupAddress = await registry.read.getRollup();
+			const rollupAddress = await registry.read.getCanonicalRollup();
 
 			const rollup = getContract({
 				address: rollupAddress as `0x${string}`,
@@ -143,7 +115,7 @@ export class Ethereum {
 	stakingAssetFaucet = async (address: string) => {
 		const txHash = await this.stakingAsset.write.mint([
 			this.walletClient.account?.address as `0x${string}`,
-			process.env.MINIMUM_STAKE as unknown as string,
+			process.env.DEPOSIT_AMOUNT as unknown as string,
 		]);
 
 		const receipt = await this.publicClient.waitForTransactionReceipt({
@@ -154,10 +126,6 @@ export class Ethereum {
 	};
 
 	addValidator = async (address: string): Promise<TransactionReceipt[]> => {
-		const expectedAddress = getExpectedAddress(
-			[address as `0x${string}`],
-			address as `0x${string}`
-		);
 		const hashes = await Promise.all(
 			[
 				await this.stakingAsset.write.approve([
@@ -166,9 +134,8 @@ export class Ethereum {
 				]),
 				await this.rollup.write.deposit([
 					address,
-					expectedAddress.address,
 					process.env.WITHDRAWER_ADDRESS as `0x${string}`,
-					process.env.MINIMUM_STAKE as unknown as string,
+					process.env.DEPOSIT_AMOUNT as unknown as string,
 				]),
 			].map((txHash) =>
 				this.publicClient.waitForTransactionReceipt({
