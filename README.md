@@ -49,4 +49,5 @@ We keep all our external content and resources here, as well as tracking what we
 
 👾 [Noir Discord](https://discord.com/invite/JtqzkdeQ6G)
 
->If you can't find what you need here, feel free to submit an Issue so we can work on it. Or contact us on Discord
+> [!Note]
+> If you can't find what you need here, feel free to submit an Issue so we can work on it. Or contact us on Discord
