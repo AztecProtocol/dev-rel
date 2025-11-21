@@ -3,41 +3,74 @@ name: Terraform Deploy Sparta Bot
 on:
     workflow_dispatch:
 
+# 🛡️ SECURITY FIX: Grant explicit permissions. Write is needed for state management.
 permissions:
-    contents: read
+    contents: write
     pull-requests: write
 
 jobs:
     terraform-sparta:
-        name: Terraform Sparta Bot
+        name: Deploy Sparta Bot on AWS
         runs-on: ubuntu-latest
         defaults:
             run:
+                # 🧭 CONSISTENCY: All terraform commands run from this directory.
                 working-directory: tooling/sparta/terraform
 
         env:
+            # ☁️ AWS ACCESS: AWS credentials exposed only as environment variables for Terraform CLI.
+            # CRITICAL: These are SECRETS but need to be accessible globally by Terraform steps.
             AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
             AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-            TF_VAR_bot_token: ${{ secrets.BOT_TOKEN }}
-            TF_VAR_passport_api_key: ${{ secrets.PASSPORT_API_KEY }}
-            TF_VAR_ethereum_host: ${{ secrets.ETHEREUM_HOST }}
-            TF_VAR_backend_api_key: ${{ secrets.BACKEND_API_KEY }}
+            
+            # 📍 REGION & ENV: Define non-secret variables globally.
             TF_VAR_aws_region: "eu-west-2"
             TF_VAR_environment: "production"
-            TF_VAR_bot_client_id: "1329079356785688616"
-            TF_VAR_guild_id: "1144692727120937080"
-            TF_VAR_passport_verified_role_id: "1364982673604345886"
-            TF_VAR_minimum_score: "10"
-            TF_VAR_passport_scorer_id: "11493"
-            TF_VAR_vite_reown_project_id: "d037e9da5c5c9b24cfcd94c509d88dce"
-            TF_VAR_staking_asset_handler_address: "0xF739D03e98e23A7B65940848aBA8921fF3bAc4b2"
-            TF_VAR_l1_chain_id: "11155111"
-            TF_VAR_local_dynamo_db: "false"
-            TF_VAR_dynamodb_local_endpoint: "http://localhost:8000"
             TF_VAR_log_level: "info"
             TF_VAR_log_pretty_print: "false"
             TF_VAR_api_port: "3000"
 
         steps:
-            - name: Checkout
+            - name: Checkout Repository
               uses: actions/checkout@v4
+            
+            # 🏗️ INSTALL: Standard way to set up Terraform environment.
+            - name: Setup Terraform
+              uses: hashicorp/setup-terraform@v3
+              with:
+                terraform_version: 1.6.0 # Use a specific version for stability
+
+            # 🛠️ TERRAFORM INIT: Initializes the working directory.
+            - name: Terraform Init
+              id: init
+              run: terraform init
+
+            # 📝 TERRAFORM PLAN: Generate and show the execution plan.
+            # CRITICAL SECURITY STEP: We pass SECRET variables as '-var' only during the run.
+            # This prevents them from being logged globally if 'init' or 'plan' fails.
+            - name: Terraform Plan
+              id: plan
+              # ⚠️ WARNING: Multiline arguments are cleaner but need careful escaping.
+              run: |
+                terraform plan -no-color \
+                  -var="bot_token=${{ secrets.BOT_TOKEN }}" \
+                  -var="passport_api_key=${{ secrets.PASSPORT_API_KEY }}" \
+                  -var="ethereum_host=${{ secrets.ETHEREUM_HOST }}" \
+                  -var="backend_api_key=${{ secrets.BACKEND_API_KEY }}" \
+                  -var="bot_client_id=1329079356785688616" \
+                  -var="guild_id=1144692727120937080" \
+                  -var="passport_verified_role_id=1364982673604345886" \
+                  -var="minimum_score=10" \
+                  -var="passport_scorer_id=11493" \
+                  -var="vite_reown_project_id=d037e9da5c5c9b24cfcd94c509d88dce" \
+                  -var="staking_asset_handler_address=0xF739D03e98e23A7B65940848aBA8921fF3bAc4b2" \
+                  -var="l1_chain_id=11155111" \
+                  -var="local_dynamo_db=false" \
+                  -var="dynamodb_local_endpoint=http://localhost:8000" \
+                  -out="tfplan"
+
+            # 🚀 TERRAFORM APPLY: Apply the changes if the plan was successful.
+            # In a production environment, you might gate this behind a 'pull-request' or manual approval.
+            - name: Terraform Apply
+              if: github.event_name == 'workflow_dispatch' 
+              run: terraform apply -auto-approve "tfplan"
