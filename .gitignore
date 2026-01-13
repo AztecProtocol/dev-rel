@@ -3,3 +3,4 @@ proofs
 debug_*.json
 crs
 yarn-error.log
+.env
