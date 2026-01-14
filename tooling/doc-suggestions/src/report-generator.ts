@@ -70,11 +70,29 @@ Please update the documentation file to reflect these changes.
   if (suggestions.length === 0) {
     report += `## No Suggestions
 
-No documentation updates needed at this time. All referenced source files are either:
-- Unchanged in the scan period
-- Already have up-to-date documentation
+No documentation updates needed at this time.
 
 `;
+
+    // Show what was analyzed even when no updates needed
+    if (analysisResult.staleReferences.length > 0) {
+      report += `### Reviewed References
+
+The following documentation files were flagged for review but determined to not need updates:
+
+| Documentation | Referenced Source | Reason |
+|--------------|-------------------|--------|
+`;
+      for (const ref of analysisResult.staleReferences) {
+        const prLink = ref.recentSourceChanges.find((c) => c.pr_number)?.pr_number;
+        const prText = prLink ? `PR #${prLink}` : 'Recent commits';
+        report += `| \`${ref.docPath}\` | \`${ref.sourceFile}\` | ${prText} - no user-facing changes |
+`;
+      }
+      report += `
+`;
+    }
+
     return report;
   }
 
