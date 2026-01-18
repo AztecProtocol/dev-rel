@@ -1,15 +1,39 @@
 {
-	"build": {
-		"context": ".",
-		"dockerfile": "Dockerfile"
-	},
-  "features": { "ghcr.io/devcontainers/features/docker-in-docker:2": {}},
-  "customizations": {
-		// Configure properties specific to VS Code.
-		"vscode": {
-			// Set *default* container specific settings.json values on container create.
-			"settings": {},
-			"extensions": ["noir-lang.vscode-noir"]
-		  }
+  "name": "Somnia Noir Dev",
+  "build": {
+    "context": ".",
+    "dockerfile": "Dockerfile"
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "version": "latest",
+      "enableNonRootDocker": "true",
+      "moby": "true"
     }
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+          "source.organizeImports": "explicit"
+        },
+        "files.trimTrailingWhitespace": true
+      },
+      "extensions": [
+        // 🛡️ CORE: Noir Language Support
+        "noir-lang.vscode-noir",
+        // 🚀 QoL: TOML support is essential for Nargo.toml files
+        "tamasfe.even-better-toml",
+        // 🐳 DOCKER: Since you are using DinD, the Docker extension is helpful
+        "ms-azuretools.vscode-docker"
+      ]
+    }
+  },
+  // 🧠 SMART TIP: Define what user the container runs as. 
+  // If your Dockerfile uses the 'node' user, uncomment below:
+  // "remoteUser": "node",
+  
+  // Optional: Run a command after the container is created (e.g., check noir version)
+  "postCreateCommand": "echo 'Container Ready!'"
 }
