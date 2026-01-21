@@ -27,41 +27,9 @@ export function generateReport(
   let report = `# Documentation Update Suggestions
 
 Generated: ${scanDate.toISOString()}
-Scan period: Last ${lookbackDays} days
+Lookback: ${lookbackDays} days | Docs analyzed: ${analysisResult.totalDocsAnalyzed} | References: ${analysisResult.totalReferencesChecked} | Stale: ${analysisResult.staleReferences.length}
 
-## Summary
-
-| Metric | Value |
-|--------|-------|
-| Docs with references analyzed | ${analysisResult.totalDocsAnalyzed} |
-| Total references checked | ${analysisResult.totalReferencesChecked} |
-| Stale references found | ${analysisResult.staleReferences.length} |
-| Suggestions generated | ${suggestions.length} |
-
-### By Priority
-
-- **High priority**: ${high.length}
-- **Medium priority**: ${medium.length}
-- **Low priority**: ${low.length}
-
----
-
-## How to Use This Report
-
-1. Review the suggestions below, starting with high priority items
-2. For items you want to address, copy the relevant section
-3. Open Claude Code in the aztec-packages repo
-4. Paste the suggestion and ask Claude to make the changes
-
-### Example prompt for Claude Code:
-
-\`\`\`
-The following documentation needs updating based on source code changes:
-
-[paste suggestion section here]
-
-Please update the documentation file to reflect these changes.
-\`\`\`
+**Suggestions**: ${high.length} high, ${medium.length} medium, ${low.length} low
 
 ---
 
@@ -146,30 +114,12 @@ function formatSuggestion(s: DocumentationSuggestion): string {
 
   return `#### \`${s.docPath}\`
 
-**Source file**: \`${s.sourceFile}\`
-**Related PR**: ${prLink ? `[${s.relevantPr}](${prLink})` : 'N/A'}
-**Confidence**: ${Math.round(s.confidence * 100)}%
+**Source**: \`${s.sourceFile}\` | **PR**: ${prLink ? `[${s.relevantPr}](${prLink})` : 'N/A'} | **Confidence**: ${Math.round(s.confidence * 100)}%
 
-**What changed**: ${s.changeSummary}
+${s.changeSummary}
 
-**Suggested updates**:
+**Updates needed**:
 ${s.suggestedUpdates.map((u) => `- ${u}`).join('\n')}
-
-<details>
-<summary>Copy for Claude Code</summary>
-
-\`\`\`
-Documentation file: ${s.docPath}
-Source file: ${s.sourceFile}
-${prLink ? `Related PR: ${prLink}` : ''}
-
-What changed: ${s.changeSummary}
-
-Please make these updates to the documentation:
-${s.suggestedUpdates.map((u) => `- ${u}`).join('\n')}
-\`\`\`
-
-</details>
 
 ---
 
