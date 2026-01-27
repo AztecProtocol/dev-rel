@@ -64,7 +64,7 @@ We’re always looking to support applications that utilize privacy and ZK proof
 You could try to implement these in vanilla Noir, or as Aztec contracts.
 
 - **zkPatreon** - privately unlock token-gated content by using Ethereum Storage Proofs in Noir
-- **zkEmail** - privately prove that some email was received, while hiding any private data in the e-mail, without trusting a centralized server to keep your privacy. You can use [this library](https://github.com/zkemail/zkemail.nr).
+- **zkEmail** - privately prove that some email was received, while hiding any private data in the e-mail, without trusting a centralized server to protect your privacy. You can use [this library](https://github.com/zkemail/zkemail.nr).
 - **Privacy Preserving Rewards Protocol** - an app or protocol that rewards participants for doing a specific on-chain action without revealing how much. This [tutorial](https://docs.aztec.network/developers/tutorials/codealong/contract_tutorials/crowdfunding_contract) may be helpful.
 
 ## Gaming 👾
